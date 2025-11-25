@@ -4,7 +4,7 @@ import NavMenu from './nav-menu'
 import { Button } from './ui/button'
 import Link from 'next/link'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
-import UserDp from './user-dp'
+import Avatar from './avatar'
 
 const Navbar = () => {
   return (
@@ -39,7 +39,8 @@ const Navbar = () => {
         <TooltipContent>Click to upgrade to Pro for unlimited access</TooltipContent>
         </Link>
         </Tooltip>
-        <UserDp/>
+        {/* User Avatar */}
+        <Avatar/>
         </div>
 
     </div>

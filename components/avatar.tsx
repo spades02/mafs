@@ -4,7 +4,7 @@ import { Button } from './ui/button'
 import { ChevronDown, CreditCard, LogOut, SettingsIcon, User } from 'lucide-react'
 import Link from 'next/link'
 
-const UserDp = () => {
+const Avatar = () => {
   return (
     <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -50,4 +50,4 @@ const UserDp = () => {
   )
 }
 
-export default UserDp
+export default Avatar

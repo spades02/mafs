@@ -145,4 +145,24 @@
   .animate-glow-pulse-green {
     animation: glow-pulse-green 3s ease-in-out infinite;
   }
+  .bg-digital-noise {
+    background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255, 255, 255, 0.015) 2px,
+        rgba(255, 255, 255, 0.015) 4px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        rgba(255, 255, 255, 0.015) 2px,
+        rgba(255, 255, 255, 0.015) 4px
+      );
+  }
+  .page-glow-frame {
+    box-shadow: inset 0 0 80px rgba(34, 197, 94, 0.08), inset 0 0 40px rgba(6, 182, 212, 0.06), 0 0 60px
+      rgba(34, 197, 94, 0.05);
+  }
 }
