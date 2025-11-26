@@ -9,36 +9,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useAnalysisStore } from "@/store/useAnalysisStore"
+import { fights } from "@/lib/data/fights"
+import { events } from "@/lib/data/events"
+import { Fight } from "@/lib/data/mock-data"
 
-export function FightSelector() {
+export function FightSelector({
+  selectedFightIndex,
+  setSelectedFightIndex
+}: {
+  selectedFightIndex: number
+  setSelectedFightIndex: (index: number) => void
+}) {
   const [selectedEvent, setSelectedEvent] = useState("")
-  const [selectedFight, setSelectedFight] = useState("")
   const [oddsMode, setOddsMode] = useState<"live" | "manual">("live")
   const [fighterAOdds, setFighterAOdds] = useState("")
   const [fighterBOdds, setFighterBOdds] = useState("")
   const [open, setOpen] = useState(false)
 
-  const events = [
-    { value: "ufc-300", label: "UFC 300 - Las Vegas" },
-    { value: "ufc-301", label: "UFC 301 - Rio de Janeiro" },
-    { value: "fight-night-245", label: "Fight Night 245 - Singapore" },
-    { value: "ufc-302", label: "UFC 302 - Newark" },
-  ]
-
-  const fights = [
-    { value: "pereira-hill", label: "Alex Pereira vs Jamahal Hill" },
-    { value: "adesanya-strickland", label: "Israel Adesanya vs Sean Strickland" },
-    { value: "jones-miocic", label: "Jon Jones vs Stipe Miocic" },
-    { value: "omalley-vera", label: "Sean O'Malley vs Marlon Vera" },
-  ]
-
-  const canAnalyze = selectedEvent && selectedFight && (oddsMode === "live" || (fighterAOdds && fighterBOdds))
+const canAnalyze =
+  selectedEvent &&
+  selectedFightIndex !== null &&
+  (oddsMode === "live" || (fighterAOdds && fighterBOdds));
 
   const setAnalysisRun = useAnalysisStore((s) => s.setAnalysisRun);
 
   const handleAnalysisRun = () => {
     setAnalysisRun(true);
   };
+
+  const setAnalysisRunFalse = () =>{
+    setAnalysisRun(false);
+  }
+
   return (
     <div className="relative rounded-3xl border border-white/30 bg-linear-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl p-10 shadow-2xl shadow-cyan-500/20 hover:shadow-cyan-500/30 transition-all duration-500 overflow-hidden">
       {/* Animated background grid */}
@@ -84,7 +86,7 @@ export function FightSelector() {
                 <SelectValue placeholder="Select UFC event..." />
               </SelectTrigger>
               <SelectContent className="bg-slate-900 border-white/20">
-                {events.map((event) => (
+                {events.map((event: { value: string; label: string }) => (
                   <SelectItem key={event.value} value={event.value} className="text-white hover:bg-slate-800">
                     {event.label}
                   </SelectItem>
@@ -104,26 +106,32 @@ export function FightSelector() {
                   variant="outline"
                   role="combobox"
                   aria-expanded={open}
-                  className="w-full justify-between bg-slate-950/60 border-white/30 text-white hover:bg-slate-900/60 hover:border-cyan-400/60 focus:border-cyan-400 transition-all h-12 rounded-xl shadow-lg hover:shadow-cyan-500/20 focus:ring-2 focus:ring-cyan-400/50"
+                  className="w-full justify-between bg-slate-950/60 border-white/30 text-white hover:text-white hover:bg-slate-900/60 hover:border-cyan-400/60 focus:border-cyan-400 transition-all h-12 rounded-xl shadow-lg hover:shadow-cyan-500/20 focus:ring-2 focus:ring-cyan-400/50"
                 >
-                  {selectedFight ? fights.find((fight) => fight.value === selectedFight)?.label : "Search fighters..."}
+                {selectedFightIndex !== null
+  ? fights[selectedFightIndex].label
+  : "Search fighters..."}
                   <Search className="ml-2 h-4 w-4 shrink-0 opacity-60" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[360px] p-0 bg-slate-900 border-white/20 shadow-2xl">
-                <Command>
+                <Command className="bg-slate-900 text-white">
                   <CommandInput placeholder="Type fighter names..." className="h-12" />
                   <CommandList>
                     <CommandEmpty>No fight found.</CommandEmpty>
                     <CommandGroup>
-                      {fights.map((fight) => (
+                      {fights.map((fight: { value: string; label: string }) => (
                         <CommandItem
                           key={fight.value}
                           value={fight.value}
-                          onSelect={(currentValue) => {
-                            setSelectedFight(currentValue === selectedFight ? "" : currentValue)
+                          onSelect={(id: string) => {
+                            console.log(id)
+                            const idx = fights.findIndex((f) => f.value === id)
+                            setSelectedFightIndex(idx)
+                            setAnalysisRunFalse();
                             setOpen(false)
                           }}
+
                           className="py-3 text-white hover:bg-slate-800 cursor-pointer"
                         >
                           {fight.label}

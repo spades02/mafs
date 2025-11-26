@@ -1,7 +1,8 @@
-"use client"
 import Breadcrumbs from "@/components/breadcrumbs";
+import FightAnalysisContent from "@/components/fight-analysis";
 import { FightSelector } from "@/components/fight-selector";
 import InitialUI from "@/components/initial-ui";
+import { PageFooter } from "@/components/page-footer";
 
 export default function Home() {
   return (
@@ -10,10 +11,11 @@ export default function Home() {
       {/* Breadcrumbs */}
       <Breadcrumbs />
       {/* Choose fight Card */}
-      <FightSelector />
+      <FightAnalysisContent/>
       {/* UI when user has not clicked Run Analysis button */}
       <InitialUI/>
       </div>
+      <PageFooter />
     </main>
   );
 }
