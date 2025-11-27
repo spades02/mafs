@@ -11,7 +11,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useAnalysisStore } from "@/store/useAnalysisStore"
 import { fights } from "@/lib/data/fights"
 import { events } from "@/lib/data/events"
-import { Fight } from "@/lib/data/mock-data"
 
 export function FightSelector({
   selectedFightIndex,
@@ -109,7 +108,7 @@ const canAnalyze =
                   className="w-full justify-between bg-slate-950/60 border-white/30 text-white hover:text-white hover:bg-slate-900/60 hover:border-cyan-400/60 focus:border-cyan-400 transition-all h-12 rounded-xl shadow-lg hover:shadow-cyan-500/20 focus:ring-2 focus:ring-cyan-400/50"
                 >
                 {selectedFightIndex !== null
-  ? fights[selectedFightIndex].label
+  ? fights[selectedFightIndex]
   : "Search fighters..."}
                   <Search className="ml-2 h-4 w-4 shrink-0 opacity-60" />
                 </Button>
@@ -120,13 +119,13 @@ const canAnalyze =
                   <CommandList>
                     <CommandEmpty>No fight found.</CommandEmpty>
                     <CommandGroup>
-                      {fights.map((fight: { value: string; label: string }) => (
+                      {fights.map((fight) => (
                         <CommandItem
-                          key={fight.value}
-                          value={fight.value}
+                          key={fight}
+                          value={fight}
                           onSelect={(id: string) => {
                             console.log(id)
-                            const idx = fights.findIndex((f) => f.value === id)
+                            const idx = fights.findIndex((f) => f === id)
                             setSelectedFightIndex(idx)
                             setAnalysisRunFalse();
                             setOpen(false)
@@ -134,7 +133,7 @@ const canAnalyze =
 
                           className="py-3 text-white hover:bg-slate-800 cursor-pointer"
                         >
-                          {fight.label}
+                          {fight}
                         </CommandItem>
                       ))}
                     </CommandGroup>
