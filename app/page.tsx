@@ -1,6 +1,5 @@
 import Breadcrumbs from "@/components/breadcrumbs";
 import FightAnalysisContent from "@/components/fight-analysis";
-import { FightSelector } from "@/components/fight-selector";
 import InitialUI from "@/components/initial-ui";
 import { PageFooter } from "@/components/page-footer";
 
