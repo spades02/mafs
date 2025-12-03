@@ -8,7 +8,7 @@ import { Search, Brain, Zap } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useAnalysisStore } from "@/store/useAnalysisStore"
+import { useAnalysisStore } from "@/lib/hooks/useAnalysisStore"
 import { fights } from "@/lib/data/fights"
 import { events } from "@/lib/data/events"
 

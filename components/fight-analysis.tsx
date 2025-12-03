@@ -4,7 +4,7 @@ import { useState } from "react"
 import { FightSelector } from "./fight-selector"
 import DashboardContent from "./dashboard-content"
 import { mockCardData } from "@/lib/data/mock-data"
-import { useAnalysisStore } from "@/store/useAnalysisStore"
+import { useAnalysisStore } from "@/lib/hooks/useAnalysisStore"
 
 export default function FightAnalysisContent() {
   const [selectedFightIndex, setSelectedFightIndex] = useState<number | null>(null)

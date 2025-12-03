@@ -1,5 +1,5 @@
 "use client"
-import { useAnalysisStore } from '@/store/useAnalysisStore'
+import { useAnalysisStore } from '@/lib/hooks/useAnalysisStore'
 
 const InitialUI = () => {
     const analysisRun = useAnalysisStore((s)=>s.analysisRun)
