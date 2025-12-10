@@ -36,15 +36,15 @@ const HistoryTable = () => {
     })
 
   return (
-    <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-white/10 rounded-2xl p-8 mb-8">
+    <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-foreground/10 rounded-2xl p-8 mb-8">
         <div className="flex items-center gap-4 mb-6">
           <Input
             type="text"
             placeholder="Search events..."
-            className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-500"
+            className="flex-1 px-4 py-3 bg-foreground/5 border border-foreground/10 rounded-lg text-foreground placeholder:text-gray-500"
           />
           <Select value={eventsFilter} onValueChange={setEventsFilter}>
-            <SelectTrigger className="flex justify-between gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+            <SelectTrigger className="flex justify-between gap-2 px-4 py-3 bg-foreground/5 border border-foreground/10 rounded-lg text-sm text-foreground">
                 <SelectValue placeholder="All Events" />
             </SelectTrigger>
             <SelectContent>
@@ -57,27 +57,27 @@ const HistoryTable = () => {
           <div>
           <Label className="flex items-center text-sm text-gray-300">
             <Input type="checkbox" className="rounded h-4" />
-            <span className='whitespace-nowrap'>Official AI Plays Only</span>
+            <span className='foregroundspace-nowrap'>Official AI Plays Only</span>
           </Label>
           </div>
         </div>
 
         <div className="space-y-4">
           {filteredEvents.map((event, i) => (
-            <div key={i} className="border border-white/10 rounded-xl overflow-hidden">
+            <div key={i} className="border border-foreground/10 rounded-xl overflow-hidden">
               <button
                 onClick={() => setExpandedEvent(expandedEvent === i ? null : i)}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-foreground/5 transition-colors"
               >
                 <div className="flex items-center gap-6">
                   <div>
-                    <h3 className="text-lg font-bold text-white text-left">{event.name}</h3>
+                    <h3 className="text-lg font-bold text-foreground text-left">{event.name}</h3>
                     <p className="text-sm text-gray-400">{event.date}</p>
                   </div>
                   <div className="flex items-center gap-6 text-sm">
                     <div>
                       <p className="text-gray-400">Record</p>
-                      <p className="text-white font-medium">{event.record}</p>
+                      <p className="text-foreground font-medium">{event.record}</p>
                     </div>
                     <div>
                       <p className="text-gray-400">ROI</p>
@@ -88,11 +88,11 @@ const HistoryTable = () => {
                     </div>
                     <div>
                       <p className="text-gray-400">Units</p>
-                      <p className="text-white font-medium">{event.units}</p>
+                      <p className="text-foreground font-medium">{event.units}</p>
                     </div>
                     <div>
                       <p className="text-gray-400">Hit Rate</p>
-                      <p className="text-white font-medium">{event.hitRate}</p>
+                      <p className="text-foreground font-medium">{event.hitRate}</p>
                     </div>
                   </div>
                 </div>
@@ -102,13 +102,13 @@ const HistoryTable = () => {
               </button>
 
               {expandedEvent === i && (
-                <div className="px-6 py-4 border-t border-white/10 bg-white/5">
+                <div className="px-6 py-4 border-t border-foreground/10 bg-foreground/5">
                   <p className="text-sm text-gray-400 mb-4">Fight Results</p>
                   <div className="space-y-2">
                     {["Pereira ML ✓", "Oliveira KO/TKO ✓", "Holloway Over 4.5 ✗", "Zhang Under 2.5 ✓"].map(
                       (fight, j) => (
-                        <div key={j} className="flex items-center justify-between py-2 px-4 bg-white/5 rounded-lg">
-                          <span className="text-sm text-white">{fight}</span>
+                        <div key={j} className="flex items-center justify-between py-2 px-4 bg-foreground/5 rounded-lg">
+                          <span className="text-sm text-foreground">{fight}</span>
                           <span
                             className={`text-xs font-medium ${fight.includes("✓") ? "text-green-400" : "text-red-400"}`}
                           >

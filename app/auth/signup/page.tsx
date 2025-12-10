@@ -9,10 +9,10 @@ export default function SignupPage() {
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="w-12 h-12 rounded-lg bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <Target className="w-7 h-7 text-white" />
+            <Target className="w-7 h-7 text-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">MAFS</h1>
+            <h1 className="text-2xl font-bold text-foreground">MAFS</h1>
             <p className="text-xs text-gray-400">Multi-Agent Fight Simulator</p>
           </div>
         </div>

@@ -18,9 +18,9 @@ export function JsonOutputPanel({ fight }: JsonOutputPanelProps) {
   }
 
   return (
-    <Card className="p-6 bg-[#0f1419] border-white/10 elevation-md">
+    <Card className="p-6 bg-[#0f1419] border-foreground/10 elevation-md">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-white">JSON Output</h2>
+        <h2 className="text-lg font-bold text-foreground">JSON Output</h2>
         <Button
           variant="outline"
           size="sm"

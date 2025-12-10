@@ -39,8 +39,8 @@ export function BettingSlipProps({ fight }: BettingSlipPropsProps) {
   if (topProps.length === 0) return null
 
   return (
-    <Card className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border-white/10 p-8 elevation-lg">
-      <h3 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+    <Card className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border-foreground/10 p-8 elevation-lg">
+      <h3 className="text-2xl font-bold text-foreground mb-8 flex items-center gap-3">
         <div className="w-1 h-8 bg-linear-to-b from-green-500 to-emerald-500 rounded-full" />
         Top Value Props
       </h3>
@@ -66,7 +66,7 @@ export function BettingSlipProps({ fight }: BettingSlipPropsProps) {
               {/* Pick */}
               <div className="mb-6">
                 <p className="text-xs text-gray-400 mb-2">SELECTION</p>
-                <p className="text-xl font-bold text-white leading-tight">{outcome.selection}</p>
+                <p className="text-xl font-bold text-foreground leading-tight">{outcome.selection}</p>
               </div>
 
               {/* Confidence Bar */}
@@ -122,7 +122,7 @@ export function BettingSlipProps({ fight }: BettingSlipPropsProps) {
               </div>
 
               {/* Rationale */}
-              <div className="pt-4 border-t border-white/10">
+              <div className="pt-4 border-t border-foreground/10">
                 <div className="flex items-start gap-2">
                   <TrendingUp className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                   <p className="text-xs text-gray-400 leading-relaxed">{outcome.rationale}</p>

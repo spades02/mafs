@@ -3,10 +3,10 @@ import { Zap } from 'lucide-react'
 
 const CurrentPlan = () => {
   return (
-    <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-white/10 rounded-2xl p-8 hover-glow">
+    <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-foreground/10 rounded-2xl p-8 hover-glow">
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-white mb-2">Current Plan</h2>
+              <h2 className="text-xl font-bold text-foreground mb-2">Current Plan</h2>
               <p className="text-3xl font-bold bg-linear-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 Free Plan
               </p>
@@ -18,18 +18,18 @@ const CurrentPlan = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/10">
+          <div className="grid grid-cols-3 gap-4 pt-6 border-t border-foreground/10">
             <div>
               <p className="text-sm text-gray-400">Next Billing Date</p>
-              <p className="text-lg font-semibold text-white">—</p>
+              <p className="text-lg font-semibold text-foreground">—</p>
             </div>
             <div>
               <p className="text-sm text-gray-400">Fights Used Today</p>
-              <p className="text-lg font-semibold text-white">0 / 1</p>
+              <p className="text-lg font-semibold text-foreground">0 / 1</p>
             </div>
             <div>
               <p className="text-sm text-gray-400">Monthly Spend</p>
-              <p className="text-lg font-semibold text-white">$0.00</p>
+              <p className="text-lg font-semibold text-foreground">$0.00</p>
             </div>
           </div>
         </div>

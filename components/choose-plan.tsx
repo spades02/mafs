@@ -4,12 +4,12 @@ import { Check, Lock, Zap } from 'lucide-react'
 const ChoosePlan = () => {
   return (
     <div>
-          <h2 className="text-2xl font-bold text-white mb-6">Choose Your Plan</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-6">Choose Your Plan</h2>
           <div className="grid md:grid-cols-2 gap-6">
             {/* Free */}
-            <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-white/10 rounded-2xl p-8 hover-glow transition-all duration-300">
-              <h3 className="text-2xl font-bold text-white mb-2">Free</h3>
-              <p className="text-4xl font-bold text-white mb-1">
+            <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-foreground/10 rounded-2xl p-8 hover-glow transition-all duration-300">
+              <h3 className="text-2xl font-bold text-foreground mb-2">Free</h3>
+              <p className="text-4xl font-bold text-foreground mb-1">
                 $0<span className="text-lg text-gray-400">/mo</span>
               </p>
               <p className="text-sm text-gray-400 mb-6">Try MAFS with limited access</p>
@@ -43,12 +43,12 @@ const ChoosePlan = () => {
 
             {/* Pro */}
             <div className="bg-linear-to-br from-green-500/10 to-emerald-500/10 border-2 border-green-500/30 rounded-2xl p-8 relative overflow-hidden hover-glow transition-all duration-300 transform hover:scale-[1.02]">
-              <div className="absolute top-4 right-4 px-3 py-1 bg-linear-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full shadow-lg shadow-green-500/50 animate-glow-pulse-green">
+              <div className="absolute top-4 right-4 px-3 py-1 bg-linear-to-r from-green-500 to-emerald-500 text-foreground text-xs font-bold rounded-full shadow-lg shadow-green-500/50 animate-glow-pulse-green">
                 RECOMMENDED
               </div>
 
-              <h3 className="text-2xl font-bold text-white mb-2">Pro</h3>
-              <p className="text-4xl font-bold text-white mb-1">
+              <h3 className="text-2xl font-bold text-foreground mb-2">Pro</h3>
+              <p className="text-4xl font-bold text-foreground mb-1">
                 $79<span className="text-lg text-gray-400">/mo</span>
               </p>
               <p className="text-sm text-gray-400 mb-6">For serious bettors who want the edge</p>
@@ -65,7 +65,7 @@ const ChoosePlan = () => {
                   "Priority analysis speed",
                   "Everything unlocked",
                 ].map((feature) => (
-                  <li key={feature} className="flex items-center gap-3 text-white">
+                  <li key={feature} className="flex items-center gap-3 text-foreground">
                     <Check className="w-5 h-5 text-green-400 shrink-0" />
                     {feature}
                   </li>

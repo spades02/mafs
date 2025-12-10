@@ -3,40 +3,37 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Custom MAFS dark neon terminal theme */
 :root {
-  --background: #0b0f14;
-  --foreground: oklch(0.985 0 0);
-  --card: #0f1419;
-  --card-foreground: oklch(0.985 0 0);
-  --popover: #0f1419;
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: #3b82f6;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.1);
-  --ring: oklch(0.439 0 0);
-  --chart-1: #3b82f6;
-  --chart-2: #46a758;
-  --chart-3: #f59e0b;
-  --chart-4: #ef4444;
-  --chart-5: #8b5cf6;
+  --background: oklch(0.12 0.02 240);
+  --foreground: oklch(0.95 0.01 180);
+  --card: oklch(0.16 0.02 240);
+  --card-foreground: oklch(0.95 0.01 180);
+  --popover: oklch(0.16 0.02 240);
+  --popover-foreground: oklch(0.95 0.01 180);
+  --primary: oklch(0.65 0.15 180);
+  --primary-foreground: oklch(0.12 0.02 240);
+  --secondary: oklch(0.22 0.02 240);
+  --secondary-foreground: oklch(0.95 0.01 180);
+  --muted: oklch(0.22 0.02 240);
+  --muted-foreground: oklch(0.55 0.02 180);
+  --accent: oklch(0.65 0.15 180);
+  --accent-foreground: oklch(0.12 0.02 240);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.95 0.01 180);
+  --border: oklch(0.25 0.02 240);
+  --input: oklch(0.22 0.02 240);
+  --ring: oklch(0.65 0.15 180);
+  --chart-1: oklch(0.65 0.15 180);
+  --chart-2: oklch(0.6 0.15 150);
+  --chart-3: oklch(0.7 0.12 200);
+  --chart-4: oklch(0.55 0.18 160);
+  --chart-5: oklch(0.75 0.1 190);
   --radius: 0.75rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --neon-teal: oklch(0.65 0.15 180);
+  --neon-green: oklch(0.7 0.15 150);
+  --navy-dark: oklch(0.12 0.02 240);
+  --navy-light: oklch(0.16 0.02 240);
 }
 
 .dark {
@@ -75,7 +72,6 @@
 }
 
 @theme inline {
-  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
   --font-sans: "Geist", "Geist Fallback";
   --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
@@ -123,377 +119,13 @@
   body {
     @apply bg-background text-foreground;
   }
-}
 
-@layer utilities {
-  /* Refined color variables for cleaner 3-color system */
-  :root {
-    --color-value: #22c55e; /* Green = Value/Good */
-    --color-caution: #eab308; /* Yellow = Caution */
-    --color-danger: #ef4444; /* Red = Danger */
-    --color-neutral: #3b82f6; /* Blue = Neutral */
+  /* Neon glow effects for terminal aesthetic */
+  .neon-glow {
+    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
   }
 
-  /* Enhanced glow animations for more dopamine */
-  @keyframes glow-pulse {
-    0%,
-    100% {
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.25), 0 0 40px rgba(59, 130, 246, 0.12);
-    }
-    50% {
-      box-shadow: 0 0 35px rgba(59, 130, 246, 0.45), 0 0 70px rgba(59, 130, 246, 0.22);
-    }
-  }
-
-  @keyframes glow-pulse-green {
-    0%,
-    100% {
-      box-shadow: 0 0 20px rgba(34, 197, 94, 0.25), 0 0 40px rgba(34, 197, 94, 0.12);
-    }
-    50% {
-      box-shadow: 0 0 35px rgba(34, 197, 94, 0.45), 0 0 70px rgba(34, 197, 94, 0.22);
-    }
-  }
-
-  @keyframes glow-pulse-yellow {
-    0%,
-    100% {
-      box-shadow: 0 0 20px rgba(245, 158, 11, 0.25), 0 0 40px rgba(245, 158, 11, 0.12);
-    }
-    50% {
-      box-shadow: 0 0 35px rgba(245, 158, 11, 0.45), 0 0 70px rgba(245, 158, 11, 0.22);
-    }
-  }
-
-  @keyframes glow-pulse-red {
-    0%,
-    100% {
-      box-shadow: 0 0 20px rgba(239, 68, 68, 0.25), 0 0 40px rgba(239, 68, 68, 0.12);
-    }
-    50% {
-      box-shadow: 0 0 35px rgba(239, 68, 68, 0.45), 0 0 70px rgba(239, 68, 68, 0.22);
-    }
-  }
-
-  @keyframes flow-pulse {
-    0%,
-    100% {
-      opacity: 0.5;
-    }
-    50% {
-      opacity: 1;
-    }
-  }
-
-  @keyframes particle-float {
-    0%,
-    100% {
-      transform: translateY(0) translateX(0);
-    }
-    33% {
-      transform: translateY(-20px) translateX(10px);
-    }
-    66% {
-      transform: translateY(-10px) translateX(-10px);
-    }
-  }
-
-  /* Added gradient-shift animation for fusion bar */
-  @keyframes gradient-shift {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
-  }
-
-  /* Added animation for confidence bar fill */
-  @keyframes bar-fill {
-    from {
-      width: 0;
-    }
-    to {
-      width: var(--final-width);
-    }
-  }
-
-  /* Added fade-in animation for cards */
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Added smooth card entrance animation */
-  @keyframes fade-in-up {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Added slide-up animation for sticky bet slip */
-  @keyframes slide-up {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  /* Added expand animation for manual odds reveal */
-  @keyframes expand {
-    from {
-      max-height: 0;
-      opacity: 0;
-      margin-top: 0;
-    }
-    to {
-      max-height: 200px;
-      opacity: 1;
-      margin-top: 0.75rem;
-    }
-  }
-
-  /* Added new animation for tactile button press effect */
-  @keyframes button-press {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(0.98);
-    }
-    100% {
-      transform: scale(1);
-    }
-  }
-
-  /* Added donut chart animation */
-  @keyframes donut-fill {
-    from {
-      stroke-dashoffset: 283;
-    }
-    to {
-      stroke-dashoffset: var(--offset);
-    }
-  }
-
-  /* Added animated gradient for hero panel */
-  @keyframes hero-gradient {
-    0%,
-    100% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-  }
-
-  .animate-glow-pulse {
-    animation: glow-pulse 3s ease-in-out infinite;
-  }
-
-  .animate-glow-pulse-green {
-    animation: glow-pulse-green 3s ease-in-out infinite;
-  }
-
-  .animate-glow-pulse-yellow {
-    animation: glow-pulse-yellow 3s ease-in-out infinite;
-  }
-
-  .animate-glow-pulse-red {
-    animation: glow-pulse-red 3s ease-in-out infinite;
-  }
-
-  .animate-flow-pulse {
-    animation: flow-pulse 2s ease-in-out infinite;
-  }
-
-  .animate-particle {
-    animation: particle-float 20s ease-in-out infinite;
-  }
-
-  /* Added animation classes for new components */
-  .animate-fade-in {
-    animation: fade-in 0.5s ease-out forwards;
-  }
-
-  .animate-fade-in-up {
-    animation: fade-in-up 0.6s ease-out forwards;
-  }
-
-  .animate-slide-up {
-    animation: slide-up 0.3s ease-out forwards;
-  }
-
-  .animate-expand {
-    animation: expand 0.3s ease-out forwards;
-  }
-
-  .animate-button-press {
-    animation: button-press 0.2s ease-out;
-  }
-
-  .animate-donut {
-    animation: donut-fill 1.5s ease-out forwards;
-  }
-
-  .animate-hero-gradient {
-    background-size: 200% 200%;
-    animation: hero-gradient 15s ease infinite;
-  }
-
-  /* Enhanced elevation shadows for premium look */
-  .elevation-sm {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  }
-
-  .elevation-md {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-  }
-
-  .elevation-lg {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
-  }
-
-  /* Neon spine */
-  .neon-spine {
-    position: relative;
-  }
-
-  .neon-spine::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 3px;
-    height: 100%;
-    background: linear-gradient(to bottom, #3b82f6, #06b6d4);
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-  }
-
-  /* Smoother hover lift effect */
-  .hover-lift {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
-  }
-
-  /* Added background texture for depth */
-  .bg-digital-noise {
-    background-image: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(255, 255, 255, 0.015) 2px,
-        rgba(255, 255, 255, 0.015) 4px
-      ),
-      repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent 2px,
-        rgba(255, 255, 255, 0.015) 2px,
-        rgba(255, 255, 255, 0.015) 4px
-      );
-  }
-
-  /* Added unified outer glow frame */
-  .page-glow-frame {
-    box-shadow: inset 0 0 80px rgba(34, 197, 94, 0.08), inset 0 0 40px rgba(6, 182, 212, 0.06), 0 0 60px
-      rgba(34, 197, 94, 0.05);
-  }
-
-  /* Added section divider gradients */
-  .divider-green-blue {
-    height: 1px;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(34, 197, 94, 0.4) 20%,
-      rgba(59, 130, 246, 0.4) 80%,
-      transparent
-    );
-  }
-
-  .divider-blue-purple {
-    height: 1px;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(59, 130, 246, 0.4) 20%,
-      rgba(139, 92, 246, 0.4) 80%,
-      transparent
-    );
-  }
-
-  .divider-purple-red {
-    height: 1px;
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(139, 92, 246, 0.4) 20%,
-      rgba(239, 68, 68, 0.4) 80%,
-      transparent
-    );
-  }
-
-  .divider-neutral {
-    height: 1px;
-    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.15) 50%, transparent);
-  }
-
-  /* Enhanced hover glow for premium feel */
-  .hover-glow {
-    transition: all 0.3s ease;
-  }
-
-  .hover-glow:hover {
-    box-shadow: 0 0 35px rgba(59, 130, 246, 0.35), 0 0 70px rgba(59, 130, 246, 0.18), 0 12px 40px rgba(0, 0, 0, 0.65);
-    filter: brightness(1.05);
-    transform: translateY(-2px);
-  }
-
-  /* Title chip styles */
-  .section-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.188rem 0.5rem;
-    border-radius: 9999px;
-    background: rgba(59, 130, 246, 0.035);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    font-size: 0.625rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: rgba(147, 197, 253, 0.6);
-  }
-
-  /* Micro subtitle styles */
-  .section-subtitle {
-    font-size: 0.813rem;
-    color: rgba(156, 163, 175, 0.7);
-    font-weight: 400;
-    margin-top: 0.25rem;
-    line-height: 1.4;
+  .card-glow {
+    box-shadow: 0 0 20px rgba(100, 255, 218, 0.1);
   }
 }

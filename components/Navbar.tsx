@@ -8,11 +8,11 @@ import Avatar from './avatar'
 
 const Navbar = () => {
   return (
-    <div className='sticky flex justify-between py-5 px-8 bg-[#0b0f14]/90 drop-shadow-2xl shadow-2xl'>
+    <div className='sticky flex justify-between py-5 px-8 bg-background/90 drop-shadow-2xl shadow-2xl'>
         {/* Logo Navbar */}
         <div className='flex gap-2'>
             <div className='w-11 h-11 rounded-xl flex items-center justify-center bg-linear-to-br from-blue-500 to-cyan-500 animate-glow-pulse'>
-                <Target className='text-white w-6 h-6'/>
+                <Target className='text-foreground w-6 h-6'/>
             </div>
             <div>
             <h1 className='font-bold text-xl'>MAFS</h1>
@@ -32,13 +32,19 @@ const Navbar = () => {
         </Link>
         {/* Upgrade to pro Button */}
         <Tooltip>
-        <Link className='cursor-pointer' href={"/billing"}>
-        <TooltipTrigger>
-        <Button className='bg-linear-to-r from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700 text-white font-semibold px-6 py-2 rounded-full shadow-xl shadow-green-500/50 hover:shadow-2xl hover:shadow-green-500/60 hover:scale-105 active:scale-95 transition-all duration-300 animate-glow-pulse-green text-sm'><Zap /> <span>Upgrade to Pro - $79/mo</span></Button>
-        </TooltipTrigger>
-        <TooltipContent>Click to upgrade to Pro for unlimited access</TooltipContent>
-        </Link>
-        </Tooltip>
+  <TooltipTrigger asChild>
+    <Link 
+      className='cursor-pointer inline-block' 
+      href="/billing"
+    >
+      <Button className='bg-linear-to-r from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700 text-foreground font-semibold px-6 py-2 rounded-full shadow-xl shadow-green-500/50 hover:shadow-2xl hover:shadow-green-500/60 hover:scale-105 active:scale-95 transition-all duration-300 animate-glow-pulse-green text-sm'>
+        <Zap /> 
+        <span>Upgrade to Pro - $79/mo</span>
+      </Button>
+    </Link>
+  </TooltipTrigger>
+  <TooltipContent>Click to upgrade to Pro for unlimited access</TooltipContent>
+</Tooltip>
         {/* User Avatar */}
         <Avatar/>
         </div>

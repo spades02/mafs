@@ -51,7 +51,7 @@ export function RedFlagAlert({ fight }: RedFlagAlertProps) {
             </p>
           </div>
           {fight.no_bet && (
-            <Badge className="ml-auto bg-red-600 text-white border-0 text-sm font-bold">
+            <Badge className="ml-auto bg-red-600 text-foreground border-0 text-sm font-bold">
               NO BET
             </Badge>
           )}

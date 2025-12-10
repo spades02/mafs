@@ -62,8 +62,8 @@ function SignupForm() {
   };
   
   return (
-    <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-white/10 rounded-2xl p-8 shadow-2xl">
-            <h2 className="text-2xl font-bold text-white mb-2">Create your MAFS account</h2>
+    <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-foreground/10 rounded-2xl p-8 shadow-2xl">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Create your MAFS account</h2>
             <p className="text-sm text-gray-400 mb-6">Start analyzing fights with AI-powered insights.</p>
 
             <form className="space-y-4" onSubmit={handleFormSubmit}>
@@ -76,7 +76,7 @@ function SignupForm() {
                   name='name'
                   type="text"
                   placeholder="Alex Smith"
-                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+                  className="bg-foreground/5 border-foreground/10 text-foreground placeholder:text-gray-500"
                 />
               </div>
 
@@ -89,7 +89,7 @@ function SignupForm() {
                   name='email'
                   type="email"
                   placeholder="you@example.com"
-                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+                  className="bg-foreground/5 border-foreground/10 text-foreground placeholder:text-gray-500"
                 />
               </div>
 
@@ -102,11 +102,11 @@ function SignupForm() {
                   name='password'
                   type="password"
                   placeholder="••••••••"
-                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+                  className="bg-foreground/5 border-foreground/10 text-foreground placeholder:text-gray-500"
                 />
               </div>
 
-              <Button disabled={isLoading} type='submit' className="w-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium">
+              <Button disabled={isLoading} type='submit' className="w-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-foreground font-medium">
                 {isLoading && <Loader2 className='size-3 animate-spin' />}
                 Create Account
               </Button>

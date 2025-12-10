@@ -1,6 +1,7 @@
 import Breadcrumbs from "@/components/breadcrumbs";
 import FightAnalysisContent from "@/components/fight-analysis";
 import InitialUI from "@/components/initial-ui";
+import MainContent from "@/components/main-contet";
 import { PageFooter } from "@/components/page-footer";
 
 export default function Home() {
@@ -9,10 +10,7 @@ export default function Home() {
       <div className="flex flex-col gap-6">
       {/* Breadcrumbs */}
       <Breadcrumbs />
-      {/* Choose fight Card */}
-      <FightAnalysisContent/>
-      {/* UI when user has not clicked Run Analysis button */}
-      <InitialUI/>
+      <MainContent />
       </div>
       <PageFooter />
     </main>
