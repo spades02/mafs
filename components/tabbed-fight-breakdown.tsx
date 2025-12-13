@@ -26,14 +26,14 @@ function DualMetric({ label, fighterA, fighterB, max = 100 }: DualMetricProps) {
   const percentB = getPercentage(fighterB.value)
 
   return (
-    <div className="space-y-4 p-6 rounded-xl bg-linear-to-br from-gray-800/30 to-gray-900/30 border border-white/5 hover:border-white/10 transition-colors">
+    <div className="space-y-4 p-6 rounded-xl bg-linear-to-br from-gray-800/30 to-gray-900/30 border border-foreground/5 hover:border-foreground/10 transition-colors">
       <h4 className="text-base font-bold text-gray-300 text-center uppercase tracking-wide">{label}</h4>
       
       {/* Fighter A Bar */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-semibold text-blue-400">{fighterA.name}</span>
-          <span className="font-bold text-white text-lg">{fighterA.value}</span>
+          <span className="font-bold text-foreground text-lg">{fighterA.value}</span>
         </div>
         <div className="h-4 bg-gray-800/70 rounded-full overflow-hidden shadow-inner">
           <div 
@@ -47,7 +47,7 @@ function DualMetric({ label, fighterA, fighterB, max = 100 }: DualMetricProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-semibold text-red-400">{fighterB.name}</span>
-          <span className="font-bold text-white text-lg">{fighterB.value}</span>
+          <span className="font-bold text-foreground text-lg">{fighterB.value}</span>
         </div>
         <div className="h-4 bg-gray-800/70 rounded-full overflow-hidden shadow-inner">
           <div 
@@ -234,8 +234,8 @@ export function TabbedFightBreakdown({ fight }: TabbedFightBreakdownProps) {
   ]
 
   return (
-    <Card className="p-10 bg-linear-to-br from-[#0f1419] to-[#0b0f14] border-2 border-white/10 shadow-2xl shadow-black/50 rounded-2xl">
-      <h2 className="text-3xl font-bold text-white mb-3 flex items-center gap-4">
+    <Card className="p-10 bg-linear-to-br from-[#0f1419] to-[#0b0f14] border-2 border-foreground/10 shadow-2xl shadow-black/50 rounded-2xl">
+      <h2 className="text-3xl font-bold text-foreground mb-3 flex items-center gap-4">
         <div className="w-1.5 h-10 bg-linear-to-b from-indigo-500 to-purple-500 rounded-full shadow-lg shadow-indigo-500/50" />
         Full Fight Breakdown
       </h2>
@@ -251,7 +251,7 @@ export function TabbedFightBreakdown({ fight }: TabbedFightBreakdownProps) {
               <TabsTrigger
                 key={category.id}
                 value={category.id}
-                className="flex items-center gap-2 px-6 py-4 bg-gray-800/50 hover:bg-gray-800 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 border-2 border-white/10 data-[state=active]:border-blue-500/50 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                className="flex items-center gap-2 px-6 py-4 bg-gray-800/50 hover:bg-gray-800 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 border-2 border-foreground/10 data-[state=active]:border-blue-500/50 rounded-xl transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
               >
                 <Icon className="w-5 h-5" />
                 <span className="hidden md:inline">{category.label}</span>

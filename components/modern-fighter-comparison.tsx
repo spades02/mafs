@@ -28,8 +28,8 @@ export function ModernFighterComparison({ fight }: ModernFighterComparisonProps)
   ]
 
   return (
-    <Card className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border-white/10 p-8 elevation-lg">
-      <h3 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+    <Card className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border-foreground/10 p-8 elevation-lg">
+      <h3 className="text-2xl font-bold text-foreground mb-8 flex items-center gap-3">
         <div className="w-1 h-8 bg-linear-to-b from-blue-500 to-cyan-500 rounded-full" />
         Fighter Attribute Comparison
       </h3>

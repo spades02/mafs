@@ -15,15 +15,15 @@ export function CollapsibleSection({ title, subtitle, icon, children, defaultOpe
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0f1419] overflow-hidden elevation-md hover-glow">
+    <div className="rounded-xl border border-foreground/10 bg-[#0f1419] overflow-hidden elevation-md hover-glow">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors"
+        className="w-full flex items-center justify-between p-6 hover:bg-foreground/5 transition-colors"
       >
         <div className="flex-1 text-left">
           <div className="flex items-center gap-3">
             {icon && <div className="text-blue-400">{icon}</div>}
-            <h3 className="text-2xl font-bold text-white">{title}</h3>
+            <h3 className="text-2xl font-bold text-foreground">{title}</h3>
           </div>
           {subtitle && (
             <p className="section-subtitle ml-8 mt-1">{subtitle}</p>
@@ -37,7 +37,7 @@ export function CollapsibleSection({ title, subtitle, icon, children, defaultOpe
       </button>
       
       {isOpen && (
-        <div className="p-6 border-t border-white/10 animate-fade-in">
+        <div className="p-6 border-t border-foreground/10 animate-fade-in">
           {children}
         </div>
       )}

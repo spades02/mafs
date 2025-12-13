@@ -8,10 +8,10 @@ import { Button } from './ui/button'
 
 const UserPreferences = () => {
   return (
-    <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-white/10 rounded-2xl p-8">
+    <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-foreground/10 rounded-2xl p-8">
           <div className="flex items-center gap-3 mb-6">
             <Bell className="w-6 h-6 text-blue-400" />
-            <h2 className="text-xl font-bold text-white">Preferences</h2>
+            <h2 className="text-xl font-bold text-foreground">Preferences</h2>
           </div>
 
           <div className="grid gap-6 max-w-2xl">
@@ -20,7 +20,7 @@ const UserPreferences = () => {
                 Time Zone
               </Label>
               <Select>
-                <SelectTrigger className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white">
+                <SelectTrigger className="w-full px-4 py-3 bg-foreground/5 border border-foreground/10 rounded-lg text-foreground">
                   <SelectValue placeholder="UTC-5 (Eastern Time)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -38,7 +38,7 @@ const UserPreferences = () => {
                 {["American", "Decimal", "Fractional"].map((format) => (
                   <button
                     key={format}
-                    className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                    className="px-4 py-2 bg-foreground/5 border border-foreground/10 rounded-lg text-sm text-gray-300 hover:bg-foreground/10 hover:text-foreground transition-colors"
                   >
                     {format}
                   </button>
@@ -57,16 +57,16 @@ const UserPreferences = () => {
                 min="0.5"
                 max="10"
                 step="0.5"
-                className="bg-white/5 border-white/10 text-white"
+                className="bg-foreground/5 border-foreground/10 text-foreground"
               />
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-white/10">
+            <div className="space-y-4 pt-4 border-t border-foreground/10">
               <h3 className="text-sm font-medium text-gray-300">Notifications</h3>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-white">Email alerts for new cards</p>
+                  <p className="text-sm text-foreground">Email alerts for new cards</p>
                   <p className="text-xs text-gray-400">Get notified when new fight cards are available</p>
                 </div>
                 <Switch />
@@ -74,7 +74,7 @@ const UserPreferences = () => {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-white">Risk warnings</p>
+                  <p className="text-sm text-foreground">Risk warnings</p>
                   <p className="text-xs text-gray-400">Alerts for high-volatility plays</p>
                 </div>
                 <Switch defaultChecked />

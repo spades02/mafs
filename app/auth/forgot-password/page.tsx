@@ -16,19 +16,19 @@ export default function ForgotPasswordPage() {
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="w-12 h-12 rounded-lg bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <Target className="w-7 h-7 text-white" />
+            <Target className="w-7 h-7 text-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">MAFS</h1>
+            <h1 className="text-2xl font-bold text-foreground">MAFS</h1>
             <p className="text-xs text-gray-400">Multi-Agent Fight Simulator</p>
           </div>
         </div>
 
         {/* Auth Card */}
-        <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-white/10 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-foreground/10 rounded-2xl p-8 shadow-2xl">
           {!sent ? (
             <>
-              <h2 className="text-2xl font-bold text-white mb-2">Forgot your password?</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Forgot your password?</h2>
               <p className="text-sm text-gray-400 mb-6">Enter your email and we'll send you a reset link.</p>
 
               <form
@@ -46,13 +46,13 @@ export default function ForgotPasswordPage() {
                     id="email"
                     type="email"
                     placeholder="you@example.com"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+                    className="bg-foreground/5 border-foreground/10 text-foreground placeholder:text-gray-500"
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium"
+                  className="w-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-foreground font-medium"
                 >
                   Send Reset Link
                 </Button>
@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Check your email</h3>
+              <h3 className="text-xl font-bold text-foreground mb-2">Check your email</h3>
               <p className="text-sm text-gray-400 mb-6">We've sent a password reset link to your email address.</p>
             </div>
           )}

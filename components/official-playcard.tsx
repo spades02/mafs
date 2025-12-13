@@ -41,7 +41,7 @@ export function OfficialPlayCard({ fight }: OfficialPlayCardProps) {
           <div className="inline-block px-3 py-0.5 rounded-full bg-green-500/20 border border-green-500/40 mb-1.5">
             <span className="text-xs font-bold text-green-400 uppercase tracking-wider">Official AI Play</span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-1">{fight.matchup}</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-1">{fight.matchup}</h1>
         </div>
 
         {/* Main Pick */}
@@ -52,15 +52,15 @@ export function OfficialPlayCard({ fight }: OfficialPlayCardProps) {
             <p className="text-base text-gray-300">via {fight.path}</p>
           </div>
 
-          <div className="text-center p-2 rounded-xl bg-[#0f1419]/50 border border-white/10 hover-glow">
+          <div className="text-center p-2 rounded-xl bg-[#0f1419]/50 border border-foreground/10 hover-glow">
             <div className="flex justify-center mb-1">
               <Target className="h-4 w-4 text-blue-400" />
             </div>
             <p className="text-xs text-gray-400 mb-0.5">CONFIDENCE</p>
-            <p className="text-2xl font-bold text-white">{fight.confidence}%</p>
+            <p className="text-2xl font-bold text-foreground">{fight.confidence}%</p>
           </div>
 
-          <div className="text-center p-2 rounded-xl bg-[#0f1419]/50 border border-white/10 hover-glow">
+          <div className="text-center p-2 rounded-xl bg-[#0f1419]/50 border border-foreground/10 hover-glow">
             <div className="flex justify-center mb-1">
               <TrendingUp className="h-4 w-4 text-green-400" />
             </div>
@@ -68,7 +68,7 @@ export function OfficialPlayCard({ fight }: OfficialPlayCardProps) {
             <p className="text-2xl font-bold text-green-400">+{bestOutcome?.edge_pts || 0}</p>
           </div>
 
-          <div className="text-center p-2 rounded-xl bg-[#0f1419]/50 border border-white/10 hover-glow">
+          <div className="text-center p-2 rounded-xl bg-[#0f1419]/50 border border-foreground/10 hover-glow">
             <div className="flex justify-center mb-1">
               <Zap className="h-4 w-4 text-yellow-400" />
             </div>
@@ -79,7 +79,7 @@ export function OfficialPlayCard({ fight }: OfficialPlayCardProps) {
 
         {/* Secondary Metrics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <div className="text-center p-1.5 rounded-lg bg-[#0f1419]/30 border border-white/5 hover-glow">
+          <div className="text-center p-1.5 rounded-lg bg-[#0f1419]/30 border border-foreground/5 hover-glow">
             <p className="text-xs text-gray-400 mb-0.5">RISK LEVEL</p>
             <p className={`text-base font-bold ${
               fight.volatility === "Low" ? "text-green-400" : 
@@ -87,17 +87,17 @@ export function OfficialPlayCard({ fight }: OfficialPlayCardProps) {
             }`}>{fight.volatility}</p>
           </div>
 
-          <div className="text-center p-1.5 rounded-lg bg-[#0f1419]/30 border border-white/5 hover-glow">
+          <div className="text-center p-1.5 rounded-lg bg-[#0f1419]/30 border border-foreground/5 hover-glow">
             <p className="text-xs text-gray-400 mb-0.5">VOLATILITY</p>
-            <p className="text-base font-bold text-white">{fight.volatility}</p>
+            <p className="text-base font-bold text-foreground">{fight.volatility}</p>
           </div>
 
-          <div className="text-center p-1.5 rounded-lg bg-[#0f1419]/30 border border-white/5 hover-glow">
+          <div className="text-center p-1.5 rounded-lg bg-[#0f1419]/30 border border-foreground/5 hover-glow">
             <p className="text-xs text-gray-400 mb-0.5">BEST PROP</p>
             <p className="text-sm font-bold text-blue-400">{bestProp?.prop || "N/A"}</p>
           </div>
 
-          <div className="text-center p-1.5 rounded-lg bg-[#0f1419]/30 border border-white/5 hover-glow">
+          <div className="text-center p-1.5 rounded-lg bg-[#0f1419]/30 border border-foreground/5 hover-glow">
             <p className="text-xs text-gray-400 mb-0.5">SMART ANGLE</p>
             <p className="text-sm font-bold text-purple-400">{fight.alt_lean || "Standard"}</p>
           </div>

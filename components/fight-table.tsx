@@ -1,0 +1,68 @@
+import React, { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { FightEdgeSummary } from './analysis-section';
+
+function FightTable({fightData} : {fightData: FightEdgeSummary[]}) {
+  const [selectedFight, setSelectedFight] = useState("");
+  return (
+    <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Fight Table – Mispriced Fights</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border text-left text-sm text-muted-foreground">
+                        <th className="pb-3 pr-4 font-medium">Fight</th>
+                        <th className="pb-3 pr-4 font-medium">MAFS Score</th>
+                        <th className="pb-3 pr-4 font-medium">Best Bet</th>
+                        <th className="pb-3 pr-4 font-medium">EV %</th>
+                        <th className="pb-3 pr-4 font-medium">Confidence</th>
+                        <th className="pb-3 pr-4 font-medium">Risk</th>
+                        <th className="pb-3 pr-4 font-medium">Value Tier</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm">
+                      {fightData.map((fight) => (
+                        <tr
+                          key={fight.id}
+                          onClick={() => setSelectedFight(fight.id)}
+                          className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/50"
+                        >
+                          <td className="py-4 pr-4 font-medium">{fight.fight}</td>
+                          <td className="py-4 pr-4">
+                            <span className="font-bold text-primary">{fight.score}</span>
+                          </td>
+                          <td className="py-4 pr-4">{fight.bet}</td>
+                          <td className="py-4 pr-4 font-semibold text-primary">{fight.ev}</td>
+                          <td className="py-4 pr-4">{fight.confidence}</td>
+                          <td className="py-4 pr-4">
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs ${
+                                fight.risk === "Low"
+                                  ? "bg-green-500/20 text-green-400"
+                                  : fight.risk === "Medium"
+                                    ? "bg-yellow-500/20 text-yellow-400"
+                                    : "bg-red-500/20 text-red-400"
+                              }`}
+                            >
+                              {fight.risk}
+                            </span>
+                          </td>
+                          <td className="py-4 pr-4">
+                            <span className="rounded-full bg-primary/20 px-2 py-1 text-xs font-medium text-primary">
+                              {fight.tier}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+  )
+}
+
+export default FightTable

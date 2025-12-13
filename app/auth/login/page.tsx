@@ -65,17 +65,17 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="w-12 h-12 rounded-lg bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <Target className="w-7 h-7 text-white" />
+            <Target className="w-7 h-7 text-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">MAFS</h1>
+            <h1 className="text-2xl font-bold text-foreground">MAFS</h1>
             <p className="text-xs text-gray-400">Multi-Agent Fight Simulator</p>
           </div>
         </div>
 
         {/* Auth Card */}
-        <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-2">Sign in to MAFS</h2>
+        <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-foreground/10 rounded-2xl p-8 shadow-2xl">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Sign in to MAFS</h2>
           <p className="text-sm text-gray-400 mb-6">Welcome back! Enter your credentials to continue.</p>
 
           <form className="space-y-4" onSubmit={handleFormSubmit}>
@@ -88,7 +88,7 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 placeholder="you@example.com"
-                className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+                className="bg-foreground/5 border-foreground/10 text-foreground placeholder:text-gray-500"
               />
             </div>
 
@@ -101,11 +101,11 @@ export default function LoginPage() {
                 type="password"
                 name="password"
                 placeholder="••••••••"
-                className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+                className="bg-foreground/5 border-foreground/10 text-foreground placeholder:text-gray-500"
               />
             </div>
 
-            <Button disabled={isLoading} className="w-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-medium">
+            <Button disabled={isLoading} className="w-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-foreground font-medium">
               {isLoading && <Loader2 className="animate-spin size-3"/>}Log In
             </Button>
 

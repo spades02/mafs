@@ -9,7 +9,7 @@ export default function NavMenu() {
   const pathname = usePathname()
 
   return (
-    <nav className="h-11 px-6 hidden md:flex items-center border-white/10">
+    <nav className="h-11 px-6 hidden md:flex items-center border-foreground/10">
       <div className="flex gap-6">
         {NAV_ITEMS.map((item) => {
             const Icon = item.icon
@@ -21,7 +21,7 @@ export default function NavMenu() {
                       className={`gap-2 px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 ${
                         isActive
                           ? "bg-linear-to-r from-blue-500/20 to-cyan-500/20 text-blue-300 hover:from-blue-500/30 hover:to-cyan-500/30 drop-shadow-border shadow-blue-500/30 shadow-2xl animate-glow-pulse"
-                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                          : "text-gray-400 hover:text-foreground hover:bg-foreground/5"
                       }`}
                     >
                       <Icon className="w-4 h-4" />

@@ -31,8 +31,8 @@ export function EnhancedRiskVolatility({ fight }: EnhancedRiskVolatilityProps) {
   const dashOffset = circumference - (data.value / 100) * circumference
 
   return (
-    <Card className="p-8 bg-linear-to-br from-[#0f1419] to-[#0b0f14] border-white/10 elevation-lg">
-      <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+    <Card className="p-8 bg-linear-to-br from-[#0f1419] to-[#0b0f14] border-foreground/10 elevation-lg">
+      <h2 className="text-2xl font-bold text-foreground mb-8 flex items-center gap-3">
         <div className="w-1 h-8 bg-linear-to-b from-orange-500 to-red-500 rounded-full" />
         Risk & Volatility
       </h2>
@@ -89,7 +89,7 @@ export function EnhancedRiskVolatility({ fight }: EnhancedRiskVolatilityProps) {
 
         {/* Finish Probability Breakdown */}
         <div>
-          <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
             <Target className="w-5 h-5 text-cyan-400" />
             Finish Probability
           </h3>
@@ -112,7 +112,7 @@ export function EnhancedRiskVolatility({ fight }: EnhancedRiskVolatilityProps) {
           </div>
 
           {/* Risk Meter */}
-          <div className="mt-8 pt-6 border-t border-white/10">
+          <div className="mt-8 pt-6 border-t border-foreground/10">
             <div className="flex items-center gap-3 mb-3">
               <Activity className="w-5 h-5 text-blue-400" />
               <span className="text-sm font-medium text-gray-300">Durability Index</span>
@@ -121,7 +121,7 @@ export function EnhancedRiskVolatility({ fight }: EnhancedRiskVolatilityProps) {
               <div className="flex-1 h-4 bg-gray-800 rounded-full overflow-hidden">
                 <div className="h-full bg-linear-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-1000" style={{ width: "75%" }} />
               </div>
-              <span className="text-xl font-bold text-white">75</span>
+              <span className="text-xl font-bold text-foreground">75</span>
             </div>
           </div>
         </div>

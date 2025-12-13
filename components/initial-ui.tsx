@@ -5,7 +5,7 @@ const InitialUI = () => {
     const analysisRun = useAnalysisStore((s)=>s.analysisRun)
   return (
     !analysisRun && (<div className="flex flex-col items-center justify-center py-40 px-6 animate-fade-in">
-          <h2 className="text-4xl font-bold text-white mb-4 text-center">Ready to Analyze a Fight</h2>
+          <h2 className="text-4xl font-bold text-foreground mb-4 text-center">Ready to Analyze a Fight</h2>
           <p className="text-gray-400 text-center max-w-xl text-lg leading-relaxed mb-12">
             Complete Step 1 above to generate the AI's comprehensive betting analysis.
           </p>

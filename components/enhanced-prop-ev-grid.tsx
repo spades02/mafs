@@ -19,9 +19,9 @@ export function EnhancedPropEVGrid({ fight }: EnhancedPropEVGridProps) {
   )
 
   return (
-    <Card className="p-8 bg-linear-to-br from-[#0f1419] to-[#0b0f14] border-white/10 elevation-lg">
+    <Card className="p-8 bg-linear-to-br from-[#0f1419] to-[#0b0f14] border-foreground/10 elevation-lg">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+        <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
           <div className="w-1 h-8 bg-linear-to-b from-cyan-500 to-blue-500 rounded-full" />
           Prop EV Analysis
         </h2>
@@ -33,7 +33,7 @@ export function EnhancedPropEVGrid({ fight }: EnhancedPropEVGridProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b-2 border-white/20">
+            <tr className="border-b-2 border-foreground/20">
               <th className="text-left py-4 px-4 text-gray-300 font-bold">PROP TYPE</th>
               <th className="text-center py-4 px-4 text-gray-300 font-bold">MODEL</th>
               <th className="text-center py-4 px-4 text-gray-300 font-bold">MARKET</th>
@@ -52,13 +52,13 @@ export function EnhancedPropEVGrid({ fight }: EnhancedPropEVGridProps) {
               return (
                 <tr
                   key={index}
-                  className={`border-b border-white/5 transition-all duration-300 ${
+                  className={`border-b border-foreground/5 transition-all duration-300 ${
                     isBest 
                       ? 'bg-green-500/10 hover:bg-green-500/15 border-l-4 border-l-green-500' 
-                      : 'hover:bg-white/5'
+                      : 'hover:bg-foreground/5'
                   }`}
                 >
-                  <td className="py-5 px-4 font-bold text-white">
+                  <td className="py-5 px-4 font-bold text-foreground">
                     <div className="flex items-center gap-2">
                       {isBest && <TrendingUp className="w-4 h-4 text-green-400" />}
                       {outcome.selection}

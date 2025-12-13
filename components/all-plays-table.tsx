@@ -14,12 +14,12 @@ const AllPlaysTable = () => {
   });
 
   return (
-    <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-white/10 rounded-2xl p-8">
+    <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-foreground/10 rounded-2xl p-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">All Plays</h2>
+          <h2 className="text-xl font-bold text-foreground">All Plays</h2>
           <div className="flex gap-2">
             <Select onValueChange={setEventFilter}>
-              <SelectTrigger className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+              <SelectTrigger className="px-4 py-2 bg-foreground/5 border border-foreground/10 rounded-lg text-sm text-foreground">
                   <SelectValue placeholder="All Events" />
               </SelectTrigger>
               <SelectContent>
@@ -30,7 +30,7 @@ const AllPlaysTable = () => {
               </SelectContent>
             </Select>
             <Select onValueChange={setResultsFilter}>
-              <SelectTrigger className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+              <SelectTrigger className="px-4 py-2 bg-foreground/5 border border-foreground/10 rounded-lg text-sm text-foreground">
                 <SelectValue placeholder="All Results"/>
               </SelectTrigger>
               <SelectContent>
@@ -46,7 +46,7 @@ const AllPlaysTable = () => {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/10">
+              <tr className="border-b border-foreground/10">
                 <th className="text-left py-3 text-sm font-medium text-gray-400">Fight</th>
                 <th className="text-left py-3 text-sm font-medium text-gray-400">Bet Type</th>
                 <th className="text-left py-3 text-sm font-medium text-gray-400">Odds</th>
@@ -57,11 +57,11 @@ const AllPlaysTable = () => {
             </thead>
             <tbody>
               {filteredPlays.map((play, i) => (
-                <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="py-4 text-sm text-white font-medium">{play.fight}</td>
+                <tr key={i} className="border-b border-foreground/5 hover:bg-foreground/5 transition-colors">
+                  <td className="py-4 text-sm text-foreground font-medium">{play.fight}</td>
                   <td className="py-4 text-sm text-gray-300">{play.type}</td>
                   <td className="py-4 text-sm text-gray-300">{play.odds}</td>
-                  <td className="py-4 text-sm text-white font-medium">{play.stake}</td>
+                  <td className="py-4 text-sm text-foreground font-medium">{play.stake}</td>
                   <td className="py-4 text-sm text-green-400 font-medium">{play.ev}</td>
                   <td className="py-4">
                     <span

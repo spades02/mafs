@@ -50,9 +50,9 @@ export function AIPowerStrip({ agents }: AIPowerStripProps) {
   }
 
   return (
-    <Card className="bg-linear-to-r from-[#0f1419] via-[#0b0f14] to-[#0f1419] border-white/10 p-6 elevation-md">
+    <Card className="bg-linear-to-r from-[#0f1419] via-[#0b0f14] to-[#0f1419] border-foreground/10 p-6 elevation-md">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
           <div className="w-1 h-6 bg-linear-to-b from-purple-500 to-pink-500 rounded-full" />
           AI Agent Pipeline
         </h3>
@@ -78,7 +78,7 @@ export function AIPowerStrip({ agents }: AIPowerStripProps) {
                 >
                   <Icon className={`w-5 h-5 ${isHighConfidence ? 'text-green-400' : 'text-blue-400'}`} />
                   <div className="text-left">
-                    <p className="text-xs font-semibold text-white whitespace-nowrap">{agent.name}</p>
+                    <p className="text-xs font-semibold text-foreground foregroundspace-nowrap">{agent.name}</p>
                     <p className={`text-xs font-bold ${isHighConfidence ? 'text-green-400' : 'text-blue-400'}`}>
                       {agent.probability}%
                     </p>
@@ -91,7 +91,7 @@ export function AIPowerStrip({ agents }: AIPowerStripProps) {
         </div>
 
         {expandedAgent !== null && (
-          <div className="mt-4 bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-white/10 rounded-lg p-6 elevation-sm animate-in slide-in-from-top-2 duration-300">
+          <div className="mt-4 bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-foreground/10 rounded-lg p-6 elevation-sm animate-in slide-in-from-top-2 duration-300">
             {(() => {
               const agent = agents[expandedAgent]
               const details = getAgentDetails(agent)
@@ -101,10 +101,10 @@ export function AIPowerStrip({ agents }: AIPowerStripProps) {
               return (
                 <div className="space-y-4">
                   {/* Header */}
-                  <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                  <div className="flex items-center gap-3 pb-3 border-b border-foreground/10">
                     <Icon className={`w-6 h-6 ${isHighConfidence ? 'text-green-400' : 'text-blue-400'}`} />
                     <div className="flex-1">
-                      <h4 className="text-lg font-bold text-white">{agent.name}</h4>
+                      <h4 className="text-lg font-bold text-foreground">{agent.name}</h4>
                       <p className="text-xs text-gray-400">Agent Analysis Breakdown</p>
                     </div>
                     <div className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -162,7 +162,7 @@ export function AIPowerStrip({ agents }: AIPowerStripProps) {
                       {details.factors.map((factor, i) => (
                         <span 
                           key={i}
-                          className="px-2.5 py-1 bg-white/5 border border-white/10 rounded text-xs text-gray-400"
+                          className="px-2.5 py-1 bg-foreground/5 border border-foreground/10 rounded text-xs text-gray-400"
                         >
                           {factor}
                         </span>
@@ -173,7 +173,7 @@ export function AIPowerStrip({ agents }: AIPowerStripProps) {
                   {/* Visual Metric Bar */}
                   <div>
                     <h5 className="text-sm font-semibold text-gray-300 mb-2">Confidence Level</h5>
-                    <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div className="relative h-2 bg-foreground/5 rounded-full overflow-hidden">
                       <div 
                         className={`h-full rounded-full transition-all duration-700 ${
                           isHighConfidence 
@@ -198,7 +198,7 @@ export function AIPowerStrip({ agents }: AIPowerStripProps) {
                       ? 'bg-green-500/10 border-green-500/30'
                       : 'bg-blue-500/10 border-blue-500/30'
                   }`}>
-                    <h5 className="text-sm font-semibold text-white mb-1.5 flex items-center gap-2">
+                    <h5 className="text-sm font-semibold text-foreground mb-1.5 flex items-center gap-2">
                       <Target className="w-4 h-4" />
                       Agent Verdict
                     </h5>

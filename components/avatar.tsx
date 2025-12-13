@@ -23,9 +23,9 @@ const Avatar = () => {
       <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="gap-2 px-3 py-2 hover:bg-white/5 rounded-full transition-all duration-300 hover:scale-105"
+            className="gap-2 px-3 py-2 hover:bg-foreground/5 rounded-full transition-all duration-300 hover:scale-105"
           >
-            <div className="w-9 h-9 rounded-full bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-purple-500/40 animate-glow-pulse">
+            <div className="w-9 h-9 rounded-full bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center text-foreground text-sm font-bold shadow-lg shadow-purple-500/40 animate-glow-pulse">
               {data?.user.name.slice(0,1)}
             </div>
             <span className="hidden sm:inline text-sm font-medium text-gray-200">{data?.user.name}</span>

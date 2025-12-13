@@ -17,11 +17,11 @@ export function BettingRecommendationCard({ fight }: BettingRecommendationCardPr
   )
 
   return (
-    <Card className="p-8 bg-linear-to-br from-[#0f1419] via-[#0b0f14] to-[#0f1419] border-white/10 elevation-lg relative overflow-hidden">
+    <Card className="p-8 bg-linear-to-br from-[#0f1419] via-[#0b0f14] to-[#0f1419] border-foreground/10 elevation-lg relative overflow-hidden">
       {/* Decorative gradient bar */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-green-500 via-blue-500 to-purple-500" />
       
-      <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+      <h2 className="text-2xl font-bold text-foreground mb-8 flex items-center gap-3">
         <div className="w-1 h-8 bg-linear-to-b from-green-500 to-emerald-500 rounded-full" />
         AI Betting Slip Recommendation
       </h2>
@@ -43,7 +43,7 @@ export function BettingRecommendationCard({ fight }: BettingRecommendationCardPr
                 <TrendingUp className="w-6 h-6 text-blue-400" />
                 <p className="text-sm font-bold text-blue-400">BEST MONEYLINE</p>
               </div>
-              <p className="text-lg font-bold text-white mb-2">{bestML.selection}</p>
+              <p className="text-lg font-bold text-foreground mb-2">{bestML.selection}</p>
               <div className="flex items-center gap-4 text-sm">
                 <div>
                   <p className="text-gray-400">Confidence</p>
@@ -64,7 +64,7 @@ export function BettingRecommendationCard({ fight }: BettingRecommendationCardPr
                 <Target className="w-6 h-6 text-green-400" />
                 <p className="text-sm font-bold text-green-400">BEST PROP</p>
               </div>
-              <p className="text-lg font-bold text-white mb-2">{bestProp.selection}</p>
+              <p className="text-lg font-bold text-foreground mb-2">{bestProp.selection}</p>
               <div className="flex items-center gap-4 text-sm">
                 <div>
                   <p className="text-gray-400">Confidence</p>
@@ -85,7 +85,7 @@ export function BettingRecommendationCard({ fight }: BettingRecommendationCardPr
                 <Zap className="w-6 h-6 text-purple-400" />
                 <p className="text-sm font-bold text-purple-400">HIGH-EV ANGLE</p>
               </div>
-              <p className="text-lg font-bold text-white mb-2">{highestEV.selection}</p>
+              <p className="text-lg font-bold text-foreground mb-2">{highestEV.selection}</p>
               <div className="flex items-center gap-4 text-sm">
                 <div>
                   <p className="text-gray-400">Confidence</p>
@@ -102,7 +102,7 @@ export function BettingRecommendationCard({ fight }: BettingRecommendationCardPr
       )}
 
       {/* No-Bet Flags / Overall Risk */}
-      <div className="mt-8 pt-6 border-t border-white/10">
+      <div className="mt-8 pt-6 border-t border-foreground/10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <div className="flex items-center gap-2 mb-3">
