@@ -1,8 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
-// -------------------
-// Optional Serper Tool
-// -------------------
+
 export const serperTool = tool({
     name: "serper_search",
     description: "Search recent fight footage, breakdowns, and commentary.",

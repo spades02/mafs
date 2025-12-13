@@ -1,28 +1,22 @@
-import BillingHistory from "@/components/billing-history"
-import ChoosePlan from "@/components/choose-plan"
-import CurrentPlan from "@/components/current-plan"
-import PaymentCard from "@/components/payment-card"
-import { Button } from "@/components/ui/button"
-import { CreditCard, Download, Check, Zap, Lock } from "lucide-react"
+import CurrentPlan from "@/components/pages/billing/current-plan"
+import ChoosePlan from "@/components/pages/billing/choose-plan"
+import PaymentCard from "@/components/pages/billing/payment-card"
 
 export default function BillingPage() {
   return (
-    <main className="container mx-auto px-6 py-12 max-w-[1400px] animate-fade-in">
-      <h1 className="text-3xl font-bold text-foreground mb-8">Billing & Subscription</h1>
+    <div className="min-h-screen">
+      <main className="container mx-auto max-w-5xl px-4 py-8">
+        <h1 className="mb-6 text-3xl font-bold">Billing</h1>
 
-      <div className="space-y-8">
         {/* Current Plan */}
-        <CurrentPlan/>
+        <CurrentPlan />
 
-        {/* Pricing Comparison */}
+        {/* Plans */}
         <ChoosePlan />
 
         {/* Payment Method */}
         <PaymentCard />
-
-        {/* Billing History */}
-        <BillingHistory />
-      </div>
-    </main>
+      </main>
+    </div>
   )
 }

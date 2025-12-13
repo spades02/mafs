@@ -1,10 +1,19 @@
-import HistoryTable from "@/components/history-table"
+import SummaryStripHistory from "@/components/pages/history/summary-strip-history"
+import EventsList from "@/components/pages/history/events-list"
 
 export default function HistoryPage() {
+
   return (
-    <main className="container mx-auto px-6 py-12 max-w-[1600px]">
-      <h1 className="text-3xl font-bold text-foreground mb-8">History</h1>
-      <HistoryTable />
-    </main>
+    <div className="min-h-screen">
+      <main className="container mx-auto px-4 py-8">
+        <h1 className="mb-6 text-3xl font-bold">History</h1>
+
+        {/* Summary Strip */}
+        <SummaryStripHistory />
+
+        {/* Events List */}
+        <EventsList />
+      </main>
+    </div>
   )
 }

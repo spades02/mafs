@@ -1,15 +1,33 @@
 import { NextResponse } from "next/server";
-import { mockCardData } from "@/lib/data/mock-data"; // adjust to your export
 import Agents from "@/app/ai/agents/agents";
 
-export async function GET() {
+export async function POST(req: Request) {
   try {
-    const data = mockCardData.fights[1].matchup;
-    console.log(data)
-    const result = await Agents(data); // <-- test with mock data
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Agent test failed" }, { status: 500 });
+    const { data } = await req.json();
+
+    const simplifiedEvent = {
+      EventId: data.EventId,
+      Name: data.Name,
+      Fights: data.Fights.map((f: any) => ({
+        matchup: `${f.Fighters[0].FirstName} ${f.Fighters[0].LastName} vs ${f.Fighters[1].FirstName} ${f.Fighters[1].LastName}`,
+        weightClass: f.WeightClass,
+        moneylines: f.Fighters.map((fi: any) => fi.Moneyline),
+      })),
+    };
+
+    const result = await Agents(JSON.stringify(simplifiedEvent));
+
+    // ✅ Don't re-parse, just return the data
+    return NextResponse.json({
+      mafsCoreEngine: result.mafsCoreEngine,
+      fightBreakdowns: result.fightBreakdowns
+    });
+
+  } catch (error: any) {
+    console.error("Agent error:", error);
+    return NextResponse.json(
+      { error: error.message || "Agent processing failed" },
+      { status: 500 }
+    );
   }
 }

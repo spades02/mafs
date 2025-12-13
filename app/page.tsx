@@ -1,18 +1,33 @@
-import Breadcrumbs from "@/components/breadcrumbs";
-import FightAnalysisContent from "@/components/fight-analysis";
-import InitialUI from "@/components/initial-ui";
-import MainContent from "@/components/main-contet";
-import { PageFooter } from "@/components/page-footer";
+"use client"
 
-export default function Home() {
+import { useState } from "react"
+import NavBar from "@/components/nav-bar"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import AllMarketEdges from "@/components/all-market-edges"
+import FightBreakdown from "@/components/fight-breakdown"
+import BestBets from "@/components/best-bets"
+import FightTable from "@/components/fight-table"
+import EventRunner from "@/components/event-runner"
+import AnalysisSection from "@/components/analysis-section"
+import ModelPerformanceStrip from "@/components/model-performance-strip"
+import HeroSection from "@/components/hero-section"
+
+export default function DashboardPage() {
   return (
-    <main className="container mx-auto px-6 py-12 max-w-[1600px] page-glow-frame rounded-3xl mt-6 mb-6 bg-digital-noise">
-      <div className="flex flex-col gap-6">
-      {/* Breadcrumbs */}
-      <Breadcrumbs />
-      <MainContent />
-      </div>
-      <PageFooter />
-    </main>
-  );
+    <div className="min-h-screen">
+      <main className="container mx-auto px-4 py-8">
+        {/* Hero Section */}
+        <HeroSection/>
+
+        {/* Model Performance Strip */}
+        <ModelPerformanceStrip />
+
+        {/* Analysis Section */}
+        <AnalysisSection />
+        
+      </main>
+    </div>
+  )
 }
