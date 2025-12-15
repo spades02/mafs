@@ -158,6 +158,8 @@ Do not create IDs that do not exist in recommended_plays.
 Output Format
 
 Return one JSON object matching output_schema exactly.
+for the best bet the "rank" property in the response should contain "#1 Highest EV".
+Instead of giving values like "NO_BET" give "No Bet", Do not use underscores.
 No extra text, no markdown, no explanations outside JSON.
 Do not wrap JSON in backticks.
 Do not prefix or suffix anything.

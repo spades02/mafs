@@ -1,9 +1,10 @@
+"use client"
 import { useState } from 'react'
-import EventRunner from './event-runner'
-import BestBets from './best-bets'
-import FightTable from './fight-table'
-import FightBreakdown from './fight-breakdown'
-import AllMarketEdges from './all-market-edges'
+import EventRunner from '../../event-runner'
+import BestBets from '../../best-bets'
+import FightTable from '../../fight-table'
+import FightBreakdown from '../../fight-breakdown'
+import AllMarketEdges from '../../all-market-edges'
 import { FightBreakdownType } from '@/types/fight-breakdowns'
 
 export type FightEdgeSummary = {

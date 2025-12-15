@@ -4,7 +4,7 @@ import { Card, CardContent } from './ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Button } from './ui/button'
 import { EventData } from '@/types/event'
-import { FightEdgeSummary } from './analysis-section'
+import { FightEdgeSummary } from './pages/home/analysis-section'
 import { FightBreakdownType } from '@/types/fight-breakdowns'
 
 type EventItem = {
@@ -23,7 +23,7 @@ function EventRunner({
 }){
 const [selectedEvent, setSelectedEvent] = useState("")
 const [events, setEvents] = useState<EventItem[]>([]);
-const [loading, setLoading] = useState(true);
+const [loading, setLoading] = useState(false);
 const [ error, setError ] = useState("")
 
 async function callAgent(data: EventData){
@@ -43,8 +43,12 @@ async function callAgent(data: EventData){
   } catch (error) {
     console.error(error)
   }
+  finally{
+    setLoading(false);
+  }
 }
 async function runAnalysis() {
+  setLoading(true);
   setShowResults(true)
   try {
     const res = await fetch(`/api/fights/${selectedEvent}`);
@@ -81,8 +85,6 @@ useEffect(() => {
         setEvents(formatted);
       } catch (err: any) {
         setError(err.message || "Error fetching events");
-      } finally {
-        setLoading(false);
       }
     }
 
@@ -117,7 +119,7 @@ useEffect(() => {
               </div>
               <Button
                 onClick={runAnalysis}
-                disabled={!selectedEvent}
+                disabled={!selectedEvent || loading}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 Run Full Card (All Fights)
@@ -126,6 +128,12 @@ useEffect(() => {
             <p className="mt-3 text-sm text-muted-foreground">
               MAFS will scan all available markets and rank the best edges.
             </p>
+            {loading && (
+              <div className="mt-4 flex items-center gap-2 text-sm text-primary animate-fade-in">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+                <span>AI is scanning mispriced lines…</span>
+              </div>
+            )}
           </CardContent>
         </Card>
   )

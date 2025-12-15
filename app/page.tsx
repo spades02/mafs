@@ -1,18 +1,6 @@
-"use client"
-
-import { useState } from "react"
-import NavBar from "@/components/nav-bar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import AllMarketEdges from "@/components/all-market-edges"
-import FightBreakdown from "@/components/fight-breakdown"
-import BestBets from "@/components/best-bets"
-import FightTable from "@/components/fight-table"
-import EventRunner from "@/components/event-runner"
-import AnalysisSection from "@/components/analysis-section"
-import ModelPerformanceStrip from "@/components/model-performance-strip"
-import HeroSection from "@/components/hero-section"
+import AnalysisSection from "@/components/pages/home/analysis-section"
+import ModelPerformanceStrip from "@/components/pages/home/model-performance-strip"
+import HeroSection from "@/components/pages/home/hero-section"
 
 export default function DashboardPage() {
   return (

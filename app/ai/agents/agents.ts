@@ -9,7 +9,6 @@ type AgentResult = {
 };
 
 async function Agents(eventData: string): Promise<AgentResult> {
-  // Fixed: Remove invalid and unnecessary property access on Zod schema internals
   console.log("Schema definition:", FightEdgeSummaryArraySchema);
 
   const { object: result1 } = await generateObject({
