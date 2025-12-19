@@ -10,7 +10,7 @@ export default function DashboardPage() {
         <HeroSection/>
 
         {/* Model Performance Strip */}
-        <ModelPerformanceStrip />
+        {/* <ModelPerformanceStrip /> */}
 
         {/* Analysis Section */}
         <AnalysisSection />

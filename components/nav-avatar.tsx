@@ -7,10 +7,13 @@ import Link from 'next/link'
 import LogoutButton from './logout-button'
 import { useSession } from '@/lib/auth/auth-client'
 import { redirect, usePathname } from 'next/navigation'
+import Image from 'next/image'
+import { ProfileAvatar } from './profile-avatar'
 
-const Avatar = () => {
+const NavAvatar = () => {
   const { data, isPending } = useSession();
-  const pathname = usePathname();
+  const avatarUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${data?.user.image}?v=${data?.user.updatedAt}`
+  
   if (!data?.user) {
     return (
       <Button onClick={() => redirect("/auth/login")}>
@@ -25,9 +28,7 @@ const Avatar = () => {
             variant="ghost"
             className="gap-2 px-3 py-2 hover:bg-foreground/5 rounded-full transition-all duration-300 hover:scale-105"
           >
-            <div className="w-9 h-9 rounded-full bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center text-foreground text-sm font-bold shadow-lg shadow-purple-500/40 animate-glow-pulse">
-              {data?.user.name.slice(0,1)}
-            </div>
+            <ProfileAvatar avatarUrl={avatarUrl} name={data?.user.name} email={data?.user.email} size={36} />
             <span className="hidden sm:inline text-sm font-medium text-gray-200">{data?.user.name}</span>
             <ChevronDown className="w-4 h-4 text-gray-400" />
           </Button>
@@ -58,4 +59,4 @@ const Avatar = () => {
   )
 }
 
-export default Avatar
+export default NavAvatar

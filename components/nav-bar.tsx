@@ -2,20 +2,22 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import NavAvatar from "./nav-avatar"
 
 const navItems = [
   { name: "Dashboard", href: "/" },
-  { name: "My Plays", href: "/my-plays" },
-  { name: "History", href: "/history" },
+  // { name: "My Plays", href: "/my-plays" },
+  // { name: "History", href: "/history" },
   { name: "Billing", href: "/billing" },
   { name: "Settings", href: "/settings" },
 ]
 
 export default function NavBar() {
   const pathname = usePathname()
+  const authRoutes = ['/auth/login', '/auth/signup', '/auth/forgot-password']
+  const hideAuthButtons = authRoutes.includes(pathname)
+
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-backdrop-filter-bg-card/80">
@@ -61,7 +63,8 @@ export default function NavBar() {
             <div className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
               Free Plan – 1 fight/day
             </div>
-            <DropdownMenu>
+            {!hideAuthButtons && <NavAvatar />}
+            {/* <DropdownMenu>
               <DropdownMenuTrigger>
                 <Avatar className="h-8 w-8 border border-primary/30">
                   <AvatarFallback className="bg-primary/20 text-primary">U</AvatarFallback>
@@ -73,7 +76,7 @@ export default function NavBar() {
                 </DropdownMenuItem>
                 <DropdownMenuItem>Logout</DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+            </DropdownMenu> */}
           </div>
         </div>
       </div>

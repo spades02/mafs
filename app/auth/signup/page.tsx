@@ -8,12 +8,12 @@ export default function SignupPage() {
       <div className="w-full max-w-5xl">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-lg bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <Target className="w-7 h-7 text-foreground" />
+          <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center shadow-lg shadow-primary/20">
+            <Target className="w-7 h-7 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">MAFS</h1>
-            <p className="text-xs text-gray-400">Multi-Agent Fight Simulator</p>
+            <h1 className="text-2xl font-bold text-primary">MAFS</h1>
+            <p className="text-xs text-primary">Multi-Agent Fight Simulator</p>
           </div>
         </div>
 

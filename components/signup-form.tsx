@@ -36,7 +36,7 @@ function SignupForm() {
 
     try {
       setIsLoading(true);
-
+      console.log("before calling signup")
       await authClient.signUp.email(
         {
           email: data.email,
@@ -46,9 +46,11 @@ function SignupForm() {
         },
         {
           onSuccess: () => {
+            
             toast.success("Account created successfully");
           },
           onError: (ctx) => {
+            console.log("after calling signup error")
             toast.error(ctx.error.message);
           },
         }
@@ -63,12 +65,12 @@ function SignupForm() {
   
   return (
     <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-foreground/10 rounded-2xl p-8 shadow-2xl">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Create your MAFS account</h2>
-            <p className="text-sm text-gray-400 mb-6">Start analyzing fights with AI-powered insights.</p>
+            <h2 className="text-2xl font-bold text-primary mb-2">Create your MAFS account</h2>
+            <p className="text-sm text-primary mb-6">Start analyzing fights with AI-powered insights.</p>
 
             <form className="space-y-4" onSubmit={handleFormSubmit}>
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm text-gray-300">
+                <Label htmlFor="name" className="text-sm text-primary">
                   Name
                 </Label>
                 <Input
@@ -81,7 +83,7 @@ function SignupForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm text-gray-300">
+                <Label htmlFor="email" className="text-sm text-primary">
                   Email
                 </Label>
                 <Input
@@ -94,7 +96,7 @@ function SignupForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm text-gray-300">
+                <Label htmlFor="password" className="text-sm text-primary">
                   Password
                 </Label>
                 <Input
@@ -106,7 +108,7 @@ function SignupForm() {
                 />
               </div>
 
-              <Button disabled={isLoading} type='submit' className="w-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-foreground font-medium">
+              <Button disabled={isLoading} type='submit' className="w-full bg-linear-to-r from-primary to-primary/30 hover:from-primary/20 hover:to-primary/40 text-gray-200 font-medium">
                 {isLoading && <Loader2 className='size-3 animate-spin' />}
                 Create Account
               </Button>

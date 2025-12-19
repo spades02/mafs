@@ -46,6 +46,7 @@ export default function LoginPage() {
             toast.success("Login Successful");
           },
           onError: (ctx) => {
+            console.log(ctx.error.message)
             toast.error(ctx.error.message);
           },
         }
@@ -61,26 +62,26 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#0b0f14] flex items-center justify-center px-4 bg-digital-noise">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md text-primary">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-lg bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <Target className="w-7 h-7 text-foreground" />
+          <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center shadow-lg shadow-primary/20">
+            <Target className="w-7 h-7 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">MAFS</h1>
-            <p className="text-xs text-gray-400">Multi-Agent Fight Simulator</p>
+            <h1 className="text-2xl font-bold">MAFS</h1>
+            <p className="text-xs">Multi-Agent Fight Simulator</p>
           </div>
         </div>
 
         {/* Auth Card */}
-        <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-foreground/10 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Sign in to MAFS</h2>
+        <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-primary/10 rounded-2xl p-8 shadow-2xl">
+          <h2 className="text-2xl font-bold mb-2">Sign in to MAFS</h2>
           <p className="text-sm text-gray-400 mb-6">Welcome back! Enter your credentials to continue.</p>
 
           <form className="space-y-4" onSubmit={handleFormSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm text-gray-300">
+              <Label htmlFor="email" className="text-sm">
                 Email
               </Label>
               <Input
@@ -93,7 +94,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm text-gray-300">
+              <Label htmlFor="password" className="text-sm">
                 Password
               </Label>
               <Input
@@ -105,7 +106,7 @@ export default function LoginPage() {
               />
             </div>
 
-            <Button disabled={isLoading} className="w-full bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-foreground font-medium">
+            <Button disabled={isLoading} className="w-full bg-linear-to-r from-primary to-primary/20 hover:from-primary/20 hover:to-primary/30 text-gray-200 font-medium">
               {isLoading && <Loader2 className="animate-spin size-3"/>}Log In
             </Button>
 
