@@ -1,7 +1,11 @@
 import { FightEdgeSummaryArraySchema } from "@/lib/agents/output-schemas";
 import { FightBreakdownsSchema } from "@/lib/agents/fight-breakdown-schema";
 import { MAFS_PROMPT } from "@/lib/agents/prompts";
-import { generateObject } from "ai";
+import { createGateway, generateObject } from "ai";
+
+const gateway = createGateway({
+  apiKey: process.env.CLAUDE_API_KEY, // Replace with your API key
+});
 
 type AgentResult = {
   mafsCoreEngine: any;
@@ -12,7 +16,7 @@ async function Agents(eventData: string): Promise<AgentResult> {
   console.log("Schema definition:", FightEdgeSummaryArraySchema);
 
   const { object: result1 } = await generateObject({
-    model: "anthropic/claude-opus-4.5",
+    model: gateway('anthropic/claude-3-haiku'),
     system: MAFS_PROMPT,
     schema: FightEdgeSummaryArraySchema,
     mode: "json",
@@ -21,7 +25,7 @@ ${eventData}`
   });
 
   const { object: result2 } = await generateObject({
-    model: "anthropic/claude-opus-4.5",
+    model: gateway('anthropic/claude-3-haiku'),
     system: MAFS_PROMPT,
     schema: FightBreakdownsSchema,
     mode: "json",
