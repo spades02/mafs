@@ -1,17 +1,14 @@
-"use client"
-
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { Button } from './ui/button'
 import { ChevronDown, CreditCard, LogOut, SettingsIcon, User } from 'lucide-react'
 import Link from 'next/link'
 import LogoutButton from './logout-button'
 import { useSession } from '@/lib/auth/auth-client'
-import { redirect, usePathname } from 'next/navigation'
-import Image from 'next/image'
+import { redirect } from 'next/navigation'
 import { ProfileAvatar } from './profile-avatar'
 
 const NavAvatar = () => {
-  const { data, isPending } = useSession();
+  const { data } = useSession();
   const avatarUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${data?.user.image}?v=${data?.user.updatedAt}`
   
   if (!data?.user) {

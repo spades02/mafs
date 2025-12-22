@@ -8,21 +8,27 @@ export async function POST(req: Request) {
     const simplifiedEvent = {
       EventId: data.EventId,
       Name: data.Name,
-      Fights: data.Fights.map((f: any) => ({
-        matchup: `${f.Fighters[0].FirstName} ${f.Fighters[0].LastName} vs ${f.Fighters[1].FirstName} ${f.Fighters[1].LastName}`,
-        weightClass: f.WeightClass,
-        moneylines: f.Fighters.map((fi: any) => fi.Moneyline),
-      })),
-    };
+      fights: data.Fights
+        .filter((f: any) => Array.isArray(f.Fighters) && f.Fighters.length === 2)
+        .map((f: any) => {
+          const [a, b] = f.Fighters;
+    
+          const fighterAName = `${a.FirstName}${a.LastName ? " " + a.LastName : ""}`;
+          const fighterBName = `${b.FirstName}${b.LastName ? " " + b.LastName : ""}`;
+    
+          return {
+            matchup: `${fighterAName} vs ${fighterBName}`,
+            moneylines: [a.Moneyline, b.Moneyline],
+          };
+        }),
+    };    
 
-    const result = await Agents(JSON.stringify(simplifiedEvent));
+    const result = await Agents(simplifiedEvent);
 
-    // ✅ Don't re-parse, just return the data
     return NextResponse.json({
       mafsCoreEngine: result.mafsCoreEngine,
-      fightBreakdowns: result.fightBreakdowns
+      fightBreakdowns: result.fightBreakdowns,
     });
-
   } catch (error: any) {
     console.error("Agent error:", error);
     return NextResponse.json(

@@ -18,7 +18,6 @@ export default function NavBar() {
   const authRoutes = ['/auth/login', '/auth/signup', '/auth/forgot-password']
   const hideAuthButtons = authRoutes.includes(pathname)
 
-
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-backdrop-filter-bg-card/80">
       <div className="container mx-auto px-4">

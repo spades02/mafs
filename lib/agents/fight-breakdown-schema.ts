@@ -23,11 +23,11 @@ export const FightBreakdownSchema = z.object({
   stake: z.string(),
   fighter1: z.object({
     name: z.string(),
-    notes: z.string().array(),
+    notes: z.array(z.string()).default([]),
   }),
   fighter2: z.object({
     name: z.string(),
-    notes: z.string().array(),
+    notes: z.array(z.string()).default([]),
   }),
   pathToVictory: z
     .object({
@@ -35,7 +35,7 @@ export const FightBreakdownSchema = z.object({
       prob: z.string(),
     })
     .array(),
-  whyLineExists: z.string().array(),
+  whyLineExists: z.array(z.string()).default([]),
 });
 
 export const FightBreakdownsSchema = z.object({
