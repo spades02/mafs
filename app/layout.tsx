@@ -1,8 +1,12 @@
+export const dynamic = 'force-dynamic';
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import NavBar from "@/components/nav-bar";
+import { auth } from "@/lib/auth/auth";
+import { headers } from "next/headers";
+import GuestNavbar from "@/components/guest-navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,19 +25,24 @@ export const metadata: Metadata = {
   description: "Multi Agent Fight Simulator",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
-      <body className="bg-[#0b0f14] text-foreground">
+      <body className="bg-background text-foreground">
         {/* Navbar is fine here; it can include client components internally */}
-        <NavBar/>
+        {!session && <GuestNavbar/>}
+        {session && <NavBar/>}
         <main>{children}</main>
         {/* Toaster can also be a client component inside */}
         <Toaster />

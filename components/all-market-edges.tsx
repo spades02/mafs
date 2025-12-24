@@ -1,8 +1,7 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { FightEdgeSummary } from '@/lib/agents/output-schemas'
-import { Skeleton } from './ui/skeleton'
 import MarketEdgeSkeleton from './market-edge-skeleton'
+import { FightEdgeSummary } from '@/types/fight-edge-summary'
 
 function AllMarketEdges({fightData}:{fightData: FightEdgeSummary[]}) {
   return (
@@ -21,12 +20,12 @@ function AllMarketEdges({fightData}:{fightData: FightEdgeSummary[]}) {
                       </>
                     )}
                       {fightData
-                      .filter((item) => item.ev !== "0" && item.ev !== "0%")
+                      .filter((item) => item.ev !== 0)
                       .map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
                           <span className="font-medium">{item.bet}</span>
                           <div className="flex items-center gap-4">
-                            <span className="text-xs text-muted-foreground">{item.truth}</span>
+                            {/* <span className="text-xs text-muted-foreground">{item.truth}</span> */}
                             <span className="font-bold text-primary">{item.ev}</span>
                             <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs text-primary">
                               {item.confidence}
@@ -46,12 +45,12 @@ function AllMarketEdges({fightData}:{fightData: FightEdgeSummary[]}) {
                       </>
                     )}
                       {fightData
-                      .filter((item) => item.ev !== "0" && item.ev !== "0%")
+                      .filter((item) => item.ev !== 0)
                       .map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
                           <span className="font-medium">{item.bet}</span>
                           <div className="flex items-center gap-4">
-                            <span className="text-xs text-muted-foreground">{item.truth}</span>
+                            {/* <span className="text-xs text-muted-foreground">{item.truth}</span> */}
                             <span className="font-bold text-primary">{item.ev}</span>
                             <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs text-primary">
                               {item.confidence}
@@ -71,12 +70,12 @@ function AllMarketEdges({fightData}:{fightData: FightEdgeSummary[]}) {
                       </>
                     )}
                       {fightData
-                      .filter((item)=> item.ev !=="0" && item.ev !== "0%")
+                      .filter((item)=> item.ev !== 0)
                       .map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm">
                           <span className="font-medium">{item.bet}</span>
                           <div className="flex items-center gap-4">
-                            <span className="text-xs text-muted-foreground">{item.truth}</span>
+                            {/* <span className="text-xs text-muted-foreground">{item.truth}</span> */}
                             <span className="font-bold text-primary">{item.ev}</span>
                             <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs text-primary">
                               {item.confidence}

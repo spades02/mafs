@@ -1,20 +1,14 @@
-import AnalysisSection from "@/components/pages/home/analysis-section"
-import ModelPerformanceStrip from "@/components/pages/home/model-performance-strip"
+import CTAButtons from "@/components/pages/home/cta-buttons"
 import HeroSection from "@/components/pages/home/hero-section"
 
-export default function DashboardPage() {
+export default function Page() {
   return (
-    <div className="min-h-screen">
+    <div className="max-h-screen">
       <main className="container mx-auto px-4 py-8">
         {/* Hero Section */}
         <HeroSection/>
-
-        {/* Model Performance Strip */}
-        {/* <ModelPerformanceStrip /> */}
-
-        {/* Analysis Section */}
-        <AnalysisSection />
-        
+        {/* Call to action buttons */}
+        <CTAButtons />
       </main>
     </div>
   )

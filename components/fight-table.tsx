@@ -1,12 +1,19 @@
 "use client"
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { FightEdgeSummary } from './pages/home/analysis-section';
+import { FightEdgeSummary } from '@/types/fight-edge-summary';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Skeleton } from './ui/skeleton';
 
-function FightTable({fightData} : {fightData: FightEdgeSummary[]}) {
-  const [selectedFight, setSelectedFight] = useState("");
+type FightTableProps = {
+  fightData: FightEdgeSummary[];
+  onSelectFight: (id: string) => void;
+};
+
+function FightTable({
+  fightData,
+  onSelectFight,
+}: FightTableProps) {
   return (
     <Card className="mb-8">
       <CardHeader>
@@ -14,7 +21,7 @@ function FightTable({fightData} : {fightData: FightEdgeSummary[]}) {
       </CardHeader>
       {(!fightData || fightData.length === 0) && (
           <>
-            {[1].map((i) => (
+            {[1].map(() => (
               <div className="border rounded-lg">
               <Table className="lg:max-w-lg mx-auto">
                 <TableHeader>
@@ -73,11 +80,11 @@ function FightTable({fightData} : {fightData: FightEdgeSummary[]}) {
             </thead>
             <tbody className="text-sm">
               {fightData
-              .filter((fight)=> fight.ev !== "0" && fight.ev !== "0%")
-              .map((fight) => (
+              .filter((fight)=> fight.ev !== 0)
+              .map((fight, index) => (
                 <tr
-                  key={fight.id}
-                  onClick={() => setSelectedFight(fight.id)}
+                  key={`${fight.id}-${index}`}
+                  onClick={() => onSelectFight(fight.id)}
                   className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/50"
                 >
                   <td className="py-4 pr-4 font-medium">{fight.fight}</td>
@@ -90,9 +97,9 @@ function FightTable({fightData} : {fightData: FightEdgeSummary[]}) {
                   <td className="py-4 pr-4">
                     <span
                       className={`rounded-full px-2 py-1 text-xs ${
-                        fight.risk === "Low"
+                        fight.risk <= 50
                           ? "bg-green-500/20 text-green-400"
-                          : fight.risk === "Medium"
+                          : fight.risk > 50 && fight.risk < 78  
                             ? "bg-yellow-500/20 text-yellow-400"
                             : "bg-red-500/20 text-red-400"
                       }`}

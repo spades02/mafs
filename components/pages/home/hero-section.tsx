@@ -1,17 +1,11 @@
-import React from 'react'
+import Logo from '@/components/shared/logo'
+import { Button } from '@/components/ui/button'
+import { ArrowRight, DollarSign } from 'lucide-react'
 
 function HeroSection() {
   return (
     <div className="mb-12 text-center hero-glow">
-          <div className="mb-4 flex justify-center">
-            <div className="rounded-full bg-primary/20 p-3">
-              <svg className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                <circle cx="12" cy="12" r="6" strokeWidth="2" />
-                <circle cx="12" cy="12" r="2" strokeWidth="2" fill="currentColor" />
-              </svg>
-            </div>
-          </div>
+          <Logo />
           <h1 className="mb-3 text-4xl font-bold text-balance">Find the truth behind the odds.</h1>
           <p className="mb-4 text-lg text-muted-foreground text-balance">
             MAFS doesn't predict winners — it finds mispriced lines and gives you the most profitable bets.

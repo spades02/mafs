@@ -4,7 +4,7 @@ import { Card, CardContent } from './ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Button } from './ui/button'
 import { EventData } from '@/types/event'
-import { FightEdgeSummary } from './pages/home/analysis-section'
+import { FightEdgeSummary } from '@/types/fight-edge-summary'
 import { FightBreakdownType } from '@/types/fight-breakdowns'
 
 type EventItem = {
@@ -92,50 +92,50 @@ useEffect(() => {
   }, []);
 
   return (
-    <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex-1 sm:w-[300px]">
-                  {/* if API tokens are not limited then fetch fights right here onValueChange for quick response */}
-                <Select value={selectedEvent} onValueChange={setSelectedEvent}> 
-                  <SelectTrigger className="w-full sm:w-[300px]">
-                  <SelectValue placeholder={loading ? "Loading..." : "Choose UFC event…"} />
-                  </SelectTrigger>
-                  
-                  <SelectContent>
-                    {error && (
-                     <div className="text-red-500 px-3 py-2 text-sm">
-                       {error}
-                     </div>
-                    )}
-                    {!error &&
-            events.map((event) => (
-              <SelectItem key={event.EventId} value={String(event.EventId)}>
-                {event.Name}
-              </SelectItem>
-            ))}
-                    </SelectContent>
-                </Select>
-              </div>
-              <Button
-                onClick={runAnalysis}
-                disabled={!selectedEvent || loading}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                Run Full Card (All Fights)
-              </Button>
-            </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              MAFS will scan all available markets and rank the best edges.
-            </p>
-            {loading && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-primary animate-fade-in">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-                <span>AI is scanning mispriced lines…</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+    <Card className="mb-8 bg-card">
+      <CardContent className="p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex-1 sm:w-[300px]">
+              {/* if API tokens are not limited then fetch fights right here onValueChange for quick response */}
+            <Select value={selectedEvent} onValueChange={setSelectedEvent}> 
+              <SelectTrigger className="w-full sm:w-[300px]">
+              <SelectValue placeholder={loading ? "Loading..." : "Choose UFC event…"} />
+              </SelectTrigger>
+              
+              <SelectContent>
+                {error && (
+                 <div className="text-red-500 px-3 py-2 text-sm">
+                   {error}
+                 </div>
+                )}
+                {!error &&
+        events.map((event) => (
+          <SelectItem key={event.EventId} value={String(event.EventId)}>
+            {event.Name}
+          </SelectItem>
+        ))}
+                </SelectContent>
+            </Select>
+          </div>
+          <Button
+            onClick={runAnalysis}
+            disabled={!selectedEvent || loading}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            Run Full Card (All Fights)
+          </Button>
+        </div>
+        <p className="mt-3 text-sm text-muted-foreground">
+          MAFS will scan all available markets and rank the best edges.
+        </p>
+        {loading && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-primary animate-fade-in">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+            <span>AI is scanning mispriced lines…</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

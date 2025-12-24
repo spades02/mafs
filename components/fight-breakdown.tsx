@@ -4,18 +4,27 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { FightBreakdownType } from '@/types/fight-breakdowns'
 
-function FightBreakdown({fightBreakdowns}: {fightBreakdowns: FightBreakdownType[]}) {
-    
-  const [selectedFight, setSelectedFight] = useState<number | null>(null)
-  const currentFightData = selectedFight ? fightBreakdowns[selectedFight] : null
+type FightBreakdownProps = {
+  fightBreakdowns: FightBreakdownType[];
+  selectedFightId: string | null;
+  onClose: () => void;
+};
 
-  if(selectedFight && currentFightData)
+function FightBreakdown({
+  fightBreakdowns,
+  selectedFightId,
+  onClose,
+}: FightBreakdownProps) {
+  const currentFightData = selectedFightId ? fightBreakdowns.find((f) => f.id === selectedFightId)
+  : null;
+
+  if (!currentFightData) return null;
   return (
     <Card className="mb-8 card-glow">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Fight Breakdown: {currentFightData?.fight}</CardTitle>
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedFight(null)}>
+                    <Button variant="ghost" size="sm" onClick={() => onClose()}>
                       Close
                     </Button>
                   </div>
@@ -114,7 +123,7 @@ function FightBreakdown({fightBreakdowns}: {fightBreakdowns: FightBreakdownType[
                         <div className="mb-2 font-semibold">{currentFightData?.fighter1.name}</div>
                         <ul className="space-y-1 text-sm text-muted-foreground">
                           {currentFightData?.fighter1.notes.map((note, idx) => (
-                            <li key={idx}>• {note}</li>
+                            <li key={`${currentFightData.fight}-${idx}`}>• {note}</li>
                           ))}
                         </ul>
                       </div>
@@ -122,7 +131,7 @@ function FightBreakdown({fightBreakdowns}: {fightBreakdowns: FightBreakdownType[
                         <div className="mb-2 font-semibold">{currentFightData?.fighter2.name}</div>
                         <ul className="space-y-1 text-sm text-muted-foreground">
                           {currentFightData?.fighter2.notes.map((note, idx) => (
-                            <li key={idx}>• {note}</li>
+                            <li key={`${currentFightData.fight}-${idx}`}>• {note}</li>
                           ))}
                         </ul>
                       </div>
@@ -136,9 +145,9 @@ function FightBreakdown({fightBreakdowns}: {fightBreakdowns: FightBreakdownType[
                     </h3>
                     <ol className="space-y-2 text-sm">
                       {currentFightData?.pathToVictory.map((item, idx) => (
-                        <li key={idx}>
+                        <li key={`${currentFightData.fight}-${idx}`}>
                           <span className="font-semibold text-primary">#{idx + 1}</span> – {item.path}{" "}
-                          <span className="text-muted-foreground">{item.prob}</span>
+                          <span className="text-muted-foreground">{item.prob} Here i am</span>
                         </li>
                       ))}
                     </ol>
@@ -151,7 +160,7 @@ function FightBreakdown({fightBreakdowns}: {fightBreakdowns: FightBreakdownType[
                     </h3>
                     <ul className="space-y-2 text-sm text-muted-foreground">
                       {currentFightData?.whyLineExists.map((reason, idx) => (
-                        <li key={idx}>• {reason}</li>
+                        <li key={`${currentFightData.fight}-${idx}`}>• {reason}</li>
                       ))}
                     </ul>
                   </div>

@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils"
 import NavAvatar from "./nav-avatar"
 
 const navItems = [
-  { name: "Dashboard", href: "/dashboard" },
+  { name: "Home", href: "/" },
   // { name: "My Plays", href: "/my-plays" },
   // { name: "History", href: "/history" },
-  { name: "Billing", href: "/billing" },
-  { name: "Settings", href: "/settings" },
+  { name: "Pricing", href: "/pricing" },
+  { name: "How it works?", href: "/how-it-works" },
 ]
 
-export default function NavBar() {
+export default function GuestNavbar() {
   const pathname = usePathname()
   const authRoutes = ['/auth/login', '/auth/signup', '/auth/forgot-password']
   const hideAuthButtons = authRoutes.includes(pathname)

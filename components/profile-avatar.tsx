@@ -1,5 +1,6 @@
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { useState } from "react"
 
 type Props = {
   avatarUrl?: string | null
@@ -14,6 +15,7 @@ export function ProfileAvatar({
   email,
   size = 96,
 }: Props) {
+  const [imageError, setImageError] = useState(false)
   const initials = getInitials(name, email)
 
   return (
@@ -23,12 +25,13 @@ export function ProfileAvatar({
       )}
       style={{ width: size, height: size }}
     >
-      {avatarUrl ? (
+      {avatarUrl && !imageError ? (
         <Image
           src={avatarUrl}
           alt="Profile picture"
           fill
           className="rounded-full object-cover"
+          onError={() => setImageError(true)}
         />
       ) : (
         <span className="select-none text-white font-semibold">
@@ -41,7 +44,6 @@ export function ProfileAvatar({
 
 function getInitials(name?: string | null, email?: string | null) {
   const safeName = name?.trim()
-  console.log("ame", name)
   const safeEmail = email?.trim()
 
   if (safeName) {

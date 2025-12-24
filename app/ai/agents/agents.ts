@@ -1,8 +1,8 @@
-import { FightEdgeSummaryArraySchema } from "@/lib/agents/output-schemas";
-import { FightBreakdownsSchema } from "@/lib/agents/fight-breakdown-schema";
+import { FightBreakdownsSchema } from "@/lib/agents/schemas/fight-breakdown-schema";
 import { MAFS_PROMPT } from "@/lib/agents/prompts";
 import { generateObject } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
+import { FightEdgeSummary, FightEdgeSummaryArraySchema } from "@/lib/agents/schemas/fight-edge-summary-schema";
 
 type SimplifiedFight = {
   matchup: string;
@@ -16,7 +16,7 @@ type SimplifiedEvent = {
 };
 
 type AgentResult = {
-  mafsCoreEngine: any[];
+  mafsCoreEngine: FightEdgeSummary[];
   fightBreakdowns: any[];
 };
 
@@ -28,9 +28,9 @@ async function analyzeFightEdge(
   eventName: string
 ) {
   const { object } = await generateObject({
-    model: anthropic("claude-3-haiku-20240307"),
+    model: openai("gpt-4.1-mini"),
     schema: FightEdgeSummaryArraySchema,
-    maxOutputTokens: 500,
+    maxOutputTokens: 1200,
     system: MAFS_PROMPT,
     prompt: `
 Event: ${eventName}
@@ -45,8 +45,26 @@ ${fight.moneylines.join(" / ")}
 
 Return JSON with:
 {
-  fights: [ { ...ONE fight only... } ]
+  fights: [
+    {
+      id,
+      fight,
+      methodOfVictory,
+      bet,
+      score,
+      rank,
+      ev,
+      truthProbability,
+      marketProbability,
+      confidence,
+      risk,
+      tier,
+      recommendedStake,
+      rationale
+    }
+  ]
 }
+
 
 Rules:
 - fights MUST be an array of length 1
@@ -68,7 +86,7 @@ async function analyzeFightBreakdown(
   eventName: string
 ) {
   const { object } = await generateObject({
-    model: anthropic("claude-3-haiku-20240307"),
+    model: openai("gpt-4.1-mini"),
     schema: FightBreakdownsSchema,
     maxOutputTokens: 700,
     system: MAFS_PROMPT,
@@ -100,10 +118,6 @@ Rules:
 
   return object.breakdowns[0];
 }
-
-/* ---------------------------------------------
-   MAIN AGENT
---------------------------------------------- */
 async function Agents(event: SimplifiedEvent): Promise<AgentResult> {
   const mafsCoreEngine: any[] = [];
   const fightBreakdowns: any[] = [];

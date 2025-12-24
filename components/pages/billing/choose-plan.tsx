@@ -78,7 +78,7 @@ function ChoosePlan() {
                 </li>
               </ul>
               <Button className="mt-6 w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                Upgrade Now
+                Buy Now
               </Button>
             </CardContent>
           </Card>
