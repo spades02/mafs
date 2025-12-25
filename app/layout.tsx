@@ -6,7 +6,11 @@ import { Toaster } from "sonner";
 import NavBar from "@/components/nav-bar";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
-import GuestNavbar from "@/components/guest-navbar";
+import { GuestNavbar } from "@/components/guest-navbar";
+import { Suspense } from "react";
+import { NavAvatarSkeleton } from "@/components/nav-avatar-skeleton";
+import NavAvatar from "@/components/nav-avatar";
+import { NavBarSkeleton } from "@/components/skeletons/nav-bar-skeleton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,8 +45,9 @@ export default async function RootLayout({
     >
       <body className="bg-background text-foreground">
         {/* Navbar is fine here; it can include client components internally */}
-        {!session && <GuestNavbar/>}
-        {session && <NavBar/>}
+        {/* {!session && <GuestNavbar/>}
+        {session && <NavBar/>} */}
+          <NavBar />
         <main>{children}</main>
         {/* Toaster can also be a client component inside */}
         <Toaster />
@@ -50,3 +55,4 @@ export default async function RootLayout({
     </html>
   );
 }
+NavAvatarSkeleton

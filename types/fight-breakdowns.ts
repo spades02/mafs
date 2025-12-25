@@ -1,22 +1,47 @@
 export type FightBreakdownType = {
-    id:string;
-    fight: string;
-    edge: string;
-    ev: string;
-    score: string;
-    trueLine: { fighter: string; odds: string; prob: string };
-    marketLine: { fighter: string; odds: string; prob: string };
-    mispricing: string;
-    recommendedBet: string;
-    betEv: string;
-    confidence: string;
-    risk: string;
-    stake: string;
-    fighter1: { name: string; notes: string[] };
-    fighter2: { name: string; notes: string[] };
-    pathToVictory: { path: string; prob: string }[];
-    whyLineExists: string[];
+  id: number;
+  fight: string;
+  edge: string;
+
+  ev: number; // ✅ FIXED
+
+  score: number;
+
+  trueLine: {
+    fighter: string;
+    odds: number;
+    prob: number;
   };
-  
-  export type FightBreakdowns = Record<string, FightBreakdownType>;
-  
+
+  marketLine: {
+    fighter: string;
+    odds: number;
+    prob: number;
+  };
+
+  mispricing: number;
+
+  recommendedBet: string;
+  betEv: number;
+
+  confidence: number;
+  risk: number;
+  stake: number;
+
+  fighter1: {
+    name: string;
+    notes: string[];
+  };
+
+  fighter2: {
+    name: string;
+    notes: string[];
+  };
+
+  pathToVictory: {
+    path: string;
+    prob: number;
+  }[];
+
+  whyLineExists: string[];
+};

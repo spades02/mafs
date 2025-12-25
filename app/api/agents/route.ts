@@ -17,6 +17,7 @@ export async function POST(req: Request) {
           const fighterBName = `${b.FirstName}${b.LastName ? " " + b.LastName : ""}`;
     
           return {
+            id: f.FightId,
             matchup: `${fighterAName} vs ${fighterBName}`,
             moneylines: [a.Moneyline, b.Moneyline],
           };

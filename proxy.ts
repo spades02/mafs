@@ -1,14 +1,32 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { auth } from './lib/auth/auth'
 
-// This function can be marked `async` if using `await` inside
 export async function proxy(request: NextRequest) {
-    const session = await auth.api.getSession(request)
-    if(!session){
-        return NextResponse.redirect(new URL("/auth/login", request.url))
-    }
+  // Get session for protected routes
+  const session = await auth.api.getSession(request)
+  
+  // Check if route is protected
+  const isProtectedRoute = ['/dashboard', '/settings', '/billing'].some(path => 
+    request.nextUrl.pathname.startsWith(path)
+  )
+  
+  // Redirect to login if accessing protected route without session
+  if (isProtectedRoute && !session) {
+    return NextResponse.redirect(new URL("/auth/login", request.url))
+  }
+  
+  // Continue with the request and add pathname header
+  const response = NextResponse.next()
+  response.headers.set('x-pathname', request.nextUrl.pathname)
+  // Add session status to headers so we can access it in Server Components
+  response.headers.set('x-has-session', session ? 'true' : 'false')
+  
+  return response
 }
- 
+
 export const config = {
-  matcher: ['/dashboard/:path*','/settings/:path*', '/billing/:path*'],
+  // Match all routes except static files and API routes
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 }

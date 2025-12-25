@@ -1,5 +1,5 @@
 export type FightEdgeSummary = {
-  id: string;
+  id: number;
   fight: string;
 
   // New / required by agent

@@ -2,93 +2,69 @@ import { z } from "zod";
 
 /* ---------- Shared Numeric Helpers ---------- */
 
-const ProbabilitySchema = z
-  .number()
-  .min(0)
-  .max(1); // 0.70 === 70%
+const ProbabilitySchema = z.number().min(0).max(1);
+const PercentageSchema = z.number().min(0).max(100);
 
-const PercentageSchema = z
-  .number()
-  .min(0)
-  .max(100); // 70 === 70%
+/* ---------- Nested ---------- */
 
-/* ---------- Path to Victory ---------- */
-
-export const PathToVictorySchema = z.object({
-  method: z.string().min(1),
-  probability: ProbabilitySchema,
+const LineSchema = z.object({
+  fighter: z.string().min(1),
+  odds: z.number(),
+  prob: ProbabilitySchema,
 });
 
-/* ---------- Why Line Exists ---------- */
-
-export const WhyLineExistsSchema = z.object({
-  reason: z.string().min(1),
+const FighterNotesSchema = z.object({
+  name: z.string().min(1),
+  notes: z.array(z.string().min(1)),
 });
 
-/* ---------- Fight Breakdown (Per Fight) ---------- */
+const PathToVictorySchema = z.object({
+  path: z.string().min(1),
+  prob: ProbabilitySchema,
+});
+
+/* ---------- Fight Breakdown ---------- */
 
 export const FightBreakdownSchema = z.object({
-  id: z.string().min(1),
+  id: z.number().int().positive(),
 
   fight: z.string().min(1),
 
-  /* Core analytics */
-  score: z.number().min(0).max(100),
-  // example: 85
-
-  rank: z.number().int().positive(),
-  // example: 1 = highest ranked edge on card
+  edge: z.string().min(1),
 
   ev: z.number(),
-  // example: 6.4 (expected value)
 
-  trueProbability: ProbabilitySchema,
-  // example: 0.72
+  score: z.number().min(0).max(100),
 
-  marketProbability: ProbabilitySchema,
-  // example: 0.61
+  trueLine: LineSchema,
+
+  marketLine: LineSchema,
+
+  mispricing: z.number(),
+
+  recommendedBet: z.string().min(1),
+
+  betEv: z.number(),
 
   confidence: z.number().min(0).max(100),
-  // example: 78
 
   risk: z.number().min(0).max(100),
-  // example: 42
 
-  tier: z.number().int().positive(),
-  // example: 1, 2, 3
+  stake: PercentageSchema,
 
-  recommendedStake: PercentageSchema,
-  // example: 5 === 5% bankroll
+  fighter1: FighterNotesSchema,
 
-  /* Pricing */
-  trueOdds: z.number(),
-  marketOdds: z.number(),
+  fighter2: FighterNotesSchema,
 
-  /* Explanations */
-  pathToVictory: z.array(PathToVictorySchema),
+  pathToVictory: z.array(PathToVictorySchema).min(1),
 
-  whyLineExists: z.array(WhyLineExistsSchema),
+  whyLineExists: z.array(z.string().min(1)),
 });
 
-/* ---------- Breakdown Collection ---------- */
+/* ---------- Collection ---------- */
 
 export const FightBreakdownsSchema = z.object({
   breakdowns: z.array(FightBreakdownSchema).min(1),
 });
 
-export const EventEdgeSummarySchema = z.object({
-  eventId: z.number().int().positive(),
-
-  totalFightsAnalyzed: z.number().int().nonnegative(),
-
-  bestEdgeScore: z.number().min(0).max(100),
-
-  averageEV: z.number(),
-
-  averageConfidence: z.number().min(0).max(100),
-
-  topTierPlays: z.number().int().nonnegative(),
-
-  riskWeightedExposure: PercentageSchema,
-  // total % of bankroll recommended across all plays
-});
+export type FightBreakdownType = z.infer<typeof FightBreakdownSchema>;

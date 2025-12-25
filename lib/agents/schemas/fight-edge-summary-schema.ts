@@ -2,7 +2,7 @@ import { z } from "zod";
 import { whyMafsLikesThis } from "./why-mafs-likes-this";
 
 export const FightEdgeSummarySchema = z.object({
-  id: z.string().min(1),
+  id: z.number().int().positive(),
 
   fight: z.string().min(1),
 
