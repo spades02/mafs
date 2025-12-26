@@ -28,7 +28,7 @@ function FightAnalysis({ fightData, fightBreakdowns }: FightAnalysisProps) {
       <FightTable fightData={fightData} onSelectFight={setSelectedFightId} />
 
       {currentFightData ? (
-        <FightBreakdown currentFightData={currentFightData} onClose={() => setSelectedFightId(null)} />
+        <FightBreakdown currentFightData={currentFightData} />
       ) : (
         // fallback UI while a breakdown isn't available yet
         <div className="mb-8 p-4 rounded-md bg-muted/50 text-sm text-muted-foreground">

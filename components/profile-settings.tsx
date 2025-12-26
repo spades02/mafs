@@ -1,12 +1,10 @@
 'use client'
 
-import { Upload, User } from "lucide-react"
+import { User } from "lucide-react"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { updateProfile } from "@/app/actions/update-profile"
-import { Dialog, DialogContent, DialogClose, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "./ui/dialog"
-import { ProfileAvatar } from "./profile-avatar"
 import { AvatarUpload } from "./avatar-upload"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -114,13 +112,13 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
             >
               {isSubmitting ? 'Saving...' : 'Save Changes'}
             </Button>
-            <Button 
+            {/* <Button 
               type="button" 
               variant="outline" 
               className="border-foreground/10 hover:bg-foreground/5 bg-transparent hover:text-primary/40"
             >
               Change Password
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server"
 import { db } from "@/db"
 import { user } from "@/db/schema"
 import { eq } from "drizzle-orm"
-import { auth } from "@/lib/auth/auth"
+import { auth } from "@/app/lib/auth/auth"
 import { headers } from "next/headers"
 
 export type UploadAvatarResult = {

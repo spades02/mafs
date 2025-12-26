@@ -8,6 +8,8 @@ import { authClient } from '@/lib/auth/auth-client'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import GoogleLoginButton from './google-login-button'
+import { useRouter } from "next/navigation";
+
 
 type FormValues = {
   name: string,
@@ -16,6 +18,7 @@ type FormValues = {
 }
 
 function SignupForm() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -41,22 +44,35 @@ function SignupForm() {
         {
           email: data.email,
           name: data.name,
-          password: data.password,
-          callbackURL: "/"
+          password: data.password
         },
         {
-          onSuccess: () => {
-            
+          onSuccess: async () => {
             toast.success("Account created successfully");
+            await authClient.signIn.email({
+              email: data.email,
+              password: data.password,
+            },
+            {
+              onSuccess: () => {
+                router.push("/dashboard")
+              },
+              onError: (ctx) => {
+                console.log(ctx.error.message)
+                toast.error(ctx.error.message);
+              },
+            });
           },
           onError: (ctx) => {
             console.log("after calling signup error")
             toast.error(ctx.error.message);
+            setIsLoading(false);
+            throw new Error(ctx.error.message);
           },
         }
       );
-    } finally {
-      setIsLoading(false);
+    } catch(error) {
+      console.error(Error)
     }
   };
   const handleGoogleClick = () => {

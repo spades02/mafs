@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { authClient } from "@/lib/auth/auth-client"
 import { Loader2, Target } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -16,6 +17,7 @@ type FormValues = {
 }
 
 export default function LoginPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false)
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); // prevent reload
@@ -38,21 +40,23 @@ export default function LoginPage() {
       await authClient.signIn.email(
         {
           email: data.email,
-          password: data.password,
-          callbackURL: "/"
+          password: data.password
         },
         {
           onSuccess: () => {
             toast.success("Login Successful");
+            window.location.href = '/dashboard'
           },
           onError: (ctx) => {
             console.log(ctx.error.message)
             toast.error(ctx.error.message);
+            setIsLoading(false);
+            throw new Error(ctx.error.message);
           },
         }
       );
-    } finally {
-      setIsLoading(false);
+    } catch {
+      console.error(Error);
     }
   };
 
@@ -61,12 +65,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f14] flex items-center justify-center px-4 bg-digital-noise">
-      <div className="w-full max-w-md text-primary">
+    <div className="h-full bg-[#0b0f14] flex items-center justify-center px-4 bg-digital-noise">
+      <div className="w-full max-w-md text-primary py-32 pb-56">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center shadow-lg shadow-primary/20">
-            <Target className="w-7 h-7 text-primary" />
+            <Target className="w-7 h-7" />
           </div>
           <div>
             <h1 className="text-2xl font-bold">MAFS</h1>
@@ -115,9 +119,9 @@ export default function LoginPage() {
             <GoogleLoginButton disabled={isLoading} onClick={handleGoogleClick} />
 
           <div className="mt-6 text-center space-y-2">
-            <Link href="/auth/forgot-password" className="text-sm text-blue-400 hover:text-blue-300">
+            {/* <Link href="/auth/forgot-password" className="text-sm text-blue-400 hover:text-blue-300">
               Forgot your password?
-            </Link>
+            </Link> */}
             <p className="text-sm text-gray-400">
               Don't have an account?{" "}
               <Link href="/auth/signup" className="text-blue-400 hover:text-blue-300 font-medium">

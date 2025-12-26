@@ -4,13 +4,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import NavBar from "@/components/nav-bar";
-import { auth } from "@/lib/auth/auth";
-import { headers } from "next/headers";
-import { GuestNavbar } from "@/components/guest-navbar";
-import { Suspense } from "react";
-import { NavAvatarSkeleton } from "@/components/nav-avatar-skeleton";
-import NavAvatar from "@/components/nav-avatar";
-import { NavBarSkeleton } from "@/components/skeletons/nav-bar-skeleton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,15 +28,12 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
 
-  const session = await auth.api.getSession({
-    headers: await headers()
-  });
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
-      <body className="bg-background text-foreground">
+      <body className="bg-background text-foreground min-h-screen">
         {/* Navbar is fine here; it can include client components internally */}
         {/* {!session && <GuestNavbar/>}
         {session && <NavBar/>} */}
@@ -55,4 +45,3 @@ export default async function RootLayout({
     </html>
   );
 }
-NavAvatarSkeleton

@@ -1,20 +1,22 @@
-"use client"
+import { auth } from '@/app/lib/auth/auth';
 import { Button } from '@/components/ui/button'
-import { useSession } from '@/lib/auth/auth-client';
 import { ArrowRight } from 'lucide-react'
+import { headers } from 'next/headers';
 import Link from 'next/link'
 
-function CTAButtons() {
-    const { data } = useSession();
+async function CTAButtons() {
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
     return (
     <div className='mt-8 flex justify-center gap-8'>
-          {!data && <Button className='rounded-sm' asChild>
+          {!session && <Button className='rounded-sm' asChild>
           <Link href={'/auth/login'}>
             <ArrowRight/>
             Login to get started
           </Link>
           </Button>}
-          {data &&
+          {session &&
             <Button className='rounded-sm' asChild>
           <Link href={'/dashboard'}>
             <ArrowRight/>

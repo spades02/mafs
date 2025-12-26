@@ -4,8 +4,8 @@ import { Target } from "lucide-react"
 
 export default function SignupPage() {
   return (
-    <div className="min-h-screen bg-[#0b0f14] flex items-center justify-center px-4 py-12 bg-digital-noise">
-      <div className="w-full max-w-5xl">
+    <div className="h-full bg-[#0b0f14] flex items-center justify-center px-4 py-12 bg-digital-noise">
+      <div className="w-full max-w-5xl pb-44">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center shadow-lg shadow-primary/20">

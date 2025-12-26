@@ -1,6 +1,6 @@
 import ProfileSettings from "@/components/profile-settings"
-import UserPreferences from "@/components/user-preferences"
-import { auth } from "@/lib/auth/auth";
+// import UserPreferences from "@/components/user-preferences"
+import { auth } from "@/app/lib/auth/auth";
 import { headers } from "next/headers";
 
 export default async function SettingsPage() {

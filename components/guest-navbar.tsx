@@ -24,7 +24,7 @@ export async function GuestNavbar() {
         
         {/* Avatar */}
         <Suspense fallback={<NavAvatarSkeleton />}>
-        <NavAvatar />
+        {/* <NavAvatar /> */}
         </Suspense>
       </div>
     </nav>

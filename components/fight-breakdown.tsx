@@ -1,13 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
 import { FightBreakdownType } from "@/types/fight-breakdowns";
 
 type FightBreakdownProps = {
   currentFightData: FightBreakdownType;
-  onClose: () => void;
 };
 
-function FightBreakdown({ currentFightData, onClose }: FightBreakdownProps) {
+function FightBreakdown({ currentFightData }: FightBreakdownProps) {
   // fallback safe values
   const trueLine = currentFightData.trueLine ?? { fighter: "—", odds: "—", prob: "—" };
   const marketLine = currentFightData.marketLine ?? { fighter: "—", odds: "—", prob: "—" };
@@ -21,9 +19,9 @@ function FightBreakdown({ currentFightData, onClose }: FightBreakdownProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Fight Breakdown: {currentFightData.fight ?? "—"}</CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}>
+          {/* <Button variant="ghost" size="sm" onClick={onClose}>
             Close
-          </Button>
+          </Button> */}
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded-full bg-primary/20 px-3 py-1 text-sm font-semibold text-primary">

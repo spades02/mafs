@@ -1,7 +1,7 @@
+"use client"
+
 import { DropdownMenuItem } from './ui/dropdown-menu'
 import { LogOut } from 'lucide-react'
-import { authClient } from '@/lib/auth/auth-client'
-import { redirect } from 'next/navigation'
 import { toast } from 'sonner'
 import { logoutAction } from '@/app/actions/logout'
 
@@ -10,9 +10,7 @@ function LogoutButton() {
         try {
             await logoutAction();
             toast.success("Logged out successfully!");
-            setTimeout(() => {
-                window.location.href = '/auth/login';
-            }, 500);
+            window.location.href = '/auth/login';
         } catch (error) {
             toast.error("Failed to logout");
         }

@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from "@/lib/auth/auth"
+import { auth } from "@/app/lib/auth/auth"
 import { headers } from "next/headers"
 import { revalidatePath } from "next/cache"
 import { uploadAvatar, type UploadAvatarResult } from "./upload-avatar"

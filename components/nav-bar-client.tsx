@@ -4,6 +4,7 @@
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { ReactNode } from "react"
+import { usePathname } from "next/navigation"
 
 // Navigation items for authenticated users
 const authenticatedNavItems = [
@@ -20,14 +21,14 @@ const guestNavItems = [
 ]
 
 interface NavBarClientProps {
-  pathname: string
   isAuthenticated: boolean
   children: ReactNode // This will be the NavAvatar
 }
 
-export function NavBarClient({ pathname, isAuthenticated, children }: NavBarClientProps) {
+export function NavBarClient({ isAuthenticated, children }: NavBarClientProps) {
   // Choose nav items based on authentication status
   const navItems = isAuthenticated ? authenticatedNavItems : guestNavItems
+  const pathname = usePathname()
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-backdrop-filter-bg-card/80">
