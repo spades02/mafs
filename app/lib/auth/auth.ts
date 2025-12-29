@@ -4,9 +4,12 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db/db"; // your drizzle instance
 import * as schema from "@/db/schema/auth-schema"
 
+const url = process.env.BETTER_AUTH_URL;
+console.log("BETTER AUTH URL", url)
+
 export const auth = betterAuth({
     trustedOrigins: [
-        process.env.BETTER_AUTH_URL!,
+        process.env.BETTER_AUTH_URL as string,
         ],
     database: drizzleAdapter(db, {
         provider: "pg", // or "mysql", "sqlite"
