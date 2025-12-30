@@ -50,13 +50,6 @@ export function NavAvatarClient({ avatarUrl, name, email }: NavAvatarClientProps
           </Link>
         </DropdownMenuItem>
         
-        <DropdownMenuItem asChild>
-          <Link href="/settings" className="flex items-center cursor-pointer">
-            <SettingsIcon className="w-4 h-4 mr-2" />
-            Settings
-          </Link>
-        </DropdownMenuItem>
-        
         <DropdownMenuSeparator />
         
         <LogoutButton />

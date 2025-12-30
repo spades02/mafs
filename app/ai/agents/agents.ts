@@ -32,6 +32,7 @@ async function analyzeFightEdge(
 ) {
   const { object } = await generateObject({
     model: openai("gpt-4.1-mini"),
+    temperature: 0.2,
     schema: FightEdgeSummaryArraySchema,
     maxOutputTokens: 1200,
     system: MAFS_PROMPT,
@@ -77,6 +78,7 @@ async function analyzeFightBreakdown(
 ) {
   const { object } = await generateObject({
     model: openai("gpt-4.1-mini"),
+    temperature: 0.2,
     schema: FightBreakdownsSchema,
     maxOutputTokens: 700,
     system: MAFS_PROMPT,

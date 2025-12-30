@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { EventData } from "@/types/event";
 import { FightEdgeSummary } from "@/types/fight-edge-summary";
 import { FightBreakdownType } from "@/types/fight-breakdowns";
+import AnalysisButton from "./analysis-button";
 
 type EventItem = {
   EventId: number;
@@ -54,6 +55,26 @@ function EventRunner({
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch("/api/me");
+        const data = await res.json();
+        setUser(data.user);
+      } catch {
+        setUser(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    }
+  
+    fetchUser();
+  }, []);
+  
 
   async function callAgent(data: EventData) {
     try {
@@ -135,14 +156,16 @@ function EventRunner({
               </SelectContent>
             </Select>
           </div>
+          
+          <AnalysisButton
+  user={user}
+  authLoading={authLoading}
+  selectedEvent={!!selectedEvent}
+  loading={loading}
+  onRunAnalysis={runAnalysis}
+  maxFreeAnalyses={3} // Optional, defaults to 3
+/>
 
-          <Button
-            onClick={runAnalysis}
-            disabled={!selectedEvent || loading}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            Run Full Card (All Fights)
-          </Button>
         </div>
 
         <p className="mt-3 text-sm text-muted-foreground">

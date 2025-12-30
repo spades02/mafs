@@ -2,19 +2,42 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db/db"; // your drizzle instance
-import * as schema from "@/db/schema/auth-schema"
-
-const url = process.env.BETTER_AUTH_URL;
-console.log("BETTER AUTH URL", url)
+import * as schema from "@/db/schema/auth-schema";
 
 export const auth = betterAuth({
     trustedOrigins: [
         process.env.BETTER_AUTH_URL as string,
-        ],
+    ],
     database: drizzleAdapter(db, {
         provider: "pg", // or "mysql", "sqlite"
         schema,
     }),
+    user: {
+        additionalFields: {
+            stripeCustomerId: {
+                type: "string",
+                required: false,
+            },
+            stripeSubscriptionId: {
+                type: "string",
+                required: false,
+            },
+            subscriptionStatus: {
+                type: "string",
+                required: false,
+            },
+            isPro: {
+                type: "boolean",
+                required: true,
+                defaultValue: false,
+            },
+            analysisCount: {
+                type: "number",
+                required: true,
+                defaultValue: 0,
+            },
+        },
+    },
     emailAndPassword: {
         enabled: true,
         // sendResetPassword: async ({ user, url }) => {
@@ -33,8 +56,8 @@ export const auth = betterAuth({
     socialProviders: {
          google: {
             enabled: true,
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!
+            clientId: process.env.GOOGLE_CLIENT_ID as string,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string
          },
     },
 });

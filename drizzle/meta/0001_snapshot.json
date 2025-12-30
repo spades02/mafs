@@ -1,0 +1,2290 @@
+{
+  "id": "9e44b8b0-f0af-4436-86a3-955ccd5da334",
+  "prevId": "fc965935-1bf7-48d8-8106-3dffe6add83d",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.agent_outputs": {
+      "name": "agent_outputs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "fight_id": {
+          "name": "fight_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fighter_id": {
+          "name": "fighter_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agent_type": {
+          "name": "agent_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "signal_strength": {
+          "name": "signal_strength",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "numeric_features": {
+          "name": "numeric_features",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "categorical_flags": {
+          "name": "categorical_flags",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw_output": {
+          "name": "raw_output",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "meta": {
+          "name": "meta",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "agent_outputs_idx": {
+          "name": "agent_outputs_idx",
+          "columns": [
+            {
+              "expression": "fight_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "agent_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "agent_outputs_fight_id_fights_id_fk": {
+          "name": "agent_outputs_fight_id_fights_id_fk",
+          "tableFrom": "agent_outputs",
+          "tableTo": "fights",
+          "columnsFrom": [
+            "fight_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "agent_outputs_fighter_id_fighter_profiles_id_fk": {
+          "name": "agent_outputs_fighter_id_fighter_profiles_id_fk",
+          "tableFrom": "agent_outputs",
+          "tableTo": "fighter_profiles",
+          "columnsFrom": [
+            "fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.account": {
+      "name": "account",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "account_userId_idx": {
+          "name": "account_userId_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "account_user_id_user_id_fk": {
+          "name": "account_user_id_user_id_fk",
+          "tableFrom": "account",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.session": {
+      "name": "session",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "session_userId_idx": {
+          "name": "session_userId_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "session_user_id_user_id_fk": {
+          "name": "session_user_id_user_id_fk",
+          "tableFrom": "session",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "session_token_unique": {
+          "name": "session_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user": {
+      "name": "user",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripe_customer_id": {
+          "name": "stripe_customer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripe_subscription_id": {
+          "name": "stripe_subscription_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subscription_status": {
+          "name": "subscription_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_pro": {
+          "name": "is_pro",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "analysis_count": {
+          "name": "analysis_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_email_unique": {
+          "name": "user_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        },
+        "user_stripe_customer_id_unique": {
+          "name": "user_stripe_customer_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "stripe_customer_id"
+          ]
+        },
+        "user_stripe_subscription_id_unique": {
+          "name": "user_stripe_subscription_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "stripe_subscription_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.verification": {
+      "name": "verification",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "verification_identifier_idx": {
+          "name": "verification_identifier_idx",
+          "columns": [
+            {
+              "expression": "identifier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fight_markets": {
+      "name": "fight_markets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "fight_id": {
+          "name": "fight_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bookmaker": {
+          "name": "bookmaker",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "market_type": {
+          "name": "market_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opening_odds_a": {
+          "name": "opening_odds_a",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opening_odds_b": {
+          "name": "opening_odds_b",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "closing_odds_a": {
+          "name": "closing_odds_a",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "closing_odds_b": {
+          "name": "closing_odds_b",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "current_odds_a": {
+          "name": "current_odds_a",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "current_odds_b": {
+          "name": "current_odds_b",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "live_odds_history": {
+          "name": "live_odds_history",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "line_movement_history": {
+          "name": "line_movement_history",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handle_pct_a": {
+          "name": "handle_pct_a",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handle_pct_b": {
+          "name": "handle_pct_b",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bet_count_pct_a": {
+          "name": "bet_count_pct_a",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bet_count_pct_b": {
+          "name": "bet_count_pct_b",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sharp_steam_flags": {
+          "name": "sharp_steam_flags",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "max_limit_indicator": {
+          "name": "max_limit_indicator",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_updated": {
+          "name": "last_updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "fight_markets_idx": {
+          "name": "fight_markets_idx",
+          "columns": [
+            {
+              "expression": "fight_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "bookmaker",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "fight_markets_fight_id_fights_id_fk": {
+          "name": "fight_markets_fight_id_fights_id_fk",
+          "tableFrom": "fight_markets",
+          "tableTo": "fights",
+          "columnsFrom": [
+            "fight_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fighter_news": {
+      "name": "fighter_news",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "fighter_id": {
+          "name": "fighter_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "related_fight_id": {
+          "name": "related_fight_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "news_date": {
+          "name": "news_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_name": {
+          "name": "source_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_type": {
+          "name": "source_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "injury_notes": {
+          "name": "injury_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "injury_severity": {
+          "name": "injury_severity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "camp_change": {
+          "name": "camp_change",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "camp_change_details": {
+          "name": "camp_change_details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weight_cut_issue": {
+          "name": "weight_cut_issue",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weight_cut_details": {
+          "name": "weight_cut_details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "short_notice_flag": {
+          "name": "short_notice_flag",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "illness_reported": {
+          "name": "illness_reported",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "illness_details": {
+          "name": "illness_details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pullouts_or_reschedules": {
+          "name": "pullouts_or_reschedules",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "press_conference_quotes": {
+          "name": "press_conference_quotes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "red_flag_indicators": {
+          "name": "red_flag_indicators",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sentiment_score": {
+          "name": "sentiment_score",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sentiment_label": {
+          "name": "sentiment_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_credibility_score": {
+          "name": "source_credibility_score",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applies_to_fighter_side": {
+          "name": "applies_to_fighter_side",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ml_features": {
+          "name": "ml_features",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "fighter_news_idx": {
+          "name": "fighter_news_idx",
+          "columns": [
+            {
+              "expression": "fighter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "news_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "fighter_news_fighter_id_fighter_profiles_id_fk": {
+          "name": "fighter_news_fighter_id_fighter_profiles_id_fk",
+          "tableFrom": "fighter_news",
+          "tableTo": "fighter_profiles",
+          "columnsFrom": [
+            "fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fighter_news_related_fight_id_fights_id_fk": {
+          "name": "fighter_news_related_fight_id_fights_id_fk",
+          "tableFrom": "fighter_news",
+          "tableTo": "fights",
+          "columnsFrom": [
+            "related_fight_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fighter_profiles": {
+      "name": "fighter_profiles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nickname": {
+          "name": "nickname",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gender": {
+          "name": "gender",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_of_birth": {
+          "name": "date_of_birth",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "height_cm": {
+          "name": "height_cm",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reach_cm": {
+          "name": "reach_cm",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "leg_reach_cm": {
+          "name": "leg_reach_cm",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "primary_weight_class": {
+          "name": "primary_weight_class",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "other_weight_classes": {
+          "name": "other_weight_classes",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stance_primary": {
+          "name": "stance_primary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stance_secondary": {
+          "name": "stance_secondary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "base_style": {
+          "name": "base_style",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "secondary_styles": {
+          "name": "secondary_styles",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "camp_name": {
+          "name": "camp_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "camp_country": {
+          "name": "camp_country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "coach_notables": {
+          "name": "coach_notables",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pro_debut_date": {
+          "name": "pro_debut_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mma_record_wins": {
+          "name": "mma_record_wins",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mma_record_losses": {
+          "name": "mma_record_losses",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mma_record_draws": {
+          "name": "mma_record_draws",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mma_record_ncs": {
+          "name": "mma_record_ncs",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ufc_wins": {
+          "name": "ufc_wins",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ufc_losses": {
+          "name": "ufc_losses",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "finish_rate_win_pct": {
+          "name": "finish_rate_win_pct",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "finish_rate_loss_pct": {
+          "name": "finish_rate_loss_pct",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title_fights": {
+          "name": "title_fights",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardio_rating": {
+          "name": "cardio_rating",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "power_rating": {
+          "name": "power_rating",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "durability_rating": {
+          "name": "durability_rating",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fight_iq_rating": {
+          "name": "fight_iq_rating",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wrestling_rating": {
+          "name": "wrestling_rating",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bjj_rating": {
+          "name": "bjj_rating",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clinch_rating": {
+          "name": "clinch_rating",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pace_pressure_rating": {
+          "name": "pace_pressure_rating",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "defense_striking_rating": {
+          "name": "defense_striking_rating",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "defense_grappling_rating": {
+          "name": "defense_grappling_rating",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "momentum_last5_results": {
+          "name": "momentum_last5_results",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "momentum_win_streak": {
+          "name": "momentum_win_streak",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "momentum_loss_streak": {
+          "name": "momentum_loss_streak",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recent_weight_class_trend": {
+          "name": "recent_weight_class_trend",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "durability_ko_losses_last5": {
+          "name": "durability_ko_losses_last5",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "durability_body_damage_trend": {
+          "name": "durability_body_damage_trend",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "age_curve_status": {
+          "name": "age_curve_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "performance_by_age_buckets": {
+          "name": "performance_by_age_buckets",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vulnerability_vs_styles": {
+          "name": "vulnerability_vs_styles",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "strength_vs_styles": {
+          "name": "strength_vs_styles",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "early_round_finisher": {
+          "name": "early_round_finisher",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "late_round_comeback": {
+          "name": "late_round_comeback",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notable_x_factors": {
+          "name": "notable_x_factors",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fights": {
+      "name": "fights",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event_name": {
+          "name": "event_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "promotion": {
+          "name": "promotion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event_date": {
+          "name": "event_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "venue_city": {
+          "name": "venue_city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "venue_country": {
+          "name": "venue_country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cage_size_m": {
+          "name": "cage_size_m",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "altitude_m": {
+          "name": "altitude_m",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "card_order": {
+          "name": "card_order",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weight_class": {
+          "name": "weight_class",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fight_type": {
+          "name": "fight_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fighter_a_id": {
+          "name": "fighter_a_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fighter_b_id": {
+          "name": "fighter_b_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_rematch": {
+          "name": "is_rematch",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rematch_number": {
+          "name": "rematch_number",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_short_notice_a": {
+          "name": "is_short_notice_a",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_short_notice_b": {
+          "name": "is_short_notice_b",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "short_notice_days_a": {
+          "name": "short_notice_days_a",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "short_notice_days_b": {
+          "name": "short_notice_days_b",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "referee_name": {
+          "name": "referee_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "judge_names": {
+          "name": "judge_names",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rounds_scheduled": {
+          "name": "rounds_scheduled",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rounds_completed": {
+          "name": "rounds_completed",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "winner_fighter_id": {
+          "name": "winner_fighter_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "result_method": {
+          "name": "result_method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "result_detail": {
+          "name": "result_detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "finish_round": {
+          "name": "finish_round",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "finish_time_seconds": {
+          "name": "finish_time_seconds",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_split_or_majority_decision": {
+          "name": "is_split_or_majority_decision",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "official_scorecards": {
+          "name": "official_scorecards",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_contest_reason": {
+          "name": "no_contest_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fights_fighter_a_id_fighter_profiles_id_fk": {
+          "name": "fights_fighter_a_id_fighter_profiles_id_fk",
+          "tableFrom": "fights",
+          "tableTo": "fighter_profiles",
+          "columnsFrom": [
+            "fighter_a_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "fights_fighter_b_id_fighter_profiles_id_fk": {
+          "name": "fights_fighter_b_id_fighter_profiles_id_fk",
+          "tableFrom": "fights",
+          "tableTo": "fighter_profiles",
+          "columnsFrom": [
+            "fighter_b_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "fights_winner_fighter_id_fighter_profiles_id_fk": {
+          "name": "fights_winner_fighter_id_fighter_profiles_id_fk",
+          "tableFrom": "fights",
+          "tableTo": "fighter_profiles",
+          "columnsFrom": [
+            "winner_fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.final_predictions": {
+      "name": "final_predictions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "fight_id": {
+          "name": "fight_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model_version": {
+          "name": "model_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "predicted_winner_fighter_id": {
+          "name": "predicted_winner_fighter_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confidence_pct": {
+          "name": "confidence_pct",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prob_win_a": {
+          "name": "prob_win_a",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prob_win_b": {
+          "name": "prob_win_b",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prob_draw": {
+          "name": "prob_draw",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ko_prob_a": {
+          "name": "ko_prob_a",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sub_prob_a": {
+          "name": "sub_prob_a",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dec_prob_a": {
+          "name": "dec_prob_a",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ko_prob_b": {
+          "name": "ko_prob_b",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sub_prob_b": {
+          "name": "sub_prob_b",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dec_prob_b": {
+          "name": "dec_prob_b",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "risk_score": {
+          "name": "risk_score",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expected_value_main_market": {
+          "name": "expected_value_main_market",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recommended_bet_side": {
+          "name": "recommended_bet_side",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recommended_bet_size_units": {
+          "name": "recommended_bet_size_units",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "betting_edges": {
+          "name": "betting_edges",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "red_flags": {
+          "name": "red_flags",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_explanation": {
+          "name": "model_explanation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feature_importance": {
+          "name": "feature_importance",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "meta": {
+          "name": "meta",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "final_predictions_idx": {
+          "name": "final_predictions_idx",
+          "columns": [
+            {
+              "expression": "fight_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "final_predictions_fight_id_fights_id_fk": {
+          "name": "final_predictions_fight_id_fights_id_fk",
+          "tableFrom": "final_predictions",
+          "tableTo": "fights",
+          "columnsFrom": [
+            "fight_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "final_predictions_predicted_winner_fighter_id_fighter_profiles_id_fk": {
+          "name": "final_predictions_predicted_winner_fighter_id_fighter_profiles_id_fk",
+          "tableFrom": "final_predictions",
+          "tableTo": "fighter_profiles",
+          "columnsFrom": [
+            "predicted_winner_fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.round_stats": {
+      "name": "round_stats",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "fight_id": {
+          "name": "fight_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "round_number": {
+          "name": "round_number",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fighter_id": {
+          "name": "fighter_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opponent_id": {
+          "name": "opponent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "knockdowns": {
+          "name": "knockdowns",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sig_strikes_landed": {
+          "name": "sig_strikes_landed",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sig_strikes_attempted": {
+          "name": "sig_strikes_attempted",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total_strikes_landed": {
+          "name": "total_strikes_landed",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total_strikes_attempted": {
+          "name": "total_strikes_attempted",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sig_head_landed": {
+          "name": "sig_head_landed",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sig_body_landed": {
+          "name": "sig_body_landed",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sig_leg_landed": {
+          "name": "sig_leg_landed",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sig_head_attempted": {
+          "name": "sig_head_attempted",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sig_body_attempted": {
+          "name": "sig_body_attempted",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sig_leg_attempted": {
+          "name": "sig_leg_attempted",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "takedowns_landed": {
+          "name": "takedowns_landed",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "takedowns_attempted": {
+          "name": "takedowns_attempted",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reversals": {
+          "name": "reversals",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "submission_attempts": {
+          "name": "submission_attempts",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "advances": {
+          "name": "advances",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "control_time_seconds": {
+          "name": "control_time_seconds",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "standups": {
+          "name": "standups",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "knockdowns_absorbed": {
+          "name": "knockdowns_absorbed",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sig_strikes_absorbed": {
+          "name": "sig_strikes_absorbed",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "takedowns_conceded": {
+          "name": "takedowns_conceded",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "control_time_against_seconds": {
+          "name": "control_time_against_seconds",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "round_ended_in_dominant_position": {
+          "name": "round_ended_in_dominant_position",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fence_clinch_time_seconds": {
+          "name": "fence_clinch_time_seconds",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ground_time_seconds": {
+          "name": "ground_time_seconds",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "round_stats_idx": {
+          "name": "round_stats_idx",
+          "columns": [
+            {
+              "expression": "fight_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "round_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "fighter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "round_stats_fight_id_fights_id_fk": {
+          "name": "round_stats_fight_id_fights_id_fk",
+          "tableFrom": "round_stats",
+          "tableTo": "fights",
+          "columnsFrom": [
+            "fight_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "round_stats_fighter_id_fighter_profiles_id_fk": {
+          "name": "round_stats_fighter_id_fighter_profiles_id_fk",
+          "tableFrom": "round_stats",
+          "tableTo": "fighter_profiles",
+          "columnsFrom": [
+            "fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "round_stats_opponent_id_fighter_profiles_id_fk": {
+          "name": "round_stats_opponent_id_fighter_profiles_id_fk",
+          "tableFrom": "round_stats",
+          "tableTo": "fighter_profiles",
+          "columnsFrom": [
+            "opponent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.round_narratives": {
+      "name": "round_narratives",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "fight_id": {
+          "name": "fight_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "round_number": {
+          "name": "round_number",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "round_winner_fighter_id": {
+          "name": "round_winner_fighter_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "round_win_type": {
+          "name": "round_win_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "why_winner_summary": {
+          "name": "why_winner_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "key_damage_moments": {
+          "name": "key_damage_moments",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "momentum_shifts": {
+          "name": "momentum_shifts",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardio_shift_a": {
+          "name": "cardio_shift_a",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardio_shift_b": {
+          "name": "cardio_shift_b",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nearly_finished_a": {
+          "name": "nearly_finished_a",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nearly_finished_b": {
+          "name": "nearly_finished_b",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reactions_to_adversity_a": {
+          "name": "reactions_to_adversity_a",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reactions_to_adversity_b": {
+          "name": "reactions_to_adversity_b",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "style_transitions_a": {
+          "name": "style_transitions_a",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "style_transitions_b": {
+          "name": "style_transitions_b",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "smart_decisions_a": {
+          "name": "smart_decisions_a",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "smart_decisions_b": {
+          "name": "smart_decisions_b",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bad_decisions_a": {
+          "name": "bad_decisions_a",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bad_decisions_b": {
+          "name": "bad_decisions_b",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "coach_instructions_between_rounds": {
+          "name": "coach_instructions_between_rounds",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "coach_instructions_follow_through_a": {
+          "name": "coach_instructions_follow_through_a",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "coach_instructions_follow_through_b": {
+          "name": "coach_instructions_follow_through_b",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "crowd_effect": {
+          "name": "crowd_effect",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "body_language_confidence_a": {
+          "name": "body_language_confidence_a",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "body_language_confidence_b": {
+          "name": "body_language_confidence_b",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slowing_down_a": {
+          "name": "slowing_down_a",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slowing_down_b": {
+          "name": "slowing_down_b",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "speeding_up_a": {
+          "name": "speeding_up_a",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "speeding_up_b": {
+          "name": "speeding_up_b",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "narrative_summary": {
+          "name": "narrative_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "annotator_id": {
+          "name": "annotator_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "round_narratives_idx": {
+          "name": "round_narratives_idx",
+          "columns": [
+            {
+              "expression": "fight_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "round_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "round_narratives_fight_id_fights_id_fk": {
+          "name": "round_narratives_fight_id_fights_id_fk",
+          "tableFrom": "round_narratives",
+          "tableTo": "fights",
+          "columnsFrom": [
+            "fight_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "round_narratives_round_winner_fighter_id_fighter_profiles_id_fk": {
+          "name": "round_narratives_round_winner_fighter_id_fighter_profiles_id_fk",
+          "tableFrom": "round_narratives",
+          "tableTo": "fighter_profiles",
+          "columnsFrom": [
+            "round_winner_fighter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

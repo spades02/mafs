@@ -8,7 +8,6 @@ import { authClient } from '@/lib/auth/auth-client'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import GoogleLoginButton from './google-login-button'
-import { useRouter } from "next/navigation";
 
 
 type FormValues = {
@@ -18,7 +17,6 @@ type FormValues = {
 }
 
 function SignupForm() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -39,7 +37,6 @@ function SignupForm() {
 
     try {
       setIsLoading(true);
-      console.log("before calling signup")
       await authClient.signUp.email(
         {
           email: data.email,
@@ -55,7 +52,7 @@ function SignupForm() {
             },
             {
               onSuccess: () => {
-                router.push("/dashboard")
+                window.location.href = "/dashboard"
               },
               onError: (ctx) => {
                 console.log(ctx.error.message)

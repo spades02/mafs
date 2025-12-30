@@ -52,7 +52,7 @@ export function NavBarClient({ isAuthenticated, children }: NavBarClientProps) {
           </Link>
 
           {/* Center Nav - Shows different items based on auth status */}
-          <div className="hidden items-center gap-1 md:flex">
+          <div className="hidden items-end gap-1 md:flex">
             {navItems.map((item) => (
               <Link
                 key={item.href}

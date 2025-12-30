@@ -7,14 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { loginAction } from "@/app/actions/login"
 import { authClient } from "@/lib/auth/auth-client"
 
 export function LoginForm() {
-  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 

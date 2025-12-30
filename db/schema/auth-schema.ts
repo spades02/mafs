@@ -1,16 +1,35 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  index,
+} from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
+
   name: text("name"),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
 
-  // REQUIRED for email/password signup
+  // 🔐 Auth
   passwordHash: text("password_hash"),
-
   image: text("image"),
+
+  // 💳 Stripe
+  stripeCustomerId: text("stripe_customer_id").unique(),
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  subscriptionStatus: text("subscription_status"), 
+  // e.g. "active", "canceled", "past_due"
+
+  // 💰 Access control
+  isPro: boolean("is_pro").default(false).notNull(),
+  analysisCount: integer("analysis_count").default(0).notNull(),
+
+  // ⏱️ Meta
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
