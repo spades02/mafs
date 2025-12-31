@@ -1,7 +1,7 @@
 export type FightBreakdownType = {
   id: number;
   fight: string;
-  edge: string;
+  edge: number;
 
   ev: number; // ✅ FIXED
 

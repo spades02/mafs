@@ -30,7 +30,7 @@ export const FightBreakdownSchema = z.object({
 
   fight: z.string().min(1),
 
-  edge: z.string().min(1),
+  edge: z.number().min(0).max(1),
 
   ev: z.number(),
 

@@ -2,59 +2,34 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Button } from "./ui/button";
 import { EventData } from "@/types/event";
-import { FightEdgeSummary } from "@/types/fight-edge-summary";
-import { FightBreakdownType } from "@/types/fight-breakdowns";
 import AnalysisButton from "./analysis-button";
+
+interface EventRunnerProps {
+  setShowResults: (show: boolean) => void;
+  startAnalysis: (eventData: any) => Promise<void>;
+  isLoading: boolean;
+  isComplete: boolean;
+  error: string | null;
+  reset: () => void;
+}
 
 type EventItem = {
   EventId: number;
   Name: string;
 };
 
-function normalizeBreakdowns(raw: any): Record<number, FightBreakdownType> {
-  const out: Record<number, FightBreakdownType> = {};
-
-  if (!raw) return out;
-
-  // If agent returned an array
-  if (Array.isArray(raw)) {
-    raw.forEach((b: any) => {
-      if (b && (b.id !== undefined && b.id !== null)) {
-        out[Number(b.id)] = b as FightBreakdownType;
-      }
-    });
-    return out;
-  }
-
-  // If agent returned an object / record { "10215": {...}, ... }
-  if (typeof raw === "object") {
-    Object.entries(raw).forEach(([k, v]) => {
-      const n = Number(k);
-      if (!Number.isNaN(n) && v) {
-        out[n] = v as FightBreakdownType;
-      }
-    });
-    return out;
-  }
-
-  return out;
-}
-
 function EventRunner({
   setShowResults,
-  setFightData,
-  setFightBreakdowns,
-}: {
-  setShowResults: React.Dispatch<React.SetStateAction<boolean>>;
-  setFightData: React.Dispatch<React.SetStateAction<FightEdgeSummary[]>>;
-  setFightBreakdowns: React.Dispatch<React.SetStateAction<Record<number, FightBreakdownType>>>;
-}) {
+  startAnalysis,
+  isLoading,
+  isComplete,
+  error,
+  reset,
+}: EventRunnerProps) {
   const [selectedEvent, setSelectedEvent] = useState("");
   const [events, setEvents] = useState<EventItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [fetchError, setFetchError] = useState("");
 
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -71,49 +46,22 @@ function EventRunner({
         setAuthLoading(false);
       }
     }
-  
     fetchUser();
   }, []);
-  
-
-  async function callAgent(data: EventData) {
-    try {
-      const res = await fetch("/api/agents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data }),
-      });
-      if (!res.ok) throw new Error("Failed to analyze card");
-
-      const result = await res.json();
-
-      // mafsCoreEngine is expected to be an array
-      setFightData(result.mafsCoreEngine ?? []);
-
-      // normalize fightBreakdowns to Record<number, FightBreakdownType>
-      const normalized = normalizeBreakdowns(result.fightBreakdowns);
-      setFightBreakdowns(normalized);
-    } catch (err) {
-      console.error(err);
-      setError((err as any)?.message ?? "Agent error");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function runAnalysis() {
-    setLoading(true);
+    reset(); // Clear previous results
     setShowResults(true);
+    
     try {
       const res = await fetch(`/api/fights/${selectedEvent}`);
       if (!res.ok) throw new Error("Failed to fetch fights");
       const data = await res.json();
 
-      await callAgent(data);
+      await startAnalysis(data);
     } catch (err) {
       console.error(err);
-      setError((err as any)?.message ?? "Error running analysis");
-      setLoading(false);
+      setFetchError((err as any)?.message ?? "Error running analysis");
     }
   }
 
@@ -129,7 +77,7 @@ function EventRunner({
         }));
         setEvents(formatted);
       } catch (err: any) {
-        setError(err.message || "Error fetching events");
+        setFetchError(err.message || "Error fetching events");
       }
     }
     fetchEvents();
@@ -142,12 +90,12 @@ function EventRunner({
           <div className="flex-1 sm:w-[300px]">
             <Select value={selectedEvent} onValueChange={setSelectedEvent}>
               <SelectTrigger className="w-full sm:w-[300px]">
-                <SelectValue placeholder={loading ? "Loading..." : "Choose UFC event…"} />
+                <SelectValue placeholder={isLoading ? "Loading..." : "Choose UFC event…"} />
               </SelectTrigger>
 
               <SelectContent>
-                {error && <div className="text-red-500 px-3 py-2 text-sm">{error}</div>}
-                {!error &&
+                {fetchError && <div className="text-red-500 px-3 py-2 text-sm">{fetchError}</div>}
+                {!fetchError &&
                   events.map((event) => (
                     <SelectItem key={event.EventId} value={String(event.EventId)}>
                       {event.Name}
@@ -156,26 +104,42 @@ function EventRunner({
               </SelectContent>
             </Select>
           </div>
-          
+         {!isComplete && 
           <AnalysisButton
-  user={user}
-  authLoading={authLoading}
-  selectedEvent={!!selectedEvent}
-  loading={loading}
-  onRunAnalysis={runAnalysis}
-  maxFreeAnalyses={3} // Optional, defaults to 3
-/>
-
+            user={user}
+            authLoading={authLoading}
+            selectedEvent={!!selectedEvent}
+            loading={isLoading}
+            onRunAnalysis={runAnalysis}
+            maxFreeAnalyses={3}
+          />}
         </div>
 
         <p className="mt-3 text-sm text-muted-foreground">
           MAFS will scan all available markets and rank the best edges.
         </p>
 
-        {loading && (
+        {/* Show streaming error */}
+        {error && (
+          <div className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* Show loading state */}
+        {isLoading && (
           <div className="mt-4 flex items-center gap-2 text-sm text-primary animate-fade-in">
             <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
             <span>AI is scanning mispriced lines…</span>
+            <span>It can take 20-25s on one fight. Be patient.</span>
+          </div>
+        )}
+
+        {/* Show completion state */}
+        {isComplete && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-primary">
+            <span>✅ Analysis complete!</span>
+            <span>AI can make mistakes. Place your bets responsibly.</span>
           </div>
         )}
       </CardContent>

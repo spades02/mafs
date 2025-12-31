@@ -6,7 +6,7 @@ import { FightEdgeSummary, FightEdgeSummaryArraySchema } from "@/lib/agents/sche
 import { FightBreakdownType } from "@/types/fight-breakdowns";
 
 type SimplifiedFight = {
-  id:number;
+  id: number;
   matchup: string;
   moneylines: number[];
 };
@@ -17,10 +17,14 @@ type SimplifiedEvent = {
   fights: SimplifiedFight[];
 };
 
-type AgentResult = {
-  mafsCoreEngine: FightEdgeSummary[];
-  fightBreakdowns: FightBreakdownType[];
+export type FightResult = {
+  type: 'fight';
+  fightId: number;
+  edge: FightEdgeSummary;
+  breakdown: FightBreakdownType;
 };
+
+type StreamCallback = (result: FightResult) => void;
 
 /* ---------------------------------------------
    SINGLE FIGHT → EDGE SUMMARY
@@ -31,7 +35,7 @@ export async function analyzeFightEdge(
   baseContext: string
 ) {
   const { object } = await generateObject({
-    model: openai("gpt-4.1-mini"),
+    model: openai("gpt-4o-mini"),
     temperature: 0.05,
     schema: FightEdgeSummaryArraySchema,
     maxOutputTokens: 900,
@@ -67,7 +71,6 @@ Rules:
   return object.fights[0];
 }
 
-
 /* ---------------------------------------------
    SINGLE FIGHT → BREAKDOWN
 --------------------------------------------- */
@@ -77,7 +80,7 @@ export async function analyzeFightBreakdown(
   baseContext: string
 ) {
   const { object } = await generateObject({
-    model: openai("gpt-4.1-mini"),
+    model: openai("gpt-4o-mini"),
     temperature: 0.1,
     schema: FightBreakdownsSchema,
     maxOutputTokens: 700,
@@ -111,7 +114,10 @@ Rules:
   return object.breakdowns[0];
 }
 
-async function Agents(event: SimplifiedEvent): Promise<AgentResult> {
+async function Agents(
+  event: SimplifiedEvent,
+  onFightComplete?: StreamCallback
+): Promise<{ mafsCoreEngine: FightEdgeSummary[]; fightBreakdowns: FightBreakdownType[] }> {
   const fightIdMap = event.fights.map(f => ({
     id: f.id,
     matchup: f.matchup,
@@ -134,17 +140,26 @@ ${JSON.stringify(fightIdMap, null, 2)}
 
   for (const fight of event.fights) {
     try {
-      const edge = await analyzeFightEdge(fight, event.Name, baseContext);
-      mafsCoreEngine.push(edge);
-    } catch (err) {
-      console.error("Edge analysis failed:", fight.matchup, err);
-    }
+      // Analyze both edge and breakdown for this fight
+      const [edge, breakdown] = await Promise.all([
+        analyzeFightEdge(fight, event.Name, baseContext),
+        analyzeFightBreakdown(fight, event.Name, baseContext),
+      ]);
 
-    try {
-      const breakdown = await analyzeFightBreakdown(fight, event.Name, baseContext);
+      mafsCoreEngine.push(edge);
       fightBreakdowns.push(breakdown);
+
+      // Stream this fight's result immediately
+      if (onFightComplete) {
+        onFightComplete({
+          type: 'fight',
+          fightId: fight.id,
+          edge,
+          breakdown,
+        });
+      }
     } catch (err) {
-      console.error("Breakdown failed:", fight.matchup, err);
+      console.error("Fight analysis failed:", fight.matchup, err);
     }
   }
 
@@ -153,6 +168,5 @@ ${JSON.stringify(fightIdMap, null, 2)}
     fightBreakdowns,
   };
 }
-
 
 export default Agents;

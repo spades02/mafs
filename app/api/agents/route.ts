@@ -1,12 +1,11 @@
-import { NextResponse } from "next/server";
-import Agents from "@/app/ai/agents/agents";
 import { auth } from "@/app/lib/auth/auth";
-import { user } from "@/db/schema"
-import { analysisRun } from "@/db/schema";
+import { user, analysisRun } from "@/db/schema";
 import { nanoid } from "nanoid";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import Agents from "@/app/ai/agents/agents";
+import {FightResult} from "@/app/ai/agents/agents"
 
 export async function POST(req: Request) {
   const authResult = await auth.api.getSession({
@@ -17,7 +16,6 @@ export async function POST(req: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
   
-  // 🔑 Fetch DB user
   const dbUser = await db
     .select()
     .from(user)
@@ -30,11 +28,9 @@ export async function POST(req: Request) {
   
   const resultUser = dbUser[0];
   
-  // ✅ NOW this works
   if (!resultUser.isPro && resultUser.analysisCount >= 3) {
     return new Response("Free limit reached", { status: 403 });
   }
-  
 
   try {
     const { data } = await req.json();
@@ -56,33 +52,55 @@ export async function POST(req: Request) {
             moneylines: [a.Moneyline, b.Moneyline],
           };
         }),
-    };    
+    };
 
-    const result = await Agents(simplifiedEvent);
+    // Create streaming response
+    const stream = new ReadableStream({
+      // In your route handler, after the stream closes:
+async start(controller) {
+  const encoder = new TextEncoder();
+  const allResults: FightResult[] = [];
+  
+  await Agents(simplifiedEvent, (fightResult) => {
+    allResults.push(fightResult);
+    const message = JSON.stringify(fightResult) + '\n';
+    controller.enqueue(encoder.encode(message));
+  });
 
-    await db.insert(analysisRun).values({
-      id: nanoid(),
-      userId: authResult.user.id,
-      title: simplifiedEvent.Name,      // ← THIS IS THE KEY
-      eventId: simplifiedEvent.EventId, // optional
-      result,
-    });    
+  // Save to database after all fights complete
+  await db.insert(analysisRun).values({
+    id: nanoid(),
+    userId: authResult.user.id,
+    title: simplifiedEvent.Name,
+    eventId: simplifiedEvent.EventId,
+    result: {
+      mafsCoreEngine: allResults.map(r => r.edge),
+      fightBreakdowns: allResults.map(r => r.breakdown),
+    },
+  });
 
-    await db
+  await db
     .update(user)
-    .set({
-      analysisCount: resultUser.analysisCount + 1
-    })
-    .where(eq(user.id, resultUser.id))
+    .set({ analysisCount: resultUser.analysisCount + 1 })
+    .where(eq(user.id, resultUser.id));
 
-    return NextResponse.json({
-      mafsCoreEngine: result.mafsCoreEngine,
-      fightBreakdowns: result.fightBreakdowns,
+  controller.enqueue(encoder.encode(JSON.stringify({ type: 'complete' }) + '\n'));
+  controller.close();
+},
     });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
+
   } catch (error: any) {
     console.error("Agent error:", error);
-    return NextResponse.json(
-      { error: error.message || "Agent processing failed" },
+    return new Response(
+      JSON.stringify({ error: error.message || "Agent processing failed" }),
       { status: 500 }
     );
   }

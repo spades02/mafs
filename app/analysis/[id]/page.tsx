@@ -1,6 +1,4 @@
 // app/(dashboard)/analysis/[id]/page.tsx
-export const dynamic = "force-dynamic";
-
 import { db } from "@/db";
 import { analysisRun } from "@/db/schema";
 import { requireAuth } from "@/app/lib/auth/require-auth";
@@ -46,7 +44,7 @@ console.log("PARARMS:", params)
   );  
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 my-12">
       <header>
         <h1 className="text-3xl font-bold">{title}</h1>
         <p className="text-sm text-muted-foreground">
