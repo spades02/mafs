@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from "@/app/lib/auth/auth";
+import { auth } from "../../app/lib/auth/auth";
 
 export async function getSession() {
   return await auth.api.getSession({

@@ -15,6 +15,20 @@
       "when": 1767089957313,
       "tag": "0001_careful_arclight",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1767172760236,
+      "tag": "0002_optimal_scalphunter",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1767173720179,
+      "tag": "0003_bouncy_prodigy",
+      "breakpoints": true
     }
   ]
 }

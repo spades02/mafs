@@ -49,6 +49,13 @@ export function NavAvatarClient({ avatarUrl, name, email }: NavAvatarClientProps
             Billing
           </Link>
         </DropdownMenuItem>
+
+        <DropdownMenuItem asChild>
+          <Link href="/analysis" className="flex items-center cursor-pointer">
+            <CreditCard className="w-4 h-4 mr-2" />
+            My Runs
+          </Link>
+        </DropdownMenuItem>
         
         <DropdownMenuSeparator />
         

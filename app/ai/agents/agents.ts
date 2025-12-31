@@ -25,16 +25,16 @@ type AgentResult = {
 /* ---------------------------------------------
    SINGLE FIGHT → EDGE SUMMARY
 --------------------------------------------- */
-async function analyzeFightEdge(
+export async function analyzeFightEdge(
   fight: SimplifiedFight,
   eventName: string,
   baseContext: string
 ) {
   const { object } = await generateObject({
     model: openai("gpt-4.1-mini"),
-    temperature: 0.2,
+    temperature: 0.05,
     schema: FightEdgeSummaryArraySchema,
-    maxOutputTokens: 1200,
+    maxOutputTokens: 900,
     system: MAFS_PROMPT,
     prompt: `
 ${baseContext}
@@ -71,14 +71,14 @@ Rules:
 /* ---------------------------------------------
    SINGLE FIGHT → BREAKDOWN
 --------------------------------------------- */
-async function analyzeFightBreakdown(
+export async function analyzeFightBreakdown(
   fight: SimplifiedFight,
   eventName: string,
   baseContext: string
 ) {
   const { object } = await generateObject({
     model: openai("gpt-4.1-mini"),
-    temperature: 0.2,
+    temperature: 0.1,
     schema: FightBreakdownsSchema,
     maxOutputTokens: 700,
     system: MAFS_PROMPT,

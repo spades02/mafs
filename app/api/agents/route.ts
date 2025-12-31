@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import Agents from "@/app/ai/agents/agents";
 import { auth } from "@/app/lib/auth/auth";
 import { user } from "@/db/schema"
+import { analysisRun } from "@/db/schema";
+import { nanoid } from "nanoid";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -57,6 +59,14 @@ export async function POST(req: Request) {
     };    
 
     const result = await Agents(simplifiedEvent);
+
+    await db.insert(analysisRun).values({
+      id: nanoid(),
+      userId: authResult.user.id,
+      title: simplifiedEvent.Name,      // ← THIS IS THE KEY
+      eventId: simplifiedEvent.EventId, // optional
+      result,
+    });    
 
     await db
     .update(user)

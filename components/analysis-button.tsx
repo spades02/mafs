@@ -58,9 +58,9 @@ export default function AnalysisButton({
         </div>
         <Button
           onClick={() => (window.location.href = "/billing")}
-          className="bg-gradient-to-r from-yellow-500 to-amber-500 text-black hover:from-yellow-400 hover:to-amber-400 font-semibold min-w-[200px]"
+          className="bg-linear-to-r from-yellow-500 to-amber-500 text-black hover:from-yellow-400 hover:to-amber-400 font-semibold min-w-[200px]"
         >
-          Upgrade to Pro for Unlimited
+          Upgrade to Pro for Unlimited Runs
         </Button>
       </div>
     );
@@ -83,7 +83,7 @@ export default function AnalysisButton({
         onClick={() => (window.location.href = "/billing")}
         className="text-xs text-muted-foreground hover:text-foreground underline decoration-dotted"
       >
-        Upgrade for unlimited analyses
+        Upgrade for unlimited analysis runs
       </button>
     </div>
   );
