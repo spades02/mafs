@@ -8,22 +8,24 @@ import BestBets from "@/components/best-bets";
 import FightAnalysis from "@/components/pages/home/fight-analysis";
 import AllMarketEdges from "@/components/all-market-edges";
 
+// 1. Define the shape of your JSON column for type safety
+interface AnalysisResult {
+  mafsCoreEngine: any[]; 
+  fightBreakdowns: any[];
+}
+
 export default async function AnalysisDetailPage({
   params,
 }: {
-  params: Promise<{ id?: string | string[] }>;
+  params: Promise<{ id: string }>;
 }) {
   const session = await requireAuth();
   if (!session?.user?.id) notFound();
 
-  const resolvedParams = await params;
-const id = Array.isArray(resolvedParams.id)
-  ? resolvedParams.id[0]
-  : resolvedParams.id;
+  // 2. Properly await params (Next.js 15 requirement)
+  const { id } = await params;
 
-if (!id) notFound();
-
-console.log("PARARMS:", params)
+  if (!id) notFound();
 
   const run = await db
     .select()
@@ -39,9 +41,9 @@ console.log("PARARMS:", params)
   if (!run[0]) notFound();
 
   const { title, result, createdAt } = run[0];
-  const fightBreakdownsMap = Object.fromEntries(
-    result.fightBreakdowns.map((b) => [b.id, b])
-  );  
+  
+  // 3. Cast the JSON result to our interface
+  const data = result as unknown as AnalysisResult;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 my-12">
@@ -52,10 +54,18 @@ console.log("PARARMS:", params)
         </p>
       </header>
 
-      {/* Render however you already render analysis */}
-      <BestBets fightData={result.mafsCoreEngine}/>
-      <FightAnalysis fightData={result.mafsCoreEngine} fightBreakdowns={fightBreakdownsMap} />
-      <AllMarketEdges fightData={result.mafsCoreEngine}/>
+      <BestBets fightData={data.mafsCoreEngine} />
+      
+      {/* FIX: Pass the 'fightBreakdowns' ARRAY directly. 
+         Do not convert to a Map/Record with Object.fromEntries, 
+         or <FightAnalysis> will crash when it tries to .map() over it.
+      */}
+      <FightAnalysis 
+        fightData={data.mafsCoreEngine} 
+        fightBreakdowns={data.fightBreakdowns} 
+      />
+      
+      <AllMarketEdges fightData={data.mafsCoreEngine} />
     </div>
   );
 }

@@ -131,7 +131,6 @@ function EventRunner({
           <div className="mt-4 flex items-center gap-2 text-sm text-primary animate-fade-in">
             <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
             <span>AI is scanning mispriced lines…</span>
-            <span>It can take 20-25s on one fight. Be patient.</span>
           </div>
         )}
 

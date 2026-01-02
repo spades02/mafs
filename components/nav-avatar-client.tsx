@@ -3,7 +3,7 @@
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { Button } from './ui/button'
-import { ChevronDown, CreditCard, SettingsIcon, User } from 'lucide-react'
+import { Bot, ChevronDown, CreditCard, SettingsIcon, User } from 'lucide-react'
 import Link from 'next/link'
 import { ProfileAvatar } from './profile-avatar'
 import LogoutButton from './logout-button'
@@ -52,7 +52,7 @@ export function NavAvatarClient({ avatarUrl, name, email }: NavAvatarClientProps
 
         <DropdownMenuItem asChild>
           <Link href="/analysis" className="flex items-center cursor-pointer">
-            <CreditCard className="w-4 h-4 mr-2" />
+            <Bot className="w-4 h-4 mr-2" />
             My Runs
           </Link>
         </DropdownMenuItem>
