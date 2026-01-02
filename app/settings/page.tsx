@@ -15,7 +15,8 @@ export default async function SettingsPage() {
 
   const avatarUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${user.image}?v=${user.updatedAt}`
   return (
-    <main className="container mx-auto px-6 py-12 max-w-[1600px]">
+    <div className="min-h-screen">
+      <main className="container mx-auto max-w-xl px-4 py-8">
       <h1 className="text-3xl font-bold text-foreground mb-8">Settings</h1>
 
       <div className="grid gap-8 place-items-center">
@@ -25,6 +26,7 @@ export default async function SettingsPage() {
         {/* Preferences */}
         {/* <UserPreferences /> */}
       </div>
-    </main>
+      </main>
+    </div>
   )
 }

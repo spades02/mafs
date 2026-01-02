@@ -1,13 +1,9 @@
-// "use client"
-import CurrentPlan from "@/components/pages/billing/current-plan"
-import ChoosePlan from "@/components/pages/billing/choose-plan"
-import PaymentCard from "@/components/pages/billing/payment-card"
-import StripeProvider from "@/components/stripe/StripeProvider"
-import UpgradeCard from "@/components/pages/billing/upgrade-card"
-import { auth } from "../lib/auth/auth"
-import { headers } from "next/headers"
+import { auth } from "../lib/auth/auth";
+import { headers } from "next/headers";
+import BillingDashboard from "@/components/pages/billing/billing-dashboard";
+import StripeProvider from "@/components/stripe/StripeProvider";
 
-async function getUser(){
+async function getUser() {
   const nextHeaders = await headers();
   const session = await auth.api.getSession({
     headers: nextHeaders
@@ -17,24 +13,21 @@ async function getUser(){
 
 export default async function BillingPage() {
   const user = await getUser();
+
   return (
     <StripeProvider>
-    <div className="min-h-screen">
-      <main className="container mx-auto max-w-5xl px-4 py-8">
-        <h1 className="mb-6 text-3xl font-bold">Billing</h1>
+      <div className="min-h-screen bg-background text-foreground">
+        <main className="container mx-auto max-w-4xl px-4 py-12">
+          <div className="mb-8 space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">Subscription & Billing</h1>
+            <p className="text-muted-foreground">
+              Manage your plan, billing details, and usage limits.
+            </p>
+          </div>
 
-        {/* Current Plan */}
-        {/* <CurrentPlan /> */}
-
-        {/* Plans */}
-        {/* <ChoosePlan /> */}
-
-        {/* <UpgradeCard isPro={user.isPro!} /> */}
-
-        {/* Payment Method */}
-        <PaymentCard user={user} />
-      </main>
-    </div>
+          <BillingDashboard user={user} />
+        </main>
+      </div>
     </StripeProvider>
-  )
+  );
 }

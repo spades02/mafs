@@ -47,7 +47,6 @@ function AllMarketEdges({ fightData, isLoading = false, isComplete = false }: Al
           <div>
             <h4 className="mb-2 text-sm font-semibold text-muted-foreground">Method of Victory</h4>
             <div className="space-y-2">
-              {showSkeletons && <MarketEdgeSkeleton />}
               {fightData
                 .filter((item) => item.ev !== 0)
                 .map((item, idx) => (

@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import FightBreakdown from "@/components/fight-breakdown";
 import FightTable from "@/components/fight-table";
-import { FightEdgeSummary } from "@/types/fight-edge-summary";
+import { FightEdgeSummaryWithFightId } from "@/types/fight-edge-summary";
 import { FightBreakdownType } from "@/types/fight-breakdowns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 
 type FightAnalysisProps = {
-  fightData: FightEdgeSummary[];
+  fightData: FightEdgeSummaryWithFightId[];
   fightBreakdowns: Record<number, FightBreakdownType>;
   isLoading?: boolean;
   isComplete?: boolean;
@@ -25,10 +25,18 @@ function FightAnalysis({
 
   // auto-select the top fight (first in fightData) if none selected
   useEffect(() => {
-    if (selectedFightId === null && fightData && fightData.length > 0) {
-      setSelectedFightId(fightData[0].id);
+    if (
+      selectedFightId === null &&
+      fightData.length > 0 &&
+      fightBreakdowns[fightData[0].fightId]
+    ) {
+      setSelectedFightId(fightData[0].fightId);
     }
-  }, [fightData, selectedFightId]);
+  }, [fightData, fightBreakdowns, selectedFightId]);
+  console.log({
+    selectedFightId,
+    availableBreakdowns: Object.keys(fightBreakdowns).map(Number),
+  });
 
   const currentFightData = selectedFightId !== null ? fightBreakdowns[selectedFightId] ?? null : null;
 

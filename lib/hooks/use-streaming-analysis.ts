@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { FightEdgeSummary } from '@/types/fight-edge-summary';
 import { FightBreakdownType } from '@/types/fight-breakdowns';
 
-type FightResult = {
+export type FightResult = {
   type: 'fight';
   fightId: number;
   edge: FightEdgeSummary;
@@ -15,6 +15,7 @@ type StreamingState = {
   isLoading: boolean;
   isComplete: boolean;
   error: string | null;
+  totalFights: number;  // add totalFights
 };
 
 export function useStreamingAnalysis() {
@@ -23,6 +24,7 @@ export function useStreamingAnalysis() {
     isLoading: false,
     isComplete: false,
     error: null,
+    totalFights: 0,
   });
 
   const reset = useCallback(() => {
@@ -31,6 +33,7 @@ export function useStreamingAnalysis() {
       isLoading: false,
       isComplete: false,
       error: null,
+      totalFights: 0,
     });
   }, []);
 
@@ -40,6 +43,7 @@ export function useStreamingAnalysis() {
       isLoading: true,
       isComplete: false,
       error: null,
+      totalFights: 0,
     });
 
     try {
@@ -59,31 +63,35 @@ export function useStreamingAnalysis() {
 
       if (!reader) throw new Error('No reader available');
 
+      let buffer = '';
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(Boolean);
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
 
         for (const line of lines) {
           try {
             const parsed = JSON.parse(line);
 
             if (parsed.type === 'complete') {
-              setState(prev => ({ 
-                ...prev, 
-                isComplete: true, 
-                isLoading: false 
+              setState(prev => ({
+                ...prev,
+                isComplete: true,
+                isLoading: false,
               }));
             } else if (parsed.type === 'fight') {
               setState(prev => ({
                 ...prev,
                 results: [...prev.results, parsed],
+                totalFights: prev.totalFights, // update totalFights if sent from backend
               }));
             }
           } catch (e) {
-            console.error('Parse error:', e);
+            console.error('Parse error:', e, line);
           }
         }
       }

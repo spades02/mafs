@@ -75,7 +75,9 @@ async start(controller) {
     eventId: simplifiedEvent.EventId,
     result: {
       mafsCoreEngine: allResults.map(r => r.edge),
-      fightBreakdowns: allResults.map(r => r.breakdown),
+      fightBreakdowns: Object.fromEntries(
+  allResults.map(r => [r.fightId, r.breakdown])
+),
     },
   });
 

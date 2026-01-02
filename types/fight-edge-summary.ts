@@ -33,3 +33,7 @@ export type FightEdgeSummary = {
     summary: string;
   };
 };
+
+export type FightEdgeSummaryWithFightId = FightEdgeSummary & {
+  fightId: number;
+};

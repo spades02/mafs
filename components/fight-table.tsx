@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { FightEdgeSummary } from '@/types/fight-edge-summary';
+import { FightEdgeSummaryWithFightId } from '@/types/fight-edge-summary';
 import FightTableSkeleton from './skeletons/fight-table-skeleton';
 
 type FightTableProps = {
-  fightData: FightEdgeSummary[];
+  fightData: FightEdgeSummaryWithFightId[];
   onSelectFight: (id: number) => void;
   isLoading?: boolean;
   isComplete?: boolean;
@@ -55,7 +55,7 @@ function FightTable({
                   .map((fight, index) => (
                     <tr
                       key={`${fight.id}-${index}`}
-                      onClick={() => onSelectFight(fight.id)}
+                      onClick={() => onSelectFight(fight.fightId)}
                       className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/50 animate-in fade-in slide-in-from-left-2"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >

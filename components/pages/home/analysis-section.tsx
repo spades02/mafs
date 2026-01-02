@@ -4,17 +4,33 @@ import EventRunner from "../../event-runner";
 import BestBets from "../../best-bets";
 import AllMarketEdges from "../../all-market-edges";
 import FightAnalysis from "./fight-analysis";
-import { FightEdgeSummary } from "@/types/fight-edge-summary";
+import { FightEdgeSummaryWithFightId } from "@/types/fight-edge-summary";
 import { FightBreakdownType } from "@/types/fight-breakdowns";
 import { useStreamingAnalysis } from '@/lib/hooks/use-streaming-analysis';
+import AnalysisProgress from "@/components/analysis-progress";
 
 function AnalysisSection() {
-  const { results, isLoading, isComplete, error, startAnalysis, reset } = useStreamingAnalysis();
-
+  const {
+    results,
+    totalFights,
+    isLoading,
+    isComplete,
+    error,
+    startAnalysis,
+    reset,
+  } = useStreamingAnalysis();
   const [showResults, setShowResults] = useState(false);
 
+  const progress = totalFights > 0 
+    ? (results.length / totalFights) * 100 
+    : 0;
+
   // Derive fightData and fightBreakdowns from streaming results
-  const fightData: FightEdgeSummary[] = results.map(r => r.edge);
+  const fightData: FightEdgeSummaryWithFightId[] = results.map(r => ({
+    ...r.edge,
+    fightId: r.fightId,
+  }));
+  
   const fightBreakdowns: Record<number, FightBreakdownType> = results.reduce((acc, r) => {
     acc[r.fightId] = r.breakdown;
     return acc;
@@ -33,7 +49,17 @@ function AnalysisSection() {
         error={error}
         reset={reset}
       />
+      
+      {isLoading && (
+        <AnalysisProgress
+          progress={progress}
+          processed={results.length}
+          total={totalFights}
+          isComplete={isComplete}
+        />
+      )}
 
+        
       {shouldShowResults && (
         <>
           <BestBets 

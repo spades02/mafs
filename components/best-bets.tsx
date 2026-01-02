@@ -15,10 +15,9 @@ interface BestBetsProps {
 
 function BestBets({ fightData, isLoading = false, isComplete = false }: BestBetsProps) {
   // Filter and sort the available fights
-  // const topBets = fightData
-  //   .filter((bet) => bet.ev !== 0)
-  //   .sort((a, b) => b.ev - a.ev)
-  //   .slice(0, 3); // Show top 3
+  const topBets = fightData
+    .filter((bet) => bet.ev !== 0)
+    .sort((a, b) => b.ev - a.ev)
 
   // Calculate how many skeleton loaders to show (up to 3 total)
 // Calculate if we need a single skeleton (only for the next loading fight)
@@ -27,12 +26,12 @@ const showSkeleton = isLoading && !isComplete;
   return (
     <div className="mb-8">
       <h2 className="mb-4 text-2xl font-bold flex">
-        <LogoWithoutGlow size={8}/>Best Bets on This Card
+        <LogoWithoutGlow size={8}/>Best Bets On This Card
       </h2>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         
         {/* Render actual bet cards with animation */}
-        {fightData.map((bet, index) => (
+        {topBets.map((bet, index) => (
           <Card 
             key={bet.bet || index} 
             className="card-glow animate-in fade-in slide-in-from-bottom-4"
@@ -42,6 +41,7 @@ const showSkeleton = isLoading && !isComplete;
               <div className="mb-2 text-xs font-semibold text-primary">
                 {index === 0 ? `#${index + 1} Highest EV` : `#${index + 1}`}
               </div>
+              <div className='text-sm text-muted-foreground'>{bet.fight}</div>
               <div className="mb-3 text-2xl font-bold">{bet.bet}</div>
               <div className="mb-2 flex items-center gap-4">
                 <span className={`text-3xl text-glow font-bold ${index === 0 ? "text-[#00DF8F]" : "text-[#05EA78]"}`}>
