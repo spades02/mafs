@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
           console.error("No userId in session metadata");
           break;
         }
+        console.log("CONSOLE LOG: Update user to pro")
 
         // Update user to pro
         await db
@@ -54,7 +55,6 @@ export async function POST(req: NextRequest) {
           .where(eq(user.id, userId));
 
         console.log(`User ${userId} upgraded to Pro`);
-        window.location.href = "/dashboard"
         break;
       }
 
