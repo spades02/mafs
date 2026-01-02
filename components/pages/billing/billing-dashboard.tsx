@@ -32,19 +32,20 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
   // Calculate percentage for the progress bar
   const usagePercent = Math.min((analysisCount / MAX_FREE_ANALYSES) * 100, 100);
 
-  const handleUpgrade = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/stripe/subscribe", { method: "POST" });
-      if (!res.ok) throw new Error("Network response was not ok");
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch (err) {
-      console.error("Upgrade error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const handleUpgrade = async () => {
+        console.log("clicked")
+        setLoading(true);
+        try {
+        const res = await fetch("/api/stripe/subscribe", { method: "POST" });
+        if (!res.ok) throw new Error("Network response was not ok");
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+        } catch (err) {
+        console.error("Upgrade error:", err);
+        } finally {
+        setLoading(false);
+        }
+    };
 
   const handleManageSubscription = async () => {
     setLoading(true);
@@ -183,7 +184,7 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
             hasFreeLimitReached ? "border-amber-500/50 ring-1 ring-amber-500/20" : "border-primary"
           )}>
             <div className={cn(
-              "absolute inset-0 bg-linear-to-br via-transparent to-transparent",
+              "absolute inset-0 bg-linear-to-br via-transparent to-transparent pointer-events-none",
               hasFreeLimitReached ? "from-amber-500/10" : "from-primary/10"
             )} />
             
@@ -224,6 +225,7 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
             <CardFooter>
               {/* BUTTON STYLE COPIED FROM YOUR INSPIRATION */}
               <Button 
+              type="button"
                 className={cn(
                   "w-full font-semibold shadow-md",
                   hasFreeLimitReached 
