@@ -1,7 +1,6 @@
 import { FightBreakdownsSchema } from "@/lib/agents/schemas/fight-breakdown-schema";
 import { MAFS_PROMPT } from "@/lib/agents/prompts";
 import { generateObject, generateText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
 import { FightEdgeSummary, FightEdgeSummaryArraySchema } from "@/lib/agents/schemas/fight-edge-summary-schema";
 import { FightBreakdownType } from "@/types/fight-breakdowns";
@@ -96,7 +95,7 @@ async function analyzeFightEdge(
     : cardContext;
 
   const { object } = await generateObject({
-    model: anthropic("claude-sonnet-4-20250514"),
+    model: openai("gpt-4o"),
     temperature: 0.5,
     schema: FightEdgeSummaryArraySchema,
     maxOutputTokens: 1500, // Increased from 900
@@ -162,7 +161,7 @@ async function analyzeFightBreakdown(
     : cardContext;
 
   const { object } = await generateObject({
-    model: anthropic("claude-sonnet-4-20250514"),
+    model: openai("gpt-4o"),
     temperature: 0.3,
     schema: FightBreakdownsSchema,
     maxOutputTokens: 1200, // Increased from 700
