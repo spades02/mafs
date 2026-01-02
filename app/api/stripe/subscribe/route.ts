@@ -6,9 +6,11 @@ import { user } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 
+
 export async function POST() {
+  const nextHeaders = await headers();
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: nextHeaders
   });
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

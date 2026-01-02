@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { db } from "@/db";
-import { user } from "@/db/schema";
+import { db } from "@/db/db";
+import { user } from "@/db/schema/auth-schema";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 
@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
 
   if (!signature) {
+    console.error("No signature found");
     return NextResponse.json(
       { error: "No signature" },
       { status: 400 }
@@ -32,17 +33,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  console.log("✅ Webhook event received:", event.type);
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
 
+        console.log("💳 Checkout completed for user:", userId);
+
         if (!userId) {
-          console.error("No userId in session metadata");
+          console.error("❌ No userId in session metadata");
           break;
         }
-        console.log("CONSOLE LOG: Update user to pro")
 
         // Update user to pro
         await db
@@ -54,7 +58,7 @@ export async function POST(req: NextRequest) {
           })
           .where(eq(user.id, userId));
 
-        console.log(`User ${userId} upgraded to Pro`);
+        console.log(`✅ User ${userId} upgraded to Pro`);
         break;
       }
 
@@ -62,7 +66,8 @@ export async function POST(req: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        // Find user by stripe customer ID
+        console.log("🔄 Subscription updated for customer:", customerId);
+
         const existingUser = await db
           .select()
           .from(user)
@@ -78,7 +83,7 @@ export async function POST(req: NextRequest) {
             })
             .where(eq(user.id, existingUser[0].id));
 
-          console.log(`Subscription updated for user ${existingUser[0].id}`);
+          console.log(`✅ Subscription updated for user ${existingUser[0].id}`);
         }
         break;
       }
@@ -86,6 +91,8 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
+
+        console.log("🗑️ Subscription canceled for customer:", customerId);
 
         const existingUser = await db
           .select()
@@ -102,18 +109,18 @@ export async function POST(req: NextRequest) {
             })
             .where(eq(user.id, existingUser[0].id));
 
-          console.log(`Subscription canceled for user ${existingUser[0].id}`);
+          console.log(`✅ Subscription canceled for user ${existingUser[0].id}`);
         }
         break;
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log(`ℹ️ Unhandled event type: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Webhook handler error:", error);
+    console.error("❌ Webhook handler error:", error);
     return NextResponse.json(
       { error: "Webhook handler failed" },
       { status: 500 }

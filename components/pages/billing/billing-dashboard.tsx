@@ -154,18 +154,21 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
       <div className="lg:col-span-1">
         {isPro ? (
           // PRO USER VIEW
-          <Card className="h-full border-primary/20 bg-primary/5 shadow-md">
+          <Card className="h-full border-primary/20 bg-primary/5 shadow-md flex justify-between">
+            <div className="gap-2">
             <CardHeader>
               <CardTitle>Manage Subscription</CardTitle>
               <CardDescription>View invoices, change plans, or cancel.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>As a Pro User, you have:</li>
                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Unlimited Analyses</li>
                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Advanced Metrics</li>
                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Priority Support</li>
                </ul>
             </CardContent>
+            </div>
             <CardFooter>
               <Button 
                 className="w-full" 
