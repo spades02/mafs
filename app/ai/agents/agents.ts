@@ -72,7 +72,7 @@ This context will inform individual fight analysis - be detailed and actionable.
   const { text } = await generateText({
     model: openai("gpt-4o-mini"),
     temperature: 0.3,
-    maxOutputTokens: 2000, // Increased for comprehensive analysis
+    maxOutputTokens: 2000, // Large for comprehensive analysis
     prompt: cardPrompt,
   });
 

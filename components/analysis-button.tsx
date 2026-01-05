@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Sparkles, Lock } from "lucide-react";
+import { Sparkles, Lock, Bot } from "lucide-react";
 
 interface AnalysisButtonProps {
   user: {
@@ -37,7 +37,10 @@ export default function AnalysisButton({
         className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[200px]"
       >
         {loading ? (
-          "Analyzing..."
+          <>
+          <Bot className="mr-2 h-4 w-4" />
+          Analyzing...
+          </>
         ) : (
           <>
             <Sparkles className="mr-2 h-4 w-4" />

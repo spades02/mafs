@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { EventData } from "@/types/event";
 import AnalysisButton from "./analysis-button";
 
 interface EventRunnerProps {
@@ -104,7 +103,7 @@ function EventRunner({
               </SelectContent>
             </Select>
           </div>
-         {!isComplete && 
+         
           <AnalysisButton
             user={user}
             authLoading={authLoading}
@@ -112,7 +111,7 @@ function EventRunner({
             loading={isLoading}
             onRunAnalysis={runAnalysis}
             maxFreeAnalyses={3}
-          />}
+          />
         </div>
 
         <p className="mt-3 text-sm text-muted-foreground">
