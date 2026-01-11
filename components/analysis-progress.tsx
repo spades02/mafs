@@ -7,6 +7,8 @@ interface AnalysisProgressProps {
   processed: number;
   total: number;
   isComplete: boolean;
+  currentPhase?: 'fetching_odds' | 'analyzing_card' | 'analyzing_fight' | null;
+  statusMessage?: string;
 }
 
 export default function AnalysisProgress({
@@ -14,6 +16,8 @@ export default function AnalysisProgress({
   processed,
   total,
   isComplete,
+  currentPhase,
+  statusMessage,
 }: AnalysisProgressProps) {
   const [dots, setDots] = useState("");
 
@@ -26,23 +30,40 @@ export default function AnalysisProgress({
 
   if (isComplete) return null;
 
-  // 1. Detect Indeterminate State (Working, but total unknown)
+  // Detect states
   const isIndeterminate = total === 0 && processed > 0;
   const isStarting = total === 0 && processed === 0;
 
-  // 2. Safe percentage calculation
-  // If indeterminate, we default to 100% width but use a different animation style
+  // Safe percentage calculation
   const percentage = isIndeterminate ? 100 : Math.min(100, Math.max(0, total > 0 ? progress : 0));
 
-  // 3. Smart Status Text
+  // Smart Status Text - Now uses phase and custom message
   let statusText = "";
-  if (isStarting) {
+  let subtitle = "Processing market edges and fight breakdowns";
+
+  if (statusMessage) {
+    // Use custom status message if provided
+    statusText = statusMessage;
+  } else if (isStarting) {
     statusText = "Initializing engine";
-  } else if (isIndeterminate) {
-    // FIX: Don't show "of 0", just show current count
-    statusText = `Analyzing fight ${processed + 1}`;
+  } else if (currentPhase === 'fetching_odds') {
+    statusText = isIndeterminate 
+      ? `Fetching live odds` 
+      : `Fetching live odds (${processed}/${total})`;
+    subtitle = "Retrieving current betting lines from sportsbooks";
+  } else if (currentPhase === 'analyzing_card') {
+    statusText = "Analyzing card holistically";
+    subtitle = "Evaluating competitive landscape and market inefficiencies";
+  } else if (currentPhase === 'analyzing_fight') {
+    statusText = isIndeterminate
+      ? `Analyzing fight ${processed + 1}`
+      : `Analyzing fight ${processed + 1} of ${total}`;
+    subtitle = "Processing market edges and fight breakdowns";
   } else {
-    statusText = `Analyzing fight ${processed + 1} of ${total}`;
+    // Fallback to old behavior
+    statusText = isIndeterminate
+      ? `Analyzing fight ${processed + 1}`
+      : `Analyzing fight ${processed + 1} of ${total}`;
   }
 
   return (
@@ -53,12 +74,12 @@ export default function AnalysisProgress({
             {statusText}{dots}
           </span>
           <span className="text-xs text-muted-foreground mt-1">
-            Processing market edges and fight breakdowns
+            {subtitle}
           </span>
         </div>
         
-        {/* FIX: Only show percentage if we actually know the total */}
-        {!isIndeterminate && !isStarting && (
+        {/* Only show percentage if we know the total and not in card analysis */}
+        {!isIndeterminate && !isStarting && currentPhase !== 'analyzing_card' && (
           <div className="text-sm font-bold text-primary">
             {Math.round(percentage)}%
           </div>
@@ -68,16 +89,15 @@ export default function AnalysisProgress({
       <div className="relative h-3 w-full overflow-hidden rounded-full bg-secondary/50 border border-border">
         <div
           className={`h-full bg-primary transition-all duration-500 ease-out relative overflow-hidden ${
-            isIndeterminate ? "animate-pulse" : ""
+            isIndeterminate || currentPhase === 'analyzing_card' ? "animate-pulse" : ""
           }`}
-          style={{ width: `${percentage}%` }}
+          style={{ 
+            width: currentPhase === 'analyzing_card' ? '100%' : `${percentage}%` 
+          }}
         >
-          {/* Animation Logic:
-             If Indeterminate: We show a fast-moving striped texture to indicate "working"
-             If Normal: We show the shimmer effect 
-          */}
-          {isIndeterminate ? (
-             /* Barber-pole / Indeterminate Stripe Animation */
+          {/* Animation Logic */}
+          {(isIndeterminate || currentPhase === 'analyzing_card') ? (
+            /* Indeterminate Stripe Animation */
             <div 
               className="absolute inset-0 w-full h-full animate-[shimmer_1s_infinite_linear]"
               style={{
@@ -90,8 +110,8 @@ export default function AnalysisProgress({
             <div 
               className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite_linear] -skew-x-12" 
               style={{ 
-                 backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                 backgroundSize: '200% 100%' 
+                backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                backgroundSize: '200% 100%' 
               }} 
             />
           )}

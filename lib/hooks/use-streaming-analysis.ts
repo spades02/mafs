@@ -1,50 +1,49 @@
 // lib/hooks/use-streaming-analysis.ts
 import { useState, useCallback } from 'react';
-import { FightEdgeSummary } from '@/types/fight-edge-summary';
-import { FightBreakdownType } from '@/types/fight-breakdowns';
 
-export type FightResult = {
+type StatusPhase = 'fetching_odds' | 'analyzing_card' | 'analyzing_fight';
+
+interface StatusUpdate {
+  type: 'status';
+  phase: StatusPhase;
+  message: string;
+  progress?: {
+    current: number;
+    total: number;
+  };
+}
+
+interface FightResult {
   type: 'fight';
   fightId: number;
-  edge: FightEdgeSummary;
-  breakdown: FightBreakdownType;
-};
+  edge: any;
+  breakdown: any;
+  oddsSource: string;
+}
 
-type StreamingState = {
-  results: FightResult[];
-  isLoading: boolean;
-  isComplete: boolean;
-  error: string | null;
-  totalFights: number;  // add totalFights
-};
+type StreamUpdate = StatusUpdate | FightResult | { type: 'complete' } | { type: 'error'; message: string };
 
 export function useStreamingAnalysis() {
-  const [state, setState] = useState<StreamingState>({
-    results: [],
-    isLoading: false,
-    isComplete: false,
-    error: null,
-    totalFights: 0,
-  });
-
-  const reset = useCallback(() => {
-    setState({
-      results: [],
-      isLoading: false,
-      isComplete: false,
-      error: null,
-      totalFights: 0,
-    });
-  }, []);
+  const [results, setResults] = useState<FightResult[]>([]);
+  const [totalFights, setTotalFights] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // New state for tracking current phase
+  const [currentPhase, setCurrentPhase] = useState<StatusPhase | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>('');
+  const [oddsProgress, setOddsProgress] = useState({ current: 0, total: 0 });
 
   const startAnalysis = useCallback(async (eventData: any) => {
-    setState({
-      results: [],
-      isLoading: true,
-      isComplete: false,
-      error: null,
-      totalFights: 0,
-    });
+    setResults([]);
+    setTotalFights(0);
+    setIsLoading(true);
+    setIsComplete(false);
+    setError(null);
+    setCurrentPhase(null);
+    setStatusMessage('');
+    setOddsProgress({ current: 0, total: 0 });
 
     try {
       const response = await fetch('/api/agents', {
@@ -54,14 +53,15 @@ export function useStreamingAnalysis() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `HTTP ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
 
-      if (!reader) throw new Error('No reader available');
+      if (!reader) {
+        throw new Error('No reader available');
+      }
 
       let buffer = '';
 
@@ -71,38 +71,81 @@ export function useStreamingAnalysis() {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
-          try {
-            const parsed = JSON.parse(line);
+          if (!line.trim()) continue;
 
-            if (parsed.type === 'complete') {
-              setState(prev => ({
-                ...prev,
-                isComplete: true,
-                isLoading: false,
-              }));
-            } else if (parsed.type === 'fight') {
-              setState(prev => ({
-                ...prev,
-                results: [...prev.results, parsed],
-                totalFights: prev.totalFights, // update totalFights if sent from backend
-              }));
+          try {
+            const update: StreamUpdate = JSON.parse(line);
+
+            if (update.type === 'status') {
+              // Update phase and status message
+              setCurrentPhase(update.phase);
+              setStatusMessage(update.message);
+              
+              // Track progress for odds fetching and fight analysis
+              if (update.progress) {
+                if (update.phase === 'fetching_odds') {
+                  setOddsProgress(update.progress);
+                  setTotalFights(update.progress.total);
+                } else if (update.phase === 'analyzing_fight') {
+                  // Total is already set from odds fetching
+                }
+              }
+              
+            } else if (update.type === 'fight') {
+              setResults(prev => [...prev, update]);
+              
+              // Set total fights if not set yet
+              if (totalFights === 0) {
+                // We can infer total from the event data
+                // This is a fallback in case status updates didn't provide it
+              }
+              
+            } else if (update.type === 'complete') {
+              setIsComplete(true);
+              setIsLoading(false);
+              setCurrentPhase(null);
+              
+            } else if (update.type === 'error') {
+              setError(update.message);
+              setIsLoading(false);
+              setCurrentPhase(null);
             }
           } catch (e) {
-            console.error('Parse error:', e, line);
+            console.error('Failed to parse stream update:', line, e);
           }
         }
       }
-    } catch (error: any) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error.message,
-      }));
+    } catch (err: any) {
+      setError(err.message || 'Analysis failed');
+      setIsLoading(false);
+      setCurrentPhase(null);
     }
+  }, [totalFights]);
+
+  const reset = useCallback(() => {
+    setResults([]);
+    setTotalFights(0);
+    setIsLoading(false);
+    setIsComplete(false);
+    setError(null);
+    setCurrentPhase(null);
+    setStatusMessage('');
+    setOddsProgress({ current: 0, total: 0 });
   }, []);
 
-  return { ...state, startAnalysis, reset };
+  return {
+    results,
+    totalFights,
+    isLoading,
+    isComplete,
+    error,
+    currentPhase,
+    statusMessage,
+    oddsProgress,
+    startAnalysis,
+    reset,
+  };
 }

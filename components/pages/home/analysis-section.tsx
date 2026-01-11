@@ -16,14 +16,41 @@ function AnalysisSection() {
     isLoading,
     isComplete,
     error,
+    currentPhase,
+    statusMessage,
+    oddsProgress,
     startAnalysis,
     reset,
   } = useStreamingAnalysis();
   const [showResults, setShowResults] = useState(false);
 
-  const progress = totalFights > 0 
-    ? (results.length / totalFights) * 100 
-    : 0;
+  // Calculate progress based on current phase
+  let progress = 0;
+  let processed = 0;
+  
+  if (currentPhase === 'fetching_odds') {
+    // During odds fetching, use odds progress
+    progress = oddsProgress.total > 0 
+      ? (oddsProgress.current / oddsProgress.total) * 100 
+      : 0;
+    processed = oddsProgress.current;
+  } else if (currentPhase === 'analyzing_card') {
+    // Card analysis is indeterminate, show full bar with pulse
+    progress = 100;
+    processed = 0;
+  } else if (currentPhase === 'analyzing_fight') {
+    // During fight analysis, use results count
+    progress = totalFights > 0 
+      ? (results.length / totalFights) * 100 
+      : 0;
+    processed = results.length;
+  } else {
+    // Fallback to results-based progress
+    progress = totalFights > 0 
+      ? (results.length / totalFights) * 100 
+      : 0;
+    processed = results.length;
+  }
 
   // Derive fightData and fightBreakdowns from streaming results
   const fightData: FightEdgeSummaryWithFightId[] = results.map(r => ({
@@ -53,9 +80,11 @@ function AnalysisSection() {
       {isLoading && (
         <AnalysisProgress
           progress={progress}
-          processed={results.length}
+          processed={processed}
           total={totalFights}
           isComplete={isComplete}
+          currentPhase={currentPhase}
+          statusMessage={statusMessage}
         />
       )}
 
