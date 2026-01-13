@@ -16,7 +16,7 @@ interface BestBetsProps {
 function BestBets({ fightData, isLoading = false, isComplete = false }: BestBetsProps) {
   // Filter and sort the available fights
   const topBets = fightData
-    .filter((bet) => bet.ev !== 0)
+    // .filter((bet) => bet.ev !== 0)
     .sort((a, b) => b.ev - a.ev)
 
   // Calculate how many skeleton loaders to show (up to 3 total)

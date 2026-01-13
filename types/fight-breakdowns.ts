@@ -1,5 +1,4 @@
 export type FightBreakdownType = {
-  id: number;
   fight: string;
   edge: number;
 

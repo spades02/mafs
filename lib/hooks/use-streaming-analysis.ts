@@ -18,10 +18,14 @@ interface FightResult {
   fightId: number;
   edge: any;
   breakdown: any;
-  oddsSource: string;
+  oddsSource?: string;
 }
 
-type StreamUpdate = StatusUpdate | FightResult | { type: 'complete' } | { type: 'error'; message: string };
+type StreamUpdate =
+  | StatusUpdate
+  | FightResult
+  | { type: 'complete' }
+  | { type: 'error'; message: string };
 
 export function useStreamingAnalysis() {
   const [results, setResults] = useState<FightResult[]>([]);
@@ -29,10 +33,9 @@ export function useStreamingAnalysis() {
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // New state for tracking current phase
+
   const [currentPhase, setCurrentPhase] = useState<StatusPhase | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string>('');
+  const [statusMessage, setStatusMessage] = useState('');
   const [oddsProgress, setOddsProgress] = useState({ current: 0, total: 0 });
 
   const startAnalysis = useCallback(async (eventData: any) => {
@@ -53,16 +56,13 @@ export function useStreamingAnalysis() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error ${response.status}`);
       }
 
       const reader = response.body?.getReader();
+      if (!reader) throw new Error('No stream reader');
+
       const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('No reader available');
-      }
-
       let buffer = '';
 
       while (true) {
@@ -70,60 +70,59 @@ export function useStreamingAnalysis() {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
 
-        for (const line of lines) {
-          if (!line.trim()) continue;
+        // SSE events are separated by DOUBLE newline
+        const events = buffer.split('\n\n');
+        buffer = events.pop() ?? '';
+
+        for (const event of events) {
+          const line = event
+            .split('\n')
+            .find(l => l.startsWith('data:'));
+
+          if (!line) continue;
+
+          const json = line.replace(/^data:\s*/, '');
 
           try {
-            const update: StreamUpdate = JSON.parse(line);
+            const update: StreamUpdate = JSON.parse(json);
 
             if (update.type === 'status') {
-              // Update phase and status message
               setCurrentPhase(update.phase);
               setStatusMessage(update.message);
-              
-              // Track progress for odds fetching and fight analysis
+
               if (update.progress) {
-                if (update.phase === 'fetching_odds') {
-                  setOddsProgress(update.progress);
-                  setTotalFights(update.progress.total);
-                } else if (update.phase === 'analyzing_fight') {
-                  // Total is already set from odds fetching
-                }
+                setOddsProgress(update.progress);
+                setTotalFights(update.progress.total);
               }
-              
-            } else if (update.type === 'fight') {
+            }
+
+            if (update.type === 'fight') {
               setResults(prev => [...prev, update]);
-              
-              // Set total fights if not set yet
-              if (totalFights === 0) {
-                // We can infer total from the event data
-                // This is a fallback in case status updates didn't provide it
-              }
-              
-            } else if (update.type === 'complete') {
+            }
+
+            if (update.type === 'complete') {
               setIsComplete(true);
               setIsLoading(false);
               setCurrentPhase(null);
-              
-            } else if (update.type === 'error') {
+            }
+
+            if (update.type === 'error') {
               setError(update.message);
               setIsLoading(false);
               setCurrentPhase(null);
             }
-          } catch (e) {
-            console.error('Failed to parse stream update:', line, e);
+          } catch (err) {
+            console.error('SSE parse error:', json);
           }
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Analysis failed');
+      setError(err.message ?? 'Analysis failed');
       setIsLoading(false);
       setCurrentPhase(null);
     }
-  }, [totalFights]);
+  }, []);
 
   const reset = useCallback(() => {
     setResults([]);
