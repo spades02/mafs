@@ -24,23 +24,25 @@ function AllMarketEdges({ fightData, isLoading = false, isComplete = false }: Al
             <h4 className="mb-2 text-sm font-semibold text-muted-foreground">Moneyline</h4>
             <div className="space-y-2">
               {fightData
-                .filter((item) => item.ev !== 0)
+                .filter((item) => item.ev !== null && item.ev !== 0)
                 .map((item, idx) => (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm animate-in fade-in slide-in-from-left-2"
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
                     <span className="font-medium">{item.bet}</span>
                     <div className="flex items-center gap-4">
-                      <span className="font-bold text-primary">{item.ev}%</span>
+                      <span className="font-bold text-primary">
+                        {item.ev !== null ? `${item.ev}%` : 'N/A'}
+                      </span>
                       <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs text-primary">
                         {item.confidence}%
                       </span>
                     </div>
                   </div>
                 ))}
-                {showSkeletons && <MarketEdgeSkeleton />}
+              {showSkeletons && <MarketEdgeSkeleton />}
             </div>
           </div>
 
@@ -48,23 +50,25 @@ function AllMarketEdges({ fightData, isLoading = false, isComplete = false }: Al
             <h4 className="mb-2 text-sm font-semibold text-muted-foreground">Method of Victory</h4>
             <div className="space-y-2">
               {fightData
-                .filter((item) => item.ev !== 0)
+                .filter((item) => item.ev !== null && item.ev !== 0)
                 .map((item, idx) => (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm animate-in fade-in slide-in-from-left-2"
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
                     <span className="font-medium">{item.bet}</span>
                     <div className="flex items-center gap-4">
-                      <span className="font-bold text-primary">{item.ev}%</span>
+                      <span className="font-bold text-primary">
+                        {item.ev !== null ? `${item.ev}%` : 'N/A'}
+                      </span>
                       <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs text-primary">
                         {item.confidence}%
                       </span>
                     </div>
                   </div>
                 ))}
-                {showSkeletons && <MarketEdgeSkeleton />}
+              {showSkeletons && <MarketEdgeSkeleton />}
             </div>
           </div>
 
@@ -72,23 +76,25 @@ function AllMarketEdges({ fightData, isLoading = false, isComplete = false }: Al
             <h4 className="mb-2 text-sm font-semibold text-muted-foreground">Over/Under</h4>
             <div className="space-y-2">
               {fightData
-                .filter((item) => item.ev !== 0)
+                .filter((item) => item.ev !== null && item.ev !== 0)
                 .map((item, idx) => (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm animate-in fade-in slide-in-from-left-2"
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
                     <span className="font-medium">{item.bet}</span>
                     <div className="flex items-center gap-4">
-                      <span className="font-bold text-primary">{item.ev}%</span>
+                      <span className="font-bold text-primary">
+                        {item.ev !== null ? `${item.ev}%` : 'N/A'}
+                      </span>
                       <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs text-primary">
                         {item.confidence}%
                       </span>
                     </div>
                   </div>
                 ))}
-                {showSkeletons && <MarketEdgeSkeleton />}
+              {showSkeletons && <MarketEdgeSkeleton />}
             </div>
           </div>
         </div>

@@ -12,19 +12,24 @@ import {
   FightBreakdownType,
   FightBreakdownsSchema,
 } from "@/lib/agents/schemas/fight-breakdown-schema";
-import { resolveLiveOdds } from "@/lib/odds/resolve-live-odds";
+import { resolveLiveOdds, fetchAllOdds, OddsCache } from "@/lib/odds/resolve-live-odds";
 import { whyMafsLikesThis } from "@/lib/agents/schemas/why-mafs-likes-this";
 import { buildMafsEventInput } from "@/lib/mafs/fetchFighterStats";
 
+import { americanToDecimal, oddsToProb } from "@/lib/odds/utils";
+
 // ---------------- CONFIG ----------------
 
-const MODEL = "gpt-4o";
+const MODEL = "gpt-5.2";
 const CONCURRENT_BATCH_SIZE = 3; // Process 3 fights at a time
 
 // ---------------- TYPES ----------------
 
-type FightEdgeWithId = FightEdgeSummary & {
+type FightEdgeWithId = Omit<FightEdgeSummary, 'ev'> & {
   id: number;
+  ev: number | null;
+  oddsUnavailable?: boolean;
+  moneylines: [number, number] | null;
 };
 
 export type SimplifiedFight = {
@@ -58,9 +63,62 @@ export type StatusUpdate = {
   };
 };
 
-type StreamCallback = (update: FightResult | StatusUpdate) => void;
+export type ErrorUpdate = {
+  type: "fight_error";
+  fightId: number;
+  matchup: string;
+  message: string;
+};
+
+type StreamCallback = (update: FightResult | StatusUpdate | ErrorUpdate) => void;
 
 // ---------------- PHASE 1: CARD OVERVIEW ----------------
+
+// Helper: Improved Name Matcher with fuzzy matching
+function getBestOddsIndex(
+  targetName: string,
+  fighter1Name: string,
+  fighter2Name: string
+): number {
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+  const target = normalize(targetName);
+  const f1 = normalize(fighter1Name);
+  const f2 = normalize(fighter2Name);
+
+  // 1. Direct exact match
+  if (target === f1) return 0;
+  if (target === f2) return 1;
+
+  // 2. Last name match (most reliable)
+  const getLastName = (name: string) => name.split(" ").pop() || name;
+  const targetLast = getLastName(target);
+  const f1Last = getLastName(f1);
+  const f2Last = getLastName(f2);
+
+  if (targetLast === f1Last && targetLast !== f2Last) return 0;
+  if (targetLast === f2Last && targetLast !== f1Last) return 1;
+
+  // 3. Token overlap (include ALL tokens, no length filter)
+  const targetTokens = target.split(" ");
+
+  const countMatches = (name: string) => {
+    const nameTokens = name.split(" ");
+    return targetTokens.reduce((acc, token) =>
+      acc + (nameTokens.some(nt => nt.includes(token) || token.includes(nt)) ? 1 : 0), 0);
+  };
+
+  const score1 = countMatches(f1);
+  const score2 = countMatches(f2);
+
+  if (score1 > score2) return 0;
+  if (score2 > score1) return 1;
+
+  // 4. Substring inclusion as fallback
+  if (f1.includes(target) || target.includes(f1)) return 0;
+  if (f2.includes(target) || target.includes(f2)) return 1;
+
+  return -1; // No match found
+}
 
 async function analyzeCardOverview(event: SimplifiedEvent): Promise<string> {
   // Analyze ALL fights, not just those with odds
@@ -71,13 +129,13 @@ Event: ${event.Name}
 
 FIGHTS:
 ${event.fights
-  .map(
-    (f, i) => `
+      .map(
+        (f, i) => `
 ${i + 1}. ${f.matchup}
 Moneylines: ${f.moneylines ? f.moneylines.join(" / ") : "N/A"}
 `
-  )
-  .join("\n")}
+      )
+      .join("\n")}
 
 Return high-level qualitative insights only.
 No numbers. No rankings.
@@ -101,10 +159,12 @@ async function analyzeFight(
   cardContext: string,
   mafsEventInputFighters: any[]
 ): Promise<{ edge: FightEdgeWithId; breakdown: FightBreakdownType }> {
-  // ✅ Correctly find fighters by ID (prevents swapping stats)
+
+  // 1. Setup Fighters
   const fighter1 = mafsEventInputFighters.find((f) => f.id === fight.fighterIds[0]);
   const fighter2 = mafsEventInputFighters.find((f) => f.id === fight.fighterIds[1]);
 
+  // Handle Missing Odds gracefully for the prompt
   const moneylineText = fight.moneylines
     ? fight.moneylines.join(" / ")
     : "N/A (No odds available)";
@@ -116,34 +176,112 @@ async function analyzeFight(
     system: MAFS_PROMPT,
     maxRetries: 3,
     prompt: `
-CARD CONTEXT (QUALITATIVE ONLY):
-${cardContext.slice(0, 800)}
+CARD CONTEXT:
+${cardContext.slice(0, 500)}
 
 EVENT: ${eventName}
 MATCHUP: ${fight.matchup}
 MONEYLINES: ${moneylineText}
 
-FIGHTER STATS:
-- ${fighter1?.name ?? "Unknown"}: ${JSON.stringify(fighter1 ?? {})}
-- ${fighter2?.name ?? "Unknown"}: ${JSON.stringify(fighter2 ?? {})}
+STATS:
+- ${fighter1?.name}: ${JSON.stringify(fighter1 ?? {})}
+- ${fighter2?.name}: ${JSON.stringify(fighter2 ?? {})}
 
-MAFS RULES:
-- You are an ACTION BETTOR.
-- "No Bet" is forbidden unless stats are completely identical.
-- Even a 1% edge is enough to bet.
-- Tiers can only be "S", "A", "B", "C", "S" being the highest.
-- Tiers are assigned based on everything combined, i.e., EV, Confidence and bettor intuition.
-- If odds are "N/A", estimate the fair line yourself and bet based on that.
-- Use the striking and win stats provided to find a narrative.
+TASK:
+1. Estimate "truthProbability" (Win %) based ONLY on stats.
+2. If MONEYLINES are "N/A", ignore EV and just pick the winner.
+3. REALITY CHECK: If a fighter is +200, they are an underdog. Do not give them >60% win chance.
 
-CRITICAL SCHEMA INSTRUCTION:
-- Inside "rationale", put "whyThisLineNotOthers" INSIDE the "sections" object.
-
-Return ONE object only.
+Return ONE object.
 `,
   });
 
-  // Normalize rationale to prevent schema crashes
+  // ---------------------------------------------------------
+  // ⚡️ FINAL FIX: DATA RECONCILIATION
+  // ---------------------------------------------------------
+
+  const chosenWinnerName = edgeObj.bet.toLowerCase();
+  const f1Name = fighter1?.name || "Unknown";
+  const f2Name = fighter2?.name || "Unknown";
+
+  // 1. Use Token Matcher to find WHICH odds belong to the winner
+  // Returns 0 (fighter1), 1 (fighter2), or -1 (Unknown)
+  const matchedIndex = getBestOddsIndex(chosenWinnerName, f1Name, f2Name);
+
+  // Fix: Clean up bet name if AI hallucinated odds into it (e.g. "Fighter A (-150)")
+  if (edgeObj.bet) {
+    edgeObj.bet = edgeObj.bet.replace(/\s*[\(\[]?[+-]\d+[\)\]]?\s*$/, '').trim();
+  }
+
+  // 2. Grab the specific odd
+  let marketOdd = 0;
+  if (matchedIndex !== -1 && fight.moneylines && fight.moneylines[matchedIndex] !== undefined) {
+    marketOdd = fight.moneylines[matchedIndex];
+  }
+
+  // 3. Validate AI Probability (Fix 5: Better validation)
+  let rawProb = edgeObj.truthProbability;
+  if (rawProb > 1 && rawProb <= 100) {
+    // AI returned percentage instead of decimal
+    rawProb = rawProb / 100;
+  } else if (rawProb > 100 || rawProb < 0) {
+    // Invalid probability, default to market implied or 50%
+    console.warn(`Invalid probability: ${rawProb}, defaulting`);
+    rawProb = 0.5;
+  }
+
+  // 4. Dampener Logic (Prevent 99.9% EV)
+  const getImpliedProb = (odds: number) => {
+    if (odds === 0) return 0.5; // Neutral fallback
+    return odds > 0 ? 100 / (odds + 100) : Math.abs(odds) / (Math.abs(odds) + 100);
+  };
+
+  const marketImpliedProb = getImpliedProb(marketOdd);
+  const MAX_EDGE = 0.25;
+  let finalProb = rawProb;
+
+  // Only dampen if we actually HAVE odds
+  if (marketOdd !== 0 && (rawProb - marketImpliedProb > MAX_EDGE)) {
+    finalProb = marketImpliedProb + MAX_EDGE;
+  }
+
+  // 5. Calculate EV (Fix 2 & 3: Handle missing odds and preserve negative EV)
+  let calculatedEvPercent: number | null = null;
+  let oddsUnavailable = false;
+  const isNoBetIntent = chosenWinnerName.includes("no bet") || chosenWinnerName.includes("pass");
+
+  if (isNoBetIntent) {
+    // AI intentionally said "No Bet" - EV should be 0 (not null)
+    calculatedEvPercent = 0;
+    oddsUnavailable = false; // Odds may be available, AI just chose not to bet
+  } else if (marketOdd === 0 && !fight.moneylines) {
+    // No odds available at all
+    oddsUnavailable = true;
+    calculatedEvPercent = null;
+  } else if (marketOdd === 0 && fight.moneylines) {
+    // Odds exist but name matching failed - still calculate with average
+    const avgOdd = (fight.moneylines[0] + fight.moneylines[1]) / 2;
+    if (avgOdd !== 0) {
+      const decimalOdds = americanToDecimal(avgOdd);
+      const rawEv = (finalProb * decimalOdds) - 1;
+      calculatedEvPercent = parseFloat((rawEv * 100).toFixed(2));
+    }
+  } else {
+    const decimalOdds = americanToDecimal(marketOdd);
+    const rawEv = (finalProb * decimalOdds) - 1;
+    calculatedEvPercent = parseFloat((rawEv * 100).toFixed(2));
+  }
+
+  // 6. Hard Cap only (Fix 3: Preserve negative EV, don't convert to 0)
+  if (calculatedEvPercent !== null && calculatedEvPercent > 100) {
+    calculatedEvPercent = 99.9; // Visual cap
+  }
+
+  // 7. Fix Confidence Display (0.58 -> 58)
+  let finalConfidence = edgeObj.confidence || 0;
+  if (finalConfidence <= 1 && finalConfidence > 0) finalConfidence *= 100;
+
+  // Normalize rationale
   const normalizedRationale = whyMafsLikesThis.parse(edgeObj.rationale);
 
   const edgeWithId: FightEdgeWithId = {
@@ -153,40 +291,56 @@ Return ONE object only.
     methodOfVictory: edgeObj.methodOfVictory,
     bet: edgeObj.bet,
     score: edgeObj.score || 0,
-    ev: edgeObj.ev || 0,
-    truthProbability: edgeObj.truthProbability || 0.5,
-    marketProbability: edgeObj.marketProbability || 0.5,
-    confidence: edgeObj.confidence || 0,
+    ev: calculatedEvPercent,
+    oddsUnavailable, // Fix 2: Flag for missing odds
+    truthProbability: finalProb,
+    marketProbability: marketImpliedProb,
+    confidence: finalConfidence,
     risk: edgeObj.risk || 0,
     tier: edgeObj.tier || "No Bet",
     recommendedStake: edgeObj.recommendedStake || 0,
     rationale: normalizedRationale,
+    moneylines: fight.moneylines || null,
   };
 
-  // -------- AGENT 2: BREAKDOWN TEXT --------
+  // -------- AGENT 2: BREAKDOWN WRITER --------
   const { object: bdObj } = await generateObject({
     model: openai(MODEL),
     schema: FightBreakdownsSchema,
     system: MAFS_PROMPT,
-    maxRetries: 3,
     prompt: `
 EVENT: ${eventName}
 FIGHT: ${fight.matchup}
-
-EDGE:
-Bet: ${edgeWithId.bet}
+WINNER PICK: ${edgeWithId.bet}
+ODDS: ${marketOdd} (Implied: ${(marketImpliedProb * 100).toFixed(1)}%)
+MY WIN PROB: ${(finalProb * 100).toFixed(1)}%
 EV: ${edgeWithId.ev}%
-Confidence: ${edgeWithId.confidence}%
 
-FIGHTER STATS:
-- ${fighter1?.name}: ${JSON.stringify(fighter1 ?? {})}
-- ${fighter2?.name}: ${JSON.stringify(fighter2 ?? {})}
-
-Explain the edge clearly.
+Write a breakdown explaining this edge.
 `,
   });
 
-  return { edge: edgeWithId, breakdown: bdObj.breakdowns[0] };
+  // Inject strict data into breakdown
+  // We use the same matchedIndex to ensure consistency
+  let realBreakdownOdds: string | number = marketOdd;
+  if (marketOdd === 0) {
+    realBreakdownOdds = "No Odds";
+  }
+
+  let realFighterName = matchedIndex === 0 ? f1Name : (matchedIndex === 1 ? f2Name : bdObj.breakdowns[0].marketLine.fighter);
+
+  const injectedMarketLine = {
+    fighter: realFighterName,
+    odds: realBreakdownOdds,
+    prob: marketOdd === 0 ? "N/A" : parseFloat(getImpliedProb(marketOdd).toFixed(4)),
+  };
+
+  const finalBreakdown = {
+    ...bdObj.breakdowns[0],
+    marketLine: injectedMarketLine
+  };
+
+  return { edge: edgeWithId, breakdown: finalBreakdown };
 }
 
 // ---------------- MAIN EXPORT ----------------
@@ -205,7 +359,7 @@ export default async function Agents(
     )
   );
 
-  // 2. Resolve Live Odds (Optimized)
+  // 2. Resolve Live Odds (Fix 7: Batch fetch upfront)
   const oddsSourceMap = new Map<number, FightResult["oddsSource"]>();
   onStreamUpdate?.({
     type: "status",
@@ -213,8 +367,11 @@ export default async function Agents(
     message: "Resolving live odds",
   });
 
+  // Fetch all odds once and reuse for all fights
+  const { cache: oddsCache } = await fetchAllOdds();
+
   for (const fight of event.fights) {
-    const res = await resolveLiveOdds(fight.matchup);
+    const res = await resolveLiveOdds(fight.matchup, oddsCache);
     fight.moneylines = res.odds;
     oddsSourceMap.set(fight.id, res.source);
   }
@@ -263,6 +420,13 @@ export default async function Agents(
         results.push(payload);
       } catch (err: any) {
         console.error(`✗ Fight failed: ${fight.matchup}`, err.message);
+        // Fix 6: Stream error events to frontend
+        onStreamUpdate?.({
+          type: "fight_error",
+          fightId: fight.id,
+          matchup: fight.matchup,
+          message: err.message || "Analysis failed",
+        });
       } finally {
         completed++;
       }
@@ -273,7 +437,8 @@ export default async function Agents(
 
   // 5. Post-Processing: Sort & Rank
   // Sort by EV (descending) so the best bets are #1
-  results.sort((a, b) => b.edge.ev - a.edge.ev);
+  // Handle null EV by treating it as -Infinity for sorting (goes to end)
+  results.sort((a, b) => (b.edge.ev ?? -Infinity) - (a.edge.ev ?? -Infinity));
 
   // Re-assign ranks based on sorted order
   results.forEach((r, i) => {

@@ -9,7 +9,8 @@ export type FightEdgeSummary = {
   // Numeric fields (NOT strings)
   score: number;
   rank: number;
-  ev: number;
+  ev: number | null;
+  oddsUnavailable?: boolean;
 
   truthProbability: number;
   marketProbability: number;

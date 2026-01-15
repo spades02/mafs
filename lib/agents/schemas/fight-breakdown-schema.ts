@@ -12,8 +12,8 @@ const PercentageSchema = z.number().default(0);
 // 1. Define the shapes clearly
 const LineSchema = z.object({
   fighter: z.string().default("Unknown"),
-  odds: z.number().default(0),
-  prob: ProbabilitySchema,
+  odds: z.union([z.number(), z.string()]).default(0),
+  prob: z.union([z.number(), z.string()]).default(0.5),
 });
 
 const FighterNotesSchema = z.object({

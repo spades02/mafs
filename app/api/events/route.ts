@@ -1,12 +1,24 @@
 import { NextResponse } from "next/server";
+import { db } from "@/db";
+import { events } from "@/db/schema";
 
 export async function GET() {
-  const apiKey = process.env.SPORTS_DATA_API_KEY;
+  try {
+    // Fetch events from database, ordered by date
+    const cachedEvents = await db
+      .select({
+        EventId: events.eventId,
+        Name: events.name,
+      })
+      .from(events)
+      .orderBy(events.dateTime);
 
-  const res = await fetch(
-    `https://api.sportsdata.io/v3/mma/scores/json/Schedule/UFC/2026?key=${apiKey}`
-  );
-
-  const data = await res.json();
-  return NextResponse.json(data);
+    return NextResponse.json(cachedEvents);
+  } catch (error: any) {
+    console.error("Error fetching events:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to fetch events" },
+      { status: 500 }
+    );
+  }
 }

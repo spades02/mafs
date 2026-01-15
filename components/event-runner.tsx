@@ -29,6 +29,8 @@ function EventRunner({
   const [selectedEvent, setSelectedEvent] = useState("");
   const [events, setEvents] = useState<EventItem[]>([]);
   const [fetchError, setFetchError] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
 
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -51,7 +53,7 @@ function EventRunner({
   async function runAnalysis() {
     reset(); // Clear previous results
     setShowResults(true);
-    
+
     try {
       const res = await fetch(`/api/fights/${selectedEvent}`);
       if (!res.ok) throw new Error("Failed to fetch fights");
@@ -64,21 +66,52 @@ function EventRunner({
     }
   }
 
-  useEffect(() => {
-    async function fetchEvents() {
-      try {
-        const res = await fetch("/api/events");
-        if (!res.ok) throw new Error("Failed to fetch events");
-        const data = await res.json();
-        const formatted: EventItem[] = data.map((e: any) => ({
-          EventId: e.EventId,
-          Name: e.Name,
-        }));
-        setEvents(formatted);
-      } catch (err: any) {
-        setFetchError(err.message || "Error fetching events");
-      }
+  async function fetchEvents() {
+    setIsLoadingEvents(true);
+    try {
+      const res = await fetch("/api/events");
+      if (!res.ok) throw new Error("Failed to fetch events");
+      const data = await res.json();
+      const formatted: EventItem[] = data.map((e: any) => ({
+        EventId: e.EventId,
+        Name: e.Name,
+      }));
+      setEvents(formatted);
+      setFetchError("");
+    } catch (err: any) {
+      setFetchError(err.message || "Error fetching events");
+    } finally {
+      setIsLoadingEvents(false);
     }
+  }
+
+  async function refreshEvents() {
+    setIsRefreshing(true);
+    setFetchError("");
+
+    try {
+      const res = await fetch("/api/events/refresh", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to refresh events");
+
+      // Re-fetch events from database after refresh
+      await fetchEvents();
+    } catch (err: any) {
+      setFetchError(err.message || "Error refreshing events");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
+  function handleEventChange(value: string) {
+    if (value === "__refresh__") {
+      refreshEvents();
+    } else {
+      setSelectedEvent(value);
+      reset(); // Clear results immediately when event changes
+    }
+  }
+
+  useEffect(() => {
     fetchEvents();
   }, []);
 
@@ -87,23 +120,43 @@ function EventRunner({
       <CardContent className="p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex-1 sm:w-[300px]">
-            <Select value={selectedEvent} onValueChange={setSelectedEvent}>
+            <Select value={selectedEvent} onValueChange={handleEventChange}>
               <SelectTrigger className="w-full sm:w-[300px]">
-                <SelectValue placeholder={isLoading ? "Loading..." : "Choose UFC event…"} />
+                <SelectValue placeholder={isRefreshing ? "Refreshing..." : "Choose UFC event…"} />
               </SelectTrigger>
 
               <SelectContent>
                 {fetchError && <div className="text-red-500 px-3 py-2 text-sm">{fetchError}</div>}
-                {!fetchError &&
+
+                {/* Loading spinner */}
+                {isLoadingEvents && !fetchError && (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <span className="ml-2 text-sm text-muted-foreground">Loading events...</span>
+                  </div>
+                )}
+
+                {!isLoadingEvents && !fetchError &&
                   events.map((event) => (
                     <SelectItem key={event.EventId} value={String(event.EventId)}>
                       {event.Name}
                     </SelectItem>
                   ))}
+
+                {/* Refresh Events Option */}
+                <div className="border-t border-border mt-1 pt-1">
+                  <SelectItem
+                    value="__refresh__"
+                    className="text-muted-foreground hover:text-primary cursor-pointer"
+                    disabled={isRefreshing}
+                  >
+                    {isRefreshing ? "⏳ Refreshing..." : "🔄 Refresh Events List"}
+                  </SelectItem>
+                </div>
               </SelectContent>
             </Select>
           </div>
-         
+
           <AnalysisButton
             user={user}
             authLoading={authLoading}

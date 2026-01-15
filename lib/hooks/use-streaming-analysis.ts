@@ -21,9 +21,17 @@ interface FightResult {
   oddsSource?: string;
 }
 
+interface FightErrorUpdate {
+  type: 'fight_error';
+  fightId: number;
+  matchup: string;
+  message: string;
+}
+
 type StreamUpdate =
   | StatusUpdate
   | FightResult
+  | FightErrorUpdate
   | { type: 'complete' }
   | { type: 'error'; message: string };
 
@@ -37,6 +45,7 @@ export function useStreamingAnalysis() {
   const [currentPhase, setCurrentPhase] = useState<StatusPhase | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [oddsProgress, setOddsProgress] = useState({ current: 0, total: 0 });
+  const [fightErrors, setFightErrors] = useState<FightErrorUpdate[]>([]);
 
   const startAnalysis = useCallback(async (eventData: any) => {
     setResults([]);
@@ -47,6 +56,7 @@ export function useStreamingAnalysis() {
     setCurrentPhase(null);
     setStatusMessage('');
     setOddsProgress({ current: 0, total: 0 });
+    setFightErrors([]);
 
     try {
       const response = await fetch('/api/agents', {
@@ -112,6 +122,11 @@ export function useStreamingAnalysis() {
               setIsLoading(false);
               setCurrentPhase(null);
             }
+
+            // Handle individual fight errors
+            if (update.type === 'fight_error') {
+              setFightErrors(prev => [...prev, update]);
+            }
           } catch (err) {
             console.error('SSE parse error:', json);
           }
@@ -133,6 +148,7 @@ export function useStreamingAnalysis() {
     setCurrentPhase(null);
     setStatusMessage('');
     setOddsProgress({ current: 0, total: 0 });
+    setFightErrors([]);
   }, []);
 
   return {
@@ -144,6 +160,7 @@ export function useStreamingAnalysis() {
     currentPhase,
     statusMessage,
     oddsProgress,
+    fightErrors,
     startAnalysis,
     reset,
   };

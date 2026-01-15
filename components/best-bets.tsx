@@ -1,6 +1,8 @@
-import React from 'react'
+"use client"
+import React, { useState } from 'react'
 import { Card, CardContent } from './ui/card'
 import { Skeleton } from './ui/skeleton'
+import { Switch } from './ui/switch'
 import { FightEdgeSummary } from '@/types/fight-edge-summary'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion'
 import { TrendingUp } from 'lucide-react'
@@ -14,26 +16,41 @@ interface BestBetsProps {
 }
 
 function BestBets({ fightData, isLoading = false, isComplete = false }: BestBetsProps) {
-  // Filter and sort the available fights
+  const [showAll, setShowAll] = useState(false);
+
+  // Sort available fights by EV (nulls go to end)
   const topBets = fightData
-    // .filter((bet) => bet.ev !== 0)
-    .sort((a, b) => b.ev - a.ev)
+    .slice() // Don't mutate original
+    .sort((a, b) => {
+      const valA = typeof a.ev === 'number' ? a.ev : -Infinity;
+      const valB = typeof b.ev === 'number' ? b.ev : -Infinity;
+      return valB - valA;
+    })
+    .slice(0, showAll ? undefined : 3); // Show top 3 or all
 
   // Calculate how many skeleton loaders to show (up to 3 total)
-// Calculate if we need a single skeleton (only for the next loading fight)
-const showSkeleton = isLoading && !isComplete;
+  // Calculate if we need a single skeleton (only for the next loading fight)
+  const showSkeleton = isLoading && !isComplete;
 
   return (
     <div className="mb-8">
-      <h2 className="mb-4 text-2xl font-bold flex">
-        <LogoWithoutGlow size={8}/>Best Bets On This Card
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold flex">
+          <LogoWithoutGlow size={8} />Best Bets On This Card
+        </h2>
+        <div className="flex items-center space-x-2">
+          <Switch id="show-all" checked={showAll} onCheckedChange={setShowAll} />
+          <label htmlFor="show-all" className="text-sm font-medium leading-none cursor-pointer">
+            Show All
+          </label>
+        </div>
+      </div>
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        
+
         {/* Render actual bet cards with animation */}
         {topBets.map((bet, index) => (
-          <Card 
-            key={bet.bet || index} 
+          <Card
+            key={`${bet.fight}-${index}`} // Fix: Use unique key (fight name) to avoid duplicate "No Bet" keys
             className="card-glow animate-in fade-in slide-in-from-bottom-4"
             style={{ animationDelay: `${index * 100}ms` }}
           >
@@ -45,22 +62,24 @@ const showSkeleton = isLoading && !isComplete;
               <div className="mb-3 text-2xl font-bold">{bet.bet}</div>
               <div className="mb-2 flex items-center gap-4">
                 <span className={`text-3xl text-glow font-bold ${index === 0 ? "text-[#00DF8F]" : "text-[#05EA78]"}`}>
-                  {bet.ev}%
+                  {bet.ev !== null ? `${bet.ev}%` : 'No Odds'}
                 </span>
-                <div className="inline-flex rounded-full bg-primary/40 border-[#245A54] border px-3 py-1 text-xs font-medium text-foreground">
-                  {bet.tier}
-                </div>
+                {['S', 'A', 'B', 'C'].includes(bet.tier) && (
+                  <div className="inline-flex rounded-full bg-primary/40 border-[#245A54] border px-3 py-1 text-xs font-medium text-foreground">
+                    {bet.tier}
+                  </div>
+                )}
               </div>
               <div className='justify-between flex'>
                 <span className="text-sm text-muted-foreground">Confidence</span>
-                <span className="text-sm text-foreground font-bold">{bet.confidence}%</span>  
+                <span className="text-sm text-foreground font-bold">{bet.confidence}%</span>
               </div>
-              <div className='border-y-2 border-primary/5 py-4 mt-6'/>
+              <div className='border-y-2 border-primary/5 py-4 mt-6' />
               <Accordion type="single" collapsible>
                 <AccordionItem value="item-1">
                   <AccordionTrigger>
                     <span className='flex place-content-center'>
-                      <LogoWithoutGlow size={5}/>
+                      <LogoWithoutGlow size={5} />
                       Why MAFS Likes This Bet
                     </span>
                   </AccordionTrigger>
@@ -77,7 +96,7 @@ const showSkeleton = isLoading && !isComplete;
                         </ul>
                       </span>
                     </div>
-                    <div className='border border-primary/5'/>
+                    <div className='border border-primary/5' />
                     <div>
                       <h1 className='font-bold text-foreground/80 mb-1'>MATCHUP DRIVERS</h1>
                       <ul>
@@ -86,7 +105,7 @@ const showSkeleton = isLoading && !isComplete;
                         ))}
                       </ul>
                     </div>
-                    <div className='border border-primary/5'/>
+                    <div className='border border-primary/5' />
                     <div>
                       <h1 className='font-bold text-foreground/80 mb-1'>DATA SIGNALS ALIGNED</h1>
                       <ul>
@@ -95,7 +114,7 @@ const showSkeleton = isLoading && !isComplete;
                         ))}
                       </ul>
                     </div>
-                    <div className='border border-primary/5'/>
+                    <div className='border border-primary/5' />
                     <div>
                       <h1 className='font-bold text-warning flex gap-1.5'>
                         <CiWarning className='size-4' />RISK FACTORS
@@ -106,7 +125,7 @@ const showSkeleton = isLoading && !isComplete;
                         ))}
                       </ul>
                     </div>
-                    <div className='border border-primary/5'/>
+                    <div className='border border-primary/5' />
                     <div>
                       <h1 className='font-bold text-foreground/80 mb-1'>WHY THIS LINE (NOT OTHERS)</h1>
                       <ul>
@@ -115,7 +134,7 @@ const showSkeleton = isLoading && !isComplete;
                         ))}
                       </ul>
                     </div>
-                    <div className='border border-primary/5'/>
+                    <div className='border border-primary/5' />
                     <Card>
                       <CardContent>
                         {bet.rationale.summary}
@@ -130,14 +149,14 @@ const showSkeleton = isLoading && !isComplete;
 
         {/* Show skeleton loaders for remaining slots */}
         {showSkeleton && (
-    <div className="flex flex-col space-y-3">
-      <Skeleton className="h-[125px] w-full rounded-xl" />
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-4/5" />
-      </div>
-    </div>
-  )}
+          <div className="flex flex-col space-y-3">
+            <Skeleton className="h-[125px] w-full rounded-xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

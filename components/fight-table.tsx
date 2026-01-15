@@ -24,7 +24,7 @@ function FightTable({
         <CardTitle>
           Fight Table – Mispriced Fights
           <span className='font-light text-xs'> (Click on any fight to see MAFS AI breakdown below this table)</span>
-          </CardTitle>
+        </CardTitle>
       </CardHeader>
 
       {/* Show full skeleton only if no data at all */}
@@ -50,42 +50,41 @@ function FightTable({
               </thead>
               <tbody className="text-sm">
                 {/* Render completed fights with animation */}
-                {fightData
-                  .filter((fight) => fight.ev !== 0)
-                  .map((fight, index) => (
-                    <tr
-                      key={`${fight.id}-${index}`}
-                      onClick={() => onSelectFight(fight.fightId)}
-                      className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/50 animate-in fade-in slide-in-from-left-2"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <td className="py-4 pr-4 font-medium">{fight.fight}</td>
-                      <td className="py-4 pr-4">
-                        <span className="font-bold text-primary">{fight.score}</span>
-                      </td>
-                      <td className="py-4 pr-4">{fight.bet}</td>
-                      <td className="py-4 pr-4 font-semibold text-primary">{fight.ev}%</td>
-                      <td className="py-4 pr-4">{fight.confidence}%</td>
-                      <td className="py-4 pr-4">
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs ${
-                            fight.risk <= 50
-                              ? "bg-green-500/20 text-green-400"
-                              : fight.risk > 50 && fight.risk < 78
-                                ? "bg-yellow-500/20 text-yellow-400"
-                                : "bg-red-500/20 text-red-400"
+                {fightData.map((fight, index) => (
+                  <tr
+                    key={`${fight.id}-${index}`}
+                    onClick={() => onSelectFight(fight.fightId)}
+                    className="cursor-pointer border-b border-border/50 transition-colors hover:bg-muted/50 animate-in fade-in slide-in-from-left-2"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <td className="py-4 pr-4 font-medium">{fight.fight}</td>
+                    <td className="py-4 pr-4">
+                      <span className="font-bold text-primary">{fight.score}</span>
+                    </td>
+                    <td className="py-4 pr-4">{fight.bet}</td>
+                    <td className="py-4 pr-4 font-semibold text-primary">
+                      {fight.ev !== null ? `${fight.ev}%` : 'N/A'}
+                    </td>
+                    <td className="py-4 pr-4">{fight.confidence}%</td>
+                    <td className="py-4 pr-4">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs ${fight.risk <= 50
+                          ? "bg-green-500/20 text-green-400"
+                          : fight.risk > 50 && fight.risk < 78
+                            ? "bg-yellow-500/20 text-yellow-400"
+                            : "bg-red-500/20 text-red-400"
                           }`}
-                        >
-                          {fight.risk}%
-                        </span>
-                      </td>
-                      <td className="py-4 pr-4">
-                        <span className="rounded-full bg-primary/20 px-2 py-1 text-xs font-medium text-primary">
-                          {fight.tier}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                      >
+                        {fight.risk}%
+                      </span>
+                    </td>
+                    <td className="py-4 pr-4">
+                      <span className="rounded-full bg-primary/20 px-2 py-1 text-xs font-medium text-primary">
+                        {fight.tier}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
 
                 {/* Show loading row while analyzing more fights */}
                 {showSkeletonRow && (

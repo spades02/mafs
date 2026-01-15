@@ -7,7 +7,8 @@ const FightEdgeSummaryInput = z.looseObject({
   bet: z.string(),
   score: z.number(),
   rank: z.number(),
-  ev: z.coerce.number(),
+  ev: z.coerce.number().nullable(),
+  oddsUnavailable: z.boolean().optional(),
   truthProbability: z.coerce.number().min(0).max(1),
   marketProbability: z.coerce.number().min(0).max(1),
   confidence: z.coerce.number().min(0).max(100),
@@ -24,7 +25,8 @@ export const FightEdgeSummarySchema =
     bet: z.string(),
     score: z.number(),
     rank: z.number(),
-    ev: z.number(),
+    ev: z.number().nullable(),
+    oddsUnavailable: z.boolean().optional(),
     truthProbability: z.number(),
     marketProbability: z.number(),
     confidence: z.number(),
@@ -33,10 +35,10 @@ export const FightEdgeSummarySchema =
     recommendedStake: z.number(),
     rationale: whyMafsLikesThisInput,
   })
-  .transform((data) => ({
-    ...data,
-    rationale: whyMafsLikesThis.parse(data.rationale),
-  }));
+    .transform((data) => ({
+      ...data,
+      rationale: whyMafsLikesThis.parse(data.rationale),
+    }));
 
 
 export const FightEdgeSummaryArraySchema = z
@@ -56,14 +58,14 @@ export const FightEdgeSummaryGenerationSchema = z.strictObject({
   bet: z.string(),
   score: z.number(),
   rank: z.number(),
-  ev: z.number(),
-  truthProbability: z.number(),
-  marketProbability: z.number(),
-  confidence: z.number(),
-  risk: z.number(),
+  // Note: EV is calculated server-side, not by AI
+  truthProbability: z.number().min(0).max(1), // Must be 0-1 decimal
+  marketProbability: z.number().min(0).max(1).optional(),
+  confidence: z.number().min(0).max(100),
+  risk: z.number().min(0).max(100),
   tier: z.string(),
-  recommendedStake: z.number(),
+  recommendedStake: z.number().min(0).max(100),
   rationale: whyMafsLikesThis,
-  summary: z.string().optional(), // <-- allow it
+  summary: z.string().optional(),
 });
 

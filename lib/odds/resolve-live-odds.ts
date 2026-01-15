@@ -13,11 +13,55 @@ function normalize(name: string) {
     .trim();
 }
 
-// Global cache variables (outside the function scope)
-let oddsCache: any = null;
+// Types for external cache
+export type OddsCache = any[];
+
+// Global cache variables (fallback for when cache not passed)
+let oddsCache: OddsCache | null = null;
 let lastFetch = 0;
 
-export async function resolveLiveOdds(matchup: string): Promise<OddsResult> {
+/**
+ * Fetch all MMA odds upfront (Fix 7: avoid multiple API calls)
+ * Call this once at the start of analysis and pass result to resolveLiveOdds
+ */
+export async function fetchAllOdds(): Promise<{ cache: OddsCache | null; error?: string }> {
+  const apiKey = process.env.ODDS_API_KEY;
+  if (!apiKey) {
+    return { cache: null, error: 'no_api_key' };
+  }
+
+  try {
+    console.log('🔄 Fetching all MMA odds in batch...');
+    const res = await fetch(
+      `https://api.the-odds-api.com/v4/sports/mma_mixed_martial_arts/odds/?apiKey=${apiKey}&regions=us&markets=h2h&oddsFormat=american`,
+      { cache: 'no-store' }
+    );
+
+    if (!res.ok) {
+      console.error(`✗ Odds API error: ${res.status}`);
+      return { cache: null, error: 'api_error' };
+    }
+
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      return { cache: null, error: 'invalid_response' };
+    }
+
+    // Also update global cache for backwards compatibility
+    oddsCache = data;
+    lastFetch = Date.now();
+
+    return { cache: data };
+  } catch (err: any) {
+    console.error('✗ Odds fetch failed:', err.message);
+    return { cache: null, error: err.message };
+  }
+}
+
+export async function resolveLiveOdds(
+  matchup: string,
+  preloadedCache?: OddsCache | null
+): Promise<OddsResult> {
   const apiKey = process.env.ODDS_API_KEY;
   if (!apiKey) {
     console.warn('⚠ ODDS_API_KEY not set');
@@ -34,13 +78,19 @@ export async function resolveLiveOdds(matchup: string): Promise<OddsResult> {
   const b = normalize(fighterB);
 
   try {
-    const now = Date.now();
-    const CACHE_DURATION = 60000; // 60 seconds
+    // Fix 7: Use preloaded cache if provided, else fall back to global cache
+    let events: OddsCache;
 
-    // 1. Check if we need to refresh the cache
-    if (!oddsCache || now - lastFetch > CACHE_DURATION) {
+    if (preloadedCache && preloadedCache.length > 0) {
+      // Use provided cache (batch fetched at start of analysis)
+      events = preloadedCache;
+    } else if (oddsCache && (Date.now() - lastFetch < 60000)) {
+      // Use valid global cache
+      events = oddsCache;
+    } else {
+      // Fetch fresh (fallback for backwards compatibility)
       console.log('🔄 Fetching fresh odds from API...');
-      
+
       const res = await fetch(
         `https://api.the-odds-api.com/v4/sports/mma_mixed_martial_arts/odds/?apiKey=${apiKey}&regions=us&markets=h2h&oddsFormat=american`,
         { cache: 'no-store' }
@@ -48,26 +98,20 @@ export async function resolveLiveOdds(matchup: string): Promise<OddsResult> {
 
       if (!res.ok) {
         console.error(`✗ Odds API error: ${res.status}`);
-        // If the API fails, return error immediately to avoid overwriting a potentially stale (but valid) cache
         return { odds: null, source: 'api_error' };
       }
 
       const data = await res.json();
-      
+
       if (!Array.isArray(data)) {
         console.error('✗ Odds API returned non-array');
         return { odds: null, source: 'api_error' };
       }
 
-      // Update the global cache
       oddsCache = data;
-      lastFetch = now;
-    } else {
-      // console.log('⚡ Using cached odds...'); // Optional log
+      lastFetch = Date.now();
+      events = data;
     }
-
-    // 2. Use the Cache (guaranteed to be set now if no error occurred)
-    const events = oddsCache;
 
     // 3. Search for the match
     for (const event of events) {

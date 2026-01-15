@@ -8,14 +8,14 @@ export type FightBreakdownType = {
 
   trueLine: {
     fighter: string;
-    odds: number;
-    prob: number;
+    odds: number | string;
+    prob: number | string;
   };
 
   marketLine: {
     fighter: string;
-    odds: number;
-    prob: number;
+    odds: number | string;
+    prob: number | string;
   };
 
   mispricing: number;

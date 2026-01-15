@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Sparkles, Lock, Bot } from "lucide-react";
+import { Skeleton } from "./ui/skeleton";
 
 interface AnalysisButtonProps {
   user: {
@@ -21,12 +22,18 @@ export default function AnalysisButton({
   onRunAnalysis,
   maxFreeAnalyses = 3,
 }: AnalysisButtonProps) {
-  if (authLoading) return null;
 
   const isPro = user?.isPro || false;
   const analysisCount = user?.analysisCount || 0;
   const remainingFree = Math.max(0, maxFreeAnalyses - analysisCount);
   const hasFreeLimitReached = !isPro && remainingFree === 0;
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <Skeleton className="h-10 w-[200px] rounded-md" />
+      </div>
+    );
+  }
 
   // Pro user - full access
   if (isPro) {
