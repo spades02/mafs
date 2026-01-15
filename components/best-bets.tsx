@@ -16,17 +16,21 @@ interface BestBetsProps {
 }
 
 function BestBets({ fightData, isLoading = false, isComplete = false }: BestBetsProps) {
-  const [showAll, setShowAll] = useState(false);
+  const [showZeroEV, setShowZeroEV] = useState(false);
 
-  // Sort available fights by EV (nulls go to end)
-  const topBets = fightData
+  // Sort available fights by EV (nulls go to end) and filter based on toggle
+  const displayedBets = fightData
     .slice() // Don't mutate original
     .sort((a, b) => {
       const valA = typeof a.ev === 'number' ? a.ev : -Infinity;
       const valB = typeof b.ev === 'number' ? b.ev : -Infinity;
       return valB - valA;
     })
-    .slice(0, showAll ? undefined : 3); // Show top 3 or all
+    .filter((bet) => {
+      if (showZeroEV) return true;
+      // Hide bets with 0 EV or null (No Odds)
+      return bet.ev !== 0 && bet.ev !== null;
+    });
 
   // Calculate how many skeleton loaders to show (up to 3 total)
   // Calculate if we need a single skeleton (only for the next loading fight)
@@ -39,16 +43,16 @@ function BestBets({ fightData, isLoading = false, isComplete = false }: BestBets
           <LogoWithoutGlow size={8} />Best Bets On This Card
         </h2>
         <div className="flex items-center space-x-2">
-          <Switch id="show-all" checked={showAll} onCheckedChange={setShowAll} />
-          <label htmlFor="show-all" className="text-sm font-medium leading-none cursor-pointer">
-            Show All
+          <Switch id="show-zero-ev" checked={showZeroEV} onCheckedChange={setShowZeroEV} />
+          <label htmlFor="show-zero-ev" className="text-sm font-medium leading-none cursor-pointer">
+            Show Zero EV Bets
           </label>
         </div>
       </div>
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
 
         {/* Render actual bet cards with animation */}
-        {topBets.map((bet, index) => (
+        {displayedBets.map((bet, index) => (
           <Card
             key={`${bet.fight}-${index}`} // Fix: Use unique key (fight name) to avoid duplicate "No Bet" keys
             className="card-glow animate-in fade-in slide-in-from-bottom-4"

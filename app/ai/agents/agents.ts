@@ -248,25 +248,19 @@ Return ONE object.
   // 5. Calculate EV (Fix 2 & 3: Handle missing odds and preserve negative EV)
   let calculatedEvPercent: number | null = null;
   let oddsUnavailable = false;
-  const isNoBetIntent = chosenWinnerName.includes("no bet") || chosenWinnerName.includes("pass");
+  const isNoBetIntent = chosenWinnerName.includes("no bet") || chosenWinnerName.includes("pass") || chosenWinnerName.includes("pick'em") || chosenWinnerName.includes("pick em") || chosenWinnerName.includes("coin-flip") || chosenWinnerName.includes("either fighter");
 
-  if (isNoBetIntent) {
-    // AI intentionally said "No Bet" - EV should be 0 (not null)
+  if (isNoBetIntent || (marketOdd === 0 && fight.moneylines)) {
+    // 1. AI intentionally passed
+    // 2. OR Odds exist but name matching failed (AI hallucinated a name) -> Treat as No Bet
     calculatedEvPercent = 0;
-    oddsUnavailable = false; // Odds may be available, AI just chose not to bet
+    oddsUnavailable = false;
   } else if (marketOdd === 0 && !fight.moneylines) {
     // No odds available at all
     oddsUnavailable = true;
     calculatedEvPercent = null;
-  } else if (marketOdd === 0 && fight.moneylines) {
-    // Odds exist but name matching failed - still calculate with average
-    const avgOdd = (fight.moneylines[0] + fight.moneylines[1]) / 2;
-    if (avgOdd !== 0) {
-      const decimalOdds = americanToDecimal(avgOdd);
-      const rawEv = (finalProb * decimalOdds) - 1;
-      calculatedEvPercent = parseFloat((rawEv * 100).toFixed(2));
-    }
   } else {
+    // Odds are available and name matching succeeded
     const decimalOdds = americanToDecimal(marketOdd);
     const rawEv = (finalProb * decimalOdds) - 1;
     calculatedEvPercent = parseFloat((rawEv * 100).toFixed(2));
