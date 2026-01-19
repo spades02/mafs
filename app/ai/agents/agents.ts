@@ -317,11 +317,20 @@ Write a breakdown explaining this edge.
   // Inject strict data into breakdown
   // We use the same matchedIndex to ensure consistency
   let realBreakdownOdds: string | number = marketOdd;
-  if (marketOdd === 0) {
-    realBreakdownOdds = "No Odds";
-  }
-
   let realFighterName = matchedIndex === 0 ? f1Name : (matchedIndex === 1 ? f2Name : bdObj.breakdowns[0].marketLine.fighter);
+
+  // Correction: If we have odds but no specific bet (marketOdd == 0), show the full lines with names
+  if (marketOdd === 0) {
+    if (fight.moneylines) {
+      const parts = fight.matchup.split(" vs ");
+      const name1 = parts[0] ? (parts[0].split(" ").pop() || parts[0]) : "F1";
+      const name2 = parts[1] ? (parts[1].split(" ").pop() || parts[1]) : "F2";
+      realBreakdownOdds = `${name1} ${fight.moneylines[0]} / ${name2} ${fight.moneylines[1]}`;
+      realFighterName = "Market Lines";
+    } else {
+      realBreakdownOdds = "No Odds";
+    }
+  }
 
   const injectedMarketLine = {
     fighter: realFighterName,
@@ -414,7 +423,88 @@ export default async function Agents(
         results.push(payload);
       } catch (err: any) {
         console.error(`✗ Fight failed: ${fight.matchup}`, err.message);
-        // Fix 6: Stream error events to frontend
+
+        // FALLBACK: If AI fails, still return the fight with the odds we found
+        const fallbackMoneylines = fight.moneylines || null;
+        const fallbackMarketOdd = fallbackMoneylines ? fallbackMoneylines[0] : 0; // Default to first fighter? Or try to match?
+        // Since we don't know the winner, we can't do the "matchedIndex" logic perfectly.
+        // But usually moneylines[0] corresponds to fighter1 and moneylines[1] to fighter2.
+
+        const fallbackEdge: FightEdgeWithId = {
+          id: fight.id,
+          rank: 999, // Low rank
+          fight: fight.matchup,
+          methodOfVictory: "N/A",
+          bet: "No Bet",
+          score: 0,
+          ev: 0,
+          oddsUnavailable: !fallbackMoneylines,
+          truthProbability: 0.5,
+          marketProbability: 0.5,
+          confidence: 0,
+          risk: 0,
+          tier: "No Bet",
+          recommendedStake: 0,
+          rationale: {
+            title: "Analysis Unavailable",
+            sections: {
+              marketInefficiencyDetected: [],
+              matchupDrivers: [],
+              dataSignalsAligned: [],
+              riskFactors: ["AI Analysis Failed"],
+              whyThisLineNotOthers: []
+            },
+            whyThisLineNotOthers: [],
+            summary: `AI analysis failed: ${err.message}. Showing market odds only.`
+          },
+          moneylines: fallbackMoneylines,
+        };
+
+        // Helper to format fallback odds with names
+        let formattedFallbackOdds = "No Odds";
+        if (fallbackMoneylines) {
+          const parts = fight.matchup.split(" vs ");
+          const name1 = parts[0] ? (parts[0].split(" ").pop() || parts[0]) : "F1";
+          const name2 = parts[1] ? (parts[1].split(" ").pop() || parts[1]) : "F2";
+          formattedFallbackOdds = `${name1} ${fallbackMoneylines[0]} / ${name2} ${fallbackMoneylines[1]}`;
+        }
+
+        const fallbackBreakdown: FightBreakdownType = {
+          fight: fight.matchup,
+          edge: 0,
+          ev: 0,
+          score: 0,
+          trueLine: { fighter: "Unknown", odds: 0, prob: 0.5 },
+          marketLine: {
+            fighter: "Market Lines",
+            odds: formattedFallbackOdds,
+            prob: 0.5
+          },
+          mispricing: 0,
+          recommendedBet: "No Bet",
+          betEv: 0,
+          confidence: 0,
+          risk: 0,
+          stake: 0,
+          fighter1: { name: fight.matchup.split(" vs ")[0] || "Fighter 1", notes: [] },
+          fighter2: { name: fight.matchup.split(" vs ")[1] || "Fighter 2", notes: [] },
+          pathToVictory: [],
+          whyLineExists: ["AI Analysis Failed"]
+        };
+
+        const payload: FightResult = {
+          type: "fight",
+          fightId: fight.id,
+          edge: fallbackEdge,
+          breakdown: fallbackBreakdown,
+          oddsSource: oddsSourceMap.get(fight.id) || "api_error",
+        };
+
+        // Notify frontend correctly (as a result, not just an error)
+        onStreamUpdate?.(payload);
+        results.push(payload);
+
+        // Also stream the error message so the UI can optionally show a toast/alert
         onStreamUpdate?.({
           type: "fight_error",
           fightId: fight.id,
