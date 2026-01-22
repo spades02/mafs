@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { events } from "@/db/schema";
+import { gte } from "drizzle-orm";
 
 export async function GET() {
   try {
-    // Fetch events from database, ordered by date
+    // Fetch only future events from database, ordered by date
+    const now = new Date();
     const cachedEvents = await db
       .select({
         EventId: events.eventId,
         Name: events.name,
       })
       .from(events)
+      .where(gte(events.dateTime, now))
       .orderBy(events.dateTime);
 
     return NextResponse.json(cachedEvents);

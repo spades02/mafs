@@ -4,6 +4,8 @@ import { Card, CardContent } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import AnalysisButton from "./analysis-button";
 
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+
 interface EventRunnerProps {
   setShowResults: (show: boolean) => void;
   startAnalysis: (eventData: any) => Promise<void>;
@@ -51,6 +53,7 @@ function EventRunner({
   }, []);
 
   async function runAnalysis() {
+    await Haptics.impact({ style: ImpactStyle.Heavy });
     reset(); // Clear previous results
     setShowResults(true);
 
