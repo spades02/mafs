@@ -1,5 +1,7 @@
 // lib/hooks/use-streaming-analysis.ts
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 type StatusPhase = 'fetching_odds' | 'analyzing_card' | 'analyzing_fight';
 
@@ -36,6 +38,7 @@ type StreamUpdate =
   | { type: 'error'; message: string };
 
 export function useStreamingAnalysis() {
+  const router = useRouter();
   const [results, setResults] = useState<FightResult[]>([]);
   const [totalFights, setTotalFights] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -115,6 +118,8 @@ export function useStreamingAnalysis() {
               setIsComplete(true);
               setIsLoading(false);
               setCurrentPhase(null);
+              toast.success("Analysis saved to history");
+              router.refresh();
             }
 
             if (update.type === 'error') {

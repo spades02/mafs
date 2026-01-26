@@ -5,6 +5,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import NavBar from "@/components/nav-bar";
 import NextTopLoader from 'nextjs-toploader';
+import { DirtyStateProvider } from "@/components/dirty-state-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,19 +39,21 @@ export default async function RootLayout({
         {/* Navbar is fine here; it can include client components internally */}
         {/* {!session && <GuestNavbar/>}
         {session && <NavBar/>} */}
+        <DirtyStateProvider>
           <NavBar />
-        <main>
-        <NextTopLoader 
-          color="#2299DD" 
-          initialPosition={0.08} 
-          crawlSpeed={200} 
-          height={3} 
-          showSpinner={false} 
-        />
-        {children}
-        </main>
-        {/* Toaster can also be a client component inside */}
-        <Toaster />
+          <main>
+            <NextTopLoader
+              color="#2299DD"
+              initialPosition={0.08}
+              crawlSpeed={200}
+              height={3}
+              showSpinner={false}
+            />
+            {children}
+          </main>
+          {/* Toaster can also be a client component inside */}
+          <Toaster />
+        </DirtyStateProvider>
       </body>
     </html>
   );

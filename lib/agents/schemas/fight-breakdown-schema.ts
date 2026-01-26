@@ -1,78 +1,39 @@
-// lib/agents/schemas/fight-breakdown-schema.ts
-
 import { z } from "zod";
 
-/* ---------- Shared Numeric Helpers ---------- */
-
-const ProbabilitySchema = z.number().min(0).max(1).default(0.5);
-const PercentageSchema = z.number().default(0);
-
-/* ---------- Nested ---------- */
-
-// 1. Define the shapes clearly
-const LineSchema = z.object({
-  fighter: z.string().default("Unknown"),
-  odds: z.union([z.number(), z.string()]).default(0),
-  prob: z.union([z.number(), z.string()]).default(0.5),
-});
-
-const FighterNotesSchema = z.object({
-  name: z.string().default("Unknown"),
-  notes: z.array(z.string()).default([]),
-});
-
-const PathToVictorySchema = z.object({
-  path: z.string().default("Unknown path"),
-  prob: ProbabilitySchema,
-});
-
-/* ---------- Fight Breakdown ---------- */
-
 export const FightBreakdownSchema = z.object({
-  fight: z.string().min(1),
+  // Basic lines
+  trueLine: z.string().optional().describe("My fair line, both sides e.g. '-200 / +170'"),
+  marketLine: z.string().optional().describe("Current market line, both sides e.g. '-150 / +130'"),
+  mispricing: z.string().optional().describe("Percentage mispricing e.g. '+5.2%'"),
 
-  edge: z.number().default(0),
-  ev: z.number().default(0),
-  score: z.number().default(0), // Fixed the previous error
+  // Bet details
+  bet: z.string().optional().describe("Recommended bet label"),
+  ev: z.string().optional().describe("Expected Value percentage e.g. '+12.5%'"),
+  confidence: z.string().optional().describe("Confidence percentage string e.g. '75%'"),
+  risk: z.string().optional().describe("Risk level: Low, Medium, High"),
+  stake: z.string().optional().describe("Recommended stake e.g. '1.5 units'"),
 
-  // 🔴 FIX: Provide full default objects, not just {}
-  trueLine: LineSchema.default({
-    fighter: "Unknown",
-    odds: 0,
-    prob: 0.5,
-  }),
+  // Fighters
+  fighter1Name: z.string().optional(),
+  fighter2Name: z.string().optional(),
+  fighter1Notes: z.string().optional().describe("Short analysis of fighter 1 strengths/weaknesses in this matchup"),
+  fighter2Notes: z.string().optional().describe("Short analysis of fighter 2 strengths/weaknesses in this matchup"),
 
-  marketLine: LineSchema.default({
-    fighter: "Unknown",
-    odds: 0,
-    prob: 0.5,
-  }),
+  // Deep Dive
+  pathToVictory: z.string().optional().describe("Most likely outcomes separated by pipe | e.g. 'Pereira KO (45%) | Decision (20%)'"),
+  marketAnalysis: z.array(z.string()).optional().describe("Why the market line exists and why it is wrong"),
+  varianceReason: z.string().optional().describe("If variance is high, why?"),
+  primaryRisk: z.string().optional().describe("The biggest threat to this bet"),
 
-  mispricing: z.number().default(0),
-
-  recommendedBet: z.string().default("No Bet"),
-  betEv: z.number().default(0),
-
-  confidence: z.number().default(0),
-  risk: z.number().default(0),
-  stake: PercentageSchema,
-
-  // 🔴 FIX: Provide full default objects
-  fighter1: FighterNotesSchema.default({
-    name: "Unknown",
-    notes: [],
-  }),
-
-  fighter2: FighterNotesSchema.default({
-    name: "Unknown",
-    notes: [],
-  }),
-
-  pathToVictory: z.array(PathToVictorySchema).default([]),
-  whyLineExists: z.array(z.string()).default([]),
+  // Fallback for nested structure (Model sometimes nests analysis)
+  fightAnalysis: z.object({
+    trueLine: z.string().optional(),
+    marketLine: z.string().optional(),
+    mispricing: z.string().optional(),
+    pathToVictory: z.string().optional(),
+    marketAnalysis: z.array(z.string()).optional(),
+  }).optional(),
 });
-
-/* ---------- Collection ---------- */
 
 export const FightBreakdownsSchema = z.object({
   breakdowns: z.array(FightBreakdownSchema).min(1),

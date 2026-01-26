@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -18,6 +18,11 @@ export function ProfileAvatar({
   size = 96,
 }: Props) {
   const [imageError, setImageError] = useState(false)
+
+  useEffect(() => {
+    setImageError(false)
+  }, [avatarUrl])
+
   const initials = getInitials(name, email)
   const showInitials = !avatarUrl || imageError
 
@@ -30,15 +35,15 @@ export function ProfileAvatar({
         "relative flex items-center justify-center rounded-full overflow-hidden",
         showInitials && "bg-linear-to-br from-primary to-primary/60"
       )}
-      style={{ 
-        width: size, 
+      style={{
+        width: size,
         height: size,
         backgroundColor: showInitials ? backgroundColor : undefined
       }}
     >
       {showInitials ? (
-        <span 
-          className="select-none text-white font-semibold" 
+        <span
+          className="select-none text-white font-semibold"
           style={{ fontSize: size * 0.4 }}
         >
           {initials}
@@ -50,6 +55,7 @@ export function ProfileAvatar({
           fill
           className="rounded-full object-cover"
           onError={() => setImageError(true)}
+          unoptimized={avatarUrl?.startsWith('blob:')}
         />
       )}
     </div>

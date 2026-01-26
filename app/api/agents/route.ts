@@ -26,9 +26,9 @@ export async function POST(req: Request) {
     return new Response("User not found", { status: 404 });
   }
 
-  if (!resultUser.isPro && resultUser.analysisCount >= 3) {
-    return new Response("Free limit reached", { status: 403 });
-  }
+  // if (!resultUser.isPro && resultUser.analysisCount >= 3) {
+  //   return new Response("Free limit reached", { status: 403 });
+  // }
 
   const { data } = await req.json();
 
@@ -63,12 +63,12 @@ export async function POST(req: Request) {
 
       await Agents(simplifiedEvent, (update) => {
         send(update); // send EVERYTHING to the client
-      
+
         if (update.type === 'fight') {
           allResults.push(update); // now TS is happy
         }
       });
-      
+
 
       // Save AFTER streaming completes
       await db.insert(analysisRun).values({

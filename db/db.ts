@@ -5,4 +5,6 @@ const client = postgres(process.env.DATABASE_URL!, {
   ssl: "require", // required for Supabase cloud
 });
 
-export const db = drizzle(client);
+import * as schema from "./schema";
+
+export const db = drizzle(client, { schema });

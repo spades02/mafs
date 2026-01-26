@@ -9,14 +9,20 @@ export async function GET() {
     const now = new Date();
     const cachedEvents = await db
       .select({
-        EventId: events.eventId,
+        EventId: events.eventId, // Will need serialization
         Name: events.name,
       })
       .from(events)
       .where(gte(events.dateTime, now))
       .orderBy(events.dateTime);
 
-    return NextResponse.json(cachedEvents);
+    // Convert BigInts to strings
+    const serializedEvents = cachedEvents.map(e => ({
+      ...e,
+      EventId: e.EventId.toString()
+    }));
+
+    return NextResponse.json(serializedEvents);
   } catch (error: any) {
     console.error("Error fetching events:", error);
     return NextResponse.json(

@@ -2,7 +2,7 @@ import { Button } from "./ui/button"
 import Link from "next/link"
 import { NavAvatarClient } from "./nav-avatar-client"
 
-export default function NavAvatar({ session }: { session: any }) {
+export default function NavAvatar({ session, isPro }: { session: any; isPro: boolean }) {
   if (!session?.user) {
     return (
       <Button asChild>
@@ -18,6 +18,7 @@ export default function NavAvatar({ session }: { session: any }) {
       avatarUrl={avatarUrl}
       name={session.user.name}
       email={session.user.email}
+      isPro={isPro}
     />
   )
 }

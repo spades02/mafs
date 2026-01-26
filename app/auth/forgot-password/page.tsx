@@ -7,8 +7,43 @@ import { Label } from "@/components/ui/label"
 import { Target, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
+import { authClient } from "@/lib/auth/auth-client"
+import { toast } from "sonner"
+
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setLoading(true)
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get("email") as string
+
+    if (!email) {
+      toast.error("Please enter your email")
+      setLoading(false)
+      return
+    }
+
+    await (authClient as any).forgetPassword({
+      email,
+      redirectTo: "/auth/reset-password",
+    }, {
+      onRequest: () => {
+        setLoading(true)
+      },
+      onSuccess: () => {
+        setSent(true)
+        setLoading(false)
+        toast.success("Reset link sent to your email")
+      },
+      onError: (ctx: any) => {
+        toast.error(ctx.error.message || "An error occurred")
+        setLoading(false)
+      },
+    })
+  }
 
   return (
     <div className="min-h-screen bg-[#0b0f14] flex items-center justify-center px-4 bg-digital-noise">
@@ -33,10 +68,7 @@ export default function ForgotPasswordPage() {
 
               <form
                 className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  setSent(true)
-                }}
+                onSubmit={handleSubmit}
               >
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm">
@@ -44,17 +76,20 @@ export default function ForgotPasswordPage() {
                   </Label>
                   <Input
                     id="email"
+                    name="email"
                     type="email"
                     placeholder="you@example.com"
                     className="bg-foreground/5 border-foreground/10 text-foreground placeholder:text-gray-500"
+                    required
                   />
                 </div>
 
                 <Button
                   type="submit"
+                  disabled={loading}
                   className="w-full bg-linear-to-r from-primary/20 to-primary/40 hover:from-primary/40 hover:to-primary/60 text-gray-200 font-medium"
                 >
-                  Send Reset Link
+                  {loading ? "Sending..." : "Send Reset Link"}
                 </Button>
               </form>
             </>

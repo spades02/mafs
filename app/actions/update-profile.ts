@@ -14,7 +14,7 @@ export async function updateProfile(formData: FormData) {
     const session = await auth.api.getSession({
       headers: await headers(),
     })
-    
+
     if (!session?.user?.id) {
       return { success: false, error: 'Not authenticated' }
     }
@@ -23,38 +23,43 @@ export async function updateProfile(formData: FormData) {
     const name = formData.get('name') as string
     const email = formData.get('email') as string
     const avatarFile = formData.get('avatar') as File | null
-    
+
     // Validate inputs
     if (!name || name.trim() === '') {
       return { success: false, error: 'Name is required' }
     }
-    
+
     if (!email || email.trim() === '') {
       return { success: false, error: 'Email is required' }
     }
-    
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       return { success: false, error: 'Invalid email format' }
     }
-    
+
     let newAvatarPath = session.user.image
-    
+    const removeAvatar = formData.get('removeAvatar') === 'true'
+
+    if (removeAvatar) {
+      newAvatarPath = null
+    }
+
     // Handle avatar upload if there's a new file
     if (avatarFile && avatarFile.size > 0) {
       const avatarFormData = new FormData()
       avatarFormData.append('avatar', avatarFile)
-      
+
       const uploadResult = await uploadAvatar(avatarFormData)
-      
+
       if (uploadResult.success && uploadResult.avatarPath) {
         newAvatarPath = uploadResult.avatarPath
       } else {
         return { success: false, error: uploadResult.error || 'Failed to upload avatar' }
       }
     }
-    
+
     // Update user in database using Drizzle ORM
     await db
       .update(user)
@@ -64,13 +69,13 @@ export async function updateProfile(formData: FormData) {
         image: newAvatarPath,
       })
       .where(eq(user.id, userId))
-    
+
     // Revalidate the profile page and any other pages that show user info
     revalidatePath('/profile')
     revalidatePath('/settings')
     revalidatePath('/') // If user info is shown on home page
-    
-    return { 
+
+    return {
       success: true,
       message: 'Profile updated successfully',
       data: {
@@ -79,20 +84,20 @@ export async function updateProfile(formData: FormData) {
         image: newAvatarPath
       }
     }
-    
+
   } catch (error) {
     console.error('Profile update error:', error)
-    
+
     // Handle specific database errors
     if (error instanceof Error) {
       // Check for duplicate email error (common in databases)
       if (error.message.includes('unique') || error.message.includes('duplicate')) {
         return { success: false, error: 'Email already in use' }
       }
-      
+
       return { success: false, error: error.message }
     }
-    
+
     return { success: false, error: 'Failed to update profile' }
   }
 }

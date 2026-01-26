@@ -1,8 +1,14 @@
 // lib/odds/resolve-live-odds.ts
 
+import { db } from "@/db/client";
+import { historicalOdds } from "@/db/schema/historical-odds-schema";
+import { fighters } from "@/db/schema/fighters-schema";
+import { and, or, ilike, like, eq, desc } from "drizzle-orm";
+
 export type OddsResult = {
   odds: [number, number] | null;
-  source: 'api' | 'no_match' | 'api_error' | 'no_api_key';
+  source: 'api' | 'database' | 'no_match' | 'api_error' | 'no_api_key';
+  bookmaker?: string;
 };
 
 function normalize(name: string) {
@@ -58,15 +64,79 @@ export async function fetchAllOdds(): Promise<{ cache: OddsCache | null; error?:
   }
 }
 
+async function findInDatabase(fighterA: string, fighterB: string): Promise<OddsResult | null> {
+  try {
+    // 1. Find Fighters by Name
+    const allFighters = await db.select({
+      id: fighters.id,
+      firstName: fighters.firstName,
+      lastName: fighters.lastName,
+      nickname: fighters.nickname
+    }).from(fighters);
+
+    const normA = normalize(fighterA);
+    const normB = normalize(fighterB);
+
+    const searchFighter = (targetNorm: string) => {
+      return allFighters.find(f => {
+        const name = normalize(`${f.firstName} ${f.lastName}`);
+        const revName = normalize(`${f.lastName} ${f.firstName}`);
+        return name.includes(targetNorm) || targetNorm.includes(name) ||
+          revName.includes(targetNorm) || targetNorm.includes(revName);
+      });
+    }
+
+    const fA = searchFighter(normA);
+    const fB = searchFighter(normB);
+
+    if (!fA || !fB) return null;
+
+    // 2. Find latest Odds for these fighters
+    const oddsRecords = await db.select()
+      .from(historicalOdds)
+      .where(or(eq(historicalOdds.fighterId, fA.id), eq(historicalOdds.fighterId, fB.id)))
+      .orderBy(desc(historicalOdds.timestamp));
+
+    // Group by fight_id to find a match
+    const fights = new Map<string, { [fighterId: string]: number }>();
+
+    for (const record of oddsRecords) {
+      if (!record.fightId) continue;
+
+      if (!fights.has(record.fightId)) {
+        fights.set(record.fightId, {});
+      }
+      // Use latest only (list is ordered desc)
+      const fightGroup = fights.get(record.fightId)!;
+      if (record.fighterId && !fightGroup[record.fighterId] && record.moneyline !== null) {
+        fightGroup[record.fighterId] = record.moneyline;
+      }
+    }
+
+    // Check if any fight has both
+    for (const [fightId, oddsMap] of fights.entries()) {
+      if (oddsMap[fA.id] !== undefined && oddsMap[fB.id] !== undefined) {
+        // Found a match!
+        // odds order: [A, B]
+        return {
+          odds: [oddsMap[fA.id], oddsMap[fB.id]],
+          source: 'database'
+        };
+      }
+    }
+
+    return null;
+  } catch (e) {
+    console.error("DB Odds check failed", e);
+    return null;
+  }
+}
+
 export async function resolveLiveOdds(
   matchup: string,
   preloadedCache?: OddsCache | null
 ): Promise<OddsResult> {
   const apiKey = process.env.ODDS_API_KEY;
-  if (!apiKey) {
-    console.warn('⚠ ODDS_API_KEY not set');
-    return { odds: null, source: 'no_api_key' };
-  }
 
   const [fighterA, fighterB] = matchup.split(/ vs\.? /i);
   if (!fighterA || !fighterB) {
@@ -77,6 +147,19 @@ export async function resolveLiveOdds(
   const a = normalize(fighterA);
   const b = normalize(fighterB);
 
+  // 1. Check Database First
+  const dbResult = await findInDatabase(fighterA, fighterB);
+  if (dbResult) {
+    console.log(`✓ Odds found in DB: ${matchup}`);
+    return dbResult;
+  }
+
+  // 2. Fallback to API/Cache
+  if (!apiKey) {
+    console.warn('⚠ ODDS_API_KEY not set');
+    return { odds: null, source: 'no_api_key' };
+  }
+
   try {
     // Fix 7: Use preloaded cache if provided, else fall back to global cache
     let events: OddsCache;
@@ -84,7 +167,7 @@ export async function resolveLiveOdds(
     if (preloadedCache && preloadedCache.length > 0) {
       // Use provided cache (batch fetched at start of analysis)
       events = preloadedCache;
-    } else if (oddsCache && (Date.now() - lastFetch < 60000)) {
+    } else if (oddsCache && (Date.now() - lastFetch < 600000)) { // 10 min cache
       // Use valid global cache
       events = oddsCache;
     } else {
@@ -135,12 +218,13 @@ export async function resolveLiveOdds(
           : [market.outcomes[1].price, market.outcomes[0].price];
 
         console.log(
-          `✓ Odds matched: ${fighterA} ${odds[0]} / ${odds[1]} ${fighterB} (${bookmaker.title})`
+          `✓ Odds matched in API: ${fighterA} ${odds[0]} / ${odds[1]} ${fighterB} (${bookmaker.title})`
         );
 
         return {
           odds,
           source: 'api',
+          bookmaker: bookmaker.title
         };
       }
     }
