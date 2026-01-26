@@ -92,7 +92,7 @@ export function NavAvatarClient({ avatarUrl, name, email, isPro }: NavAvatarClie
           </Link>
         </DropdownMenuItem>
 
-        <DropdownMenuItem asChild>
+        {/* <DropdownMenuItem asChild>
           <Link
             href="/analysis"
             onClick={(e) => handleLinkClick(e, '/analysis')}
@@ -101,7 +101,7 @@ export function NavAvatarClient({ avatarUrl, name, email, isPro }: NavAvatarClie
             <RotateCcw className="w-4 h-4 mr-2" />
             Recent Analyses
           </Link>
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
 
         <DropdownMenuItem asChild>
           <Link

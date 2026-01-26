@@ -12,7 +12,7 @@ export async function GET(
   try {
     // 1. Fetch Event Info
     const eventRecord = await db.query.events.findFirst({
-      where: eq(events.eventId, BigInt(eventId)),
+      where: eq(events.eventId, eventId),
     });
 
     if (!eventRecord) {
@@ -30,18 +30,17 @@ export async function GET(
         fighter2: f2,
       })
       .from(fights)
-      .leftJoin(f1, eq(fights.fighter1Id, f1.id))
-      .leftJoin(f2, eq(fights.fighter2Id, f2.id))
-      .where(eq(fights.eventId, BigInt(eventId)));
+      .leftJoin(f1, eq(fights.fighterAId, f1.id))
+      .leftJoin(f2, eq(fights.fighterBId, f2.id))
+      .where(eq(fights.eventId, eventId));
 
     // 3. Transform to match API Shape
-    // Serialize BigInts to strings for JSON safety
     const mappedFights = fightsData.map((row) => ({
-      FightId: row.fight.fightId.toString(),
-      Order: row.fight.order,
-      Status: row.fight.status,
+      FightId: row.fight.id,
+      Order: 0, // Not in schema
+      Status: "Scheduled", // Not in schema
       WeightClass: row.fight.weightClass,
-      CardSegment: row.fight.cardSegment,
+      CardSegment: "Main Card", // Not in schema
       Fighters: [
         {
           FighterId: row.fighter1?.id,
@@ -55,13 +54,6 @@ export async function GET(
         }
       ]
     }));
-
-    return NextResponse.json({
-      EventId: eventRecord.eventId.toString(),
-      Name: eventRecord.name,
-      DateTime: eventRecord.dateTime,
-      Fights: mappedFights
-    });
 
     return NextResponse.json({
       EventId: eventRecord.eventId,
