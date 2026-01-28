@@ -1,17 +1,16 @@
 // app/(dashboard)/analysis/[id]/page.tsx
 import { db } from "@/db";
-import { analysisRun } from "@/db/schema";
+import { analysisRun, user } from "@/db/schema";
 import { requireAuth } from "@/app/lib/auth/require-auth";
 import { eq, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import BestBets from "@/components/best-bets";
-import FightAnalysis from "@/components/pages/home/fight-analysis";
-import AllMarketEdges from "@/components/all-market-edges";
+import { getEventFights } from "@/app/(app)/dashboard/actions";
+import AnalysisResultClient from "./analysis-result-client";
+import { Fight } from "@/app/(app)/dashboard/d-types";
 
-// 1. Define the shape of your JSON column for type safety
 interface AnalysisResult {
-  mafsCoreEngine: any[]; 
-  fightBreakdowns: any[];
+  mafsCoreEngine: any[];
+  fightBreakdowns: Record<string, any>;
 }
 
 export default async function AnalysisDetailPage({
@@ -22,7 +21,6 @@ export default async function AnalysisDetailPage({
   const session = await requireAuth();
   if (!session?.user?.id) notFound();
 
-  // 2. Properly await params (Next.js 15 requirement)
   const { id } = await params;
 
   if (!id) notFound();
@@ -40,32 +38,56 @@ export default async function AnalysisDetailPage({
 
   if (!run[0]) notFound();
 
-  const { title, result, createdAt } = run[0];
-  
-  // 3. Cast the JSON result to our interface
+  const { title, result, createdAt, eventId } = run[0];
+
   const data = result as unknown as AnalysisResult;
 
-  return (
-    <div className="max-w-6xl mx-auto space-y-6 my-12">
-      <header>
-        <h1 className="text-3xl font-bold">{title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {createdAt.toLocaleString()}
-        </p>
-      </header>
+  let oddsFormat = "american";
 
-      <BestBets fightData={data.mafsCoreEngine} />
-      
-      {/* FIX: Pass the 'fightBreakdowns' ARRAY directly. 
-         Do not convert to a Map/Record with Object.fromEntries, 
-         or <FightAnalysis> will crash when it tries to .map() over it.
-      */}
-      <FightAnalysis 
-        fightData={data.mafsCoreEngine} 
-        fightBreakdowns={data.fightBreakdowns} 
-      />
-      
-      <AllMarketEdges fightData={data.mafsCoreEngine} />
-    </div>
+  if (session?.user?.id) {
+    const dbUser = await db.query.user.findFirst({
+      where: eq(user.id, session.user.id),
+      columns: {
+        oddsFormat: true
+      }
+    });
+    if (dbUser?.oddsFormat) {
+      oddsFormat = dbUser.oddsFormat;
+    }
+  }
+
+  // Fetch basic fight info (names, etc)
+  const dbFights = eventId ? await getEventFights(eventId) : [];
+
+  // Transform dbFights to UI Fights, merging with saved odds/lines if possible
+  const uiFights: Fight[] = dbFights.map(f => {
+    const breakdown = data.fightBreakdowns?.[f.fightId];
+
+    let displayOdds = "Lines Pending";
+
+    if (breakdown?.marketLine) {
+      displayOdds = breakdown.marketLine;
+    } else {
+      // Fallback: check mafsCoreEngine for this fightId (converting fightId to string to be safe)
+      const edge = data.mafsCoreEngine?.find((e: any) => String(e.id) === String(f.fightId));
+      if (edge?.odds_american) displayOdds = edge.odds_american;
+    }
+
+    return {
+      id: f.fightId,
+      matchup: `${f.fighter1?.firstName || ""} ${f.fighter1?.lastName || ""} vs ${f.fighter2?.firstName || ""} ${f.fighter2?.lastName || ""}`,
+      odds: displayOdds
+    };
+  });
+
+  return (
+    <AnalysisResultClient
+      eventName={title}
+      eventDate={createdAt.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+      fights={uiFights}
+      bets={data.mafsCoreEngine || []}
+      breakdowns={data.fightBreakdowns || {}}
+      userOddsFormat={oddsFormat}
+    />
   );
 }

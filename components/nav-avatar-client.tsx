@@ -1,9 +1,10 @@
 // components/nav-avatar-client.tsx
 "use client"
 
+import { useState } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { Button } from './ui/button'
-import { ChevronDown, CreditCard, Crown, RotateCcw, SettingsIcon, User } from 'lucide-react'
+import { ChevronDown, CreditCard, Crown, RotateCcw, User } from 'lucide-react'
 import Link from 'next/link'
 import { ProfileAvatar } from './profile-avatar'
 import LogoutButton from './logout-button'
@@ -18,16 +19,18 @@ interface NavAvatarClientProps {
 }
 
 export function NavAvatarClient({ avatarUrl, name, email, isPro }: NavAvatarClientProps) {
+  const [open, setOpen] = useState(false)
   const { confirmNavigation } = useDirtyState()
   const router = useRouter()
 
   const handleLinkClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault()
+    setOpen(false) // Close menu
     confirmNavigation(() => router.push(href))
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -92,7 +95,7 @@ export function NavAvatarClient({ avatarUrl, name, email, isPro }: NavAvatarClie
           </Link>
         </DropdownMenuItem>
 
-        {/* <DropdownMenuItem asChild>
+        <DropdownMenuItem asChild>
           <Link
             href="/analysis"
             onClick={(e) => handleLinkClick(e, '/analysis')}
@@ -101,7 +104,7 @@ export function NavAvatarClient({ avatarUrl, name, email, isPro }: NavAvatarClie
             <RotateCcw className="w-4 h-4 mr-2" />
             Recent Analyses
           </Link>
-        </DropdownMenuItem> */}
+        </DropdownMenuItem>
 
         <DropdownMenuItem asChild>
           <Link

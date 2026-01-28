@@ -72,9 +72,17 @@ function getBestOddsIndex(
   fighter2Name: string
 ): number {
   const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
-  const target = normalize(targetName);
+
+  // Remove common betting suffixes to clean the name
+  const cleanTarget = targetName.toLowerCase()
+    .replace(/\b(ml|moneyline|win|decision|dec|ko|tko|sub|submission|itd|prop)\b/g, "")
+    .trim();
+
+  const target = normalize(cleanTarget);
   const f1 = normalize(fighter1Name);
   const f2 = normalize(fighter2Name);
+
+  if (!target) return -1; // Safety check
 
   if (target === f1) return 0;
   if (target === f2) return 1;
@@ -90,6 +98,9 @@ function getBestOddsIndex(
   // Basic substring check
   if (f1.includes(target)) return 0;
   if (f2.includes(target)) return 1;
+  // Reverse substring check (if target is "Volkanovski" and f1 is "Alex Volkanovski")
+  if (target.includes(f1)) return 0;
+  if (target.includes(f2)) return 1;
 
   return -1;
 }
@@ -109,7 +120,7 @@ async function analyzeFight(
 
   const moneylineText = fight.moneylines
     ? `${f1Name}: ${fight.moneylines[0]} / ${f2Name}: ${fight.moneylines[1]}`
-    : "N/A (No odds available)";
+    : "No odds available";
 
   // -------- AGENT 1: EDGE CALCULATION --------
   const { object: edgeObj } = await generateObject({
@@ -128,16 +139,21 @@ STATS:
 
 TASK:
 1. **Analyze** the stats and stylistic matchup deeply.
-2. **Estimate** "truthProbability" (Win %) for your chosen outcome.
+2. **Estimate** "truthProbability" (Win %) for both sides.
 3. **Compare** with market lines if available.
-4. **Generate** 'agentSignals' from 3 distinct perspectives:
-   - "Model Probability": Pure statistical view.
-   - "Market Efficiency": Is the line efficient?
-   - "Matchup Fit": Stylistic advantage.
-5. **Populate** 'detailedReason' with market inefficiency, key drivers, and risks.
+4. **DECIDE**: Is there a bet?
+   - **Scenario A (Odds Available)**: You MUST only recommend a bet if your estimated Win % > Market Implied %. Otherwise, PASS.
+   - **Scenario B (No Odds)**: Only recommend a bet if valid Win % is > 65%. Otherwise, PASS.
+
+5. **Generate Output**:
+   - **Label**: ALWAYS set 'label' to the specific fighter/outcome you analyzed (e.g. "Fighter Name ML"). NEVER use "No Bet" or "Pass" as the label.
+   - **Confidence**: If you decide to PASS (due to low edge/confidence), set 'confidencePct' to 0. This will signal the system to filter it out.
+
+6. **Generate** 'agentSignals' even if passing (explain why stats are weak/strong).
+7. **Populate** 'detailedReason'.
 
 IMPORTANT:
-- If NO odds are available, assume 50/50 market probability for calculating edge relative to neutral.
+- Be strict. Do not force a bet on 50/50 fights with bad odds.
 - Use explicit visual language for 'executiveSummary'.
 `,
   });
@@ -200,7 +216,7 @@ IMPORTANT:
   };
 
   // override odds string if 0
-  if (marketOdd === 0) finalEdge.odds_american = "N/A";
+  if (marketOdd === 0) finalEdge.odds_american = "No odds available";
 
 
   // -------- AGENT 2: BREAKDOWN WRITER --------
@@ -216,12 +232,19 @@ MY WIN PROB: ${(pSim * 100).toFixed(1)}%
 MARKET IMPLIED: ${(pImp * 100).toFixed(1)}%
 EDGE: ${edgePct}%
 
-Generate a "FightBreakdown" with:
+Generate a detailed "FightBreakdown" including:
 - "trueLine": Your fair odds for both fighters (e.g. "-150 / +130")
 - "marketLine": The actual market MLs provided: "${moneylineText}"
 - "mispricing": The percentage gap.
 - "pathToVictory": Most likely outcomes.
 - "marketAnalysis": Why is the market wrong? (Bullet points allowed)
+- "outcomeDistribution": Detailed prob breakdown (e.g. "FighterA: KO R1-2 (30%) | Decision (20%)").
+- "fighter1Profile" & "fighter2Profile": Punchy identity summaries.
+- "modelConfidence" & "signalStrength": Signal metadata.
+- "modelLeaningOutcome": Specific leaning bet.
+- "playableUpTo": Price limit.
+- "variance": e.g. "Medium (late-finish dependency)".
+- "primaryRisk": Key risk factor.
 
 Keep it punchy, professional, and analytical.
 `,

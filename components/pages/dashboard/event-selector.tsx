@@ -11,7 +11,7 @@ export interface EventSelectorProps {
     isScanning: boolean
     scanComplete: boolean
     onRunSimulation: () => void
-    events: Array<{ eventId: string; name: string; dateTime: string | null; venue: string | null }>
+    events: Array<{ eventId: string; name: string; dateTime: string | null; venue: string | null; fightCount?: number }>
 }
 
 export function EventSelector({
@@ -51,8 +51,10 @@ export function EventSelector({
 
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-sm text-muted-foreground">{currentEvent?.venue || "Location TBD"}</p>
-                        <p className="text-xs text-muted-foreground/60 mt-1">{formattedDate}</p>
+                        <p className="text-sm text-muted-foreground">
+                            {currentEvent?.venue || "Location TBD"}
+                        </p>
+                        {currentEvent?.fightCount ? <span className="text-xs text-muted-foreground/60">{currentEvent.fightCount} Fights on card</span> : null}
                     </div>
 
                     <Button

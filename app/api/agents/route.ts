@@ -26,9 +26,9 @@ export async function POST(req: Request) {
     return new Response("User not found", { status: 404 });
   }
 
-  // if (!resultUser.isPro && resultUser.analysisCount >= 3) {
-  //   return new Response("Free limit reached", { status: 403 });
-  // }
+  if (!resultUser.isPro && resultUser.analysisCount >= 10) {
+    return new Response("Free limit reached", { status: 403 });
+  }
 
   const { data } = await req.json();
 

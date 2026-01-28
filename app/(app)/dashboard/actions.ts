@@ -3,24 +3,34 @@
 import { db } from "@/db/client"
 import { events } from "@/db/schema/events-schema"
 import { fights } from "@/db/schema/fights-schema"
-import { gt, asc, eq } from "drizzle-orm"
+import { gt, asc, eq, sql } from "drizzle-orm"
 
 export async function getFutureEvents() {
     try {
         const now = new Date()
 
-        // Fetch future events sorted by date
-        const futureEvents = await db.select()
+        // Fetch future events sorted by date with fight count
+        const futureEvents = await db.select({
+            eventId: events.eventId,
+            name: events.name,
+            dateTime: events.dateTime,
+            venue: events.venue,
+            createdAt: events.createdAt,
+            updatedAt: events.updatedAt,
+            fightCount: sql<number>`count(${fights.id})`.mapWith(Number)
+        })
             .from(events)
+            .leftJoin(fights, eq(events.eventId, fights.eventId))
             .where(gt(events.dateTime, now))
+            .groupBy(events.eventId, events.name, events.dateTime, events.venue, events.createdAt, events.updatedAt)
             .orderBy(asc(events.dateTime))
 
         return futureEvents.map(event => ({
             ...event,
-            eventId: event.eventId, // It's text now
             dateTime: event.dateTime ? event.dateTime.toISOString() : null,
             createdAt: event.createdAt ? event.createdAt.toISOString() : null,
             updatedAt: event.updatedAt ? event.updatedAt.toISOString() : null,
+            fightCount: event.fightCount || 0
         }))
     } catch (error) {
         console.error("Failed to fetch future events:", error)

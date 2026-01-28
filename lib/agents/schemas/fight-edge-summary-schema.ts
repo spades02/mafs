@@ -27,7 +27,7 @@ export const FightEdgeSummaryGenerationSchema = z.object({
 
   // Scores
   stability_score: z.number().min(0).max(1).describe("How stable/reliable is this simulation result?"),
-  confidence_label: z.enum(["Low", "Medium", "High"]),
+  confidence_label: z.enum(["Low", "Medium", "High"]).optional(),
   confidencePct: z.number().min(0).max(100).describe("Confidence percentage (0-100)"),
   varianceTag: z.enum(["low", "medium", "high"]).describe("Level of chaos/randomness expected"),
 

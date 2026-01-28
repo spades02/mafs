@@ -17,7 +17,7 @@ export const analysisRun = pgTable("analysis_runs", {
   result: jsonb("result")
     .$type<{
       mafsCoreEngine: FightEdgeSummary[];
-      fightBreakdowns: Record<number, FightBreakdownType>;
+      fightBreakdowns: Record<string, FightBreakdownType>;
     }>()
     .notNull(),
 

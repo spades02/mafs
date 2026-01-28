@@ -60,6 +60,11 @@ export async function updateProfile(formData: FormData) {
       }
     }
 
+    const timeZone = formData.get('timeZone') as string
+    const oddsFormat = formData.get('oddsFormat') as string
+    const emailAlerts = formData.get('emailAlerts') === 'true'
+    const riskWarnings = formData.get('riskWarnings') === 'true'
+
     // Update user in database using Drizzle ORM
     await db
       .update(user)
@@ -67,6 +72,10 @@ export async function updateProfile(formData: FormData) {
         name: name.trim(),
         email: email.trim().toLowerCase(),
         image: newAvatarPath,
+        timeZone: timeZone || undefined,
+        oddsFormat: oddsFormat || undefined,
+        emailAlerts: formData.has('emailAlerts') ? emailAlerts : undefined,
+        riskWarnings: formData.has('riskWarnings') ? riskWarnings : undefined,
       })
       .where(eq(user.id, userId))
 

@@ -37,18 +37,19 @@ function EventRunner({
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const res = await fetch("/api/me");
-        const data = await res.json();
-        setUser(data.user);
-      } catch {
-        setUser(null);
-      } finally {
-        setAuthLoading(false);
-      }
+  async function fetchUser() {
+    try {
+      const res = await fetch("/api/me");
+      const data = await res.json();
+      setUser(data.user);
+    } catch {
+      setUser(null);
+    } finally {
+      setAuthLoading(false);
     }
+  }
+
+  useEffect(() => {
     fetchUser();
   }, []);
 
@@ -66,6 +67,8 @@ function EventRunner({
     } catch (err) {
       console.error(err);
       setFetchError((err as any)?.message ?? "Error running analysis");
+    } finally {
+      await fetchUser();
     }
   }
 

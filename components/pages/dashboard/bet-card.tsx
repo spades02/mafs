@@ -5,15 +5,18 @@ import { CheckCircle2, AlertTriangle, ChevronUp, ChevronDown } from "lucide-reac
 import { ConfidenceRing, ModelAgreement } from "@/components/premium-metrics"
 import { SimulationBet } from "@/app/(app)/dashboard/d-types"
 
+import { formatOdds } from "@/lib/odds/utils"
+
 interface BetCardProps {
     bet: SimulationBet
     index: number
     isExpanded: boolean
     onToggle: () => void
     betSeed: number
+    oddsFormat?: string
 }
 
-export function BetCard({ bet, index, isExpanded, onToggle, betSeed }: BetCardProps) {
+export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat = "american" }: BetCardProps) {
     const hasRiskFlag = bet.agentSignals.some((s) => s.signal === "neutral" || s.signal === "fail")
     const passedSignals = bet.agentSignals.filter((s) => s.signal === "pass").length
 
@@ -36,7 +39,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed }: BetCardPr
                 {/* OUTCOME LAYER - Always Visible */}
                 <div className="mb-4">
                     <p className="font-semibold text-lg leading-tight text-white">{bet.label}</p>
-                    <p className="text-sm text-muted-foreground/60 font-mono mt-1">{bet.odds_american}</p>
+                    <p className="text-sm text-muted-foreground/60 font-mono mt-1">{formatOdds(bet.odds_american, oddsFormat || "american")}</p>
                 </div>
 
                 {/* Metrics Row with premium styling */}
@@ -45,7 +48,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed }: BetCardPr
                         <ConfidenceRing value={bet.P_sim * 100} size={48} />
                         <div>
                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-0.5">Model Probability</p>
-                            <p className="text-xl font-bold glow-text text-white">{(bet.P_sim * 100).toFixed(0)}%</p>
+                            <p className="text-xs font-semibold text-foreground/70 text-white">{(bet.P_sim * 100).toFixed(0)}%</p>
                             <p className="text-[10px] text-muted-foreground/40 font-mono">
                                 Range: {Math.max(0, bet.P_sim * 100 - 4 - Math.random() * 2).toFixed(0)}%–
                                 {Math.min(99, bet.P_sim * 100 + 3 + Math.random() * 2).toFixed(0)}%

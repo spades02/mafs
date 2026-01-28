@@ -1,10 +1,8 @@
-// app/(dashboard)/analysis/page.tsx
 import { db } from "@/db";
 import { analysisRun } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
-import Link from "next/link";
 import { requireAuth } from "@/app/lib/auth/require-auth"
-import { Card, CardTitle } from "@/components/ui/card";
+import { AnalysisHistoryList } from "@/components/pages/analysis/analysis-history-list";
 
 export default async function AnalysisPage() {
   const session = await requireAuth()
@@ -16,29 +14,34 @@ export default async function AnalysisPage() {
       id: analysisRun.id,
       title: analysisRun.title,
       createdAt: analysisRun.createdAt,
+      result: analysisRun.result
     })
     .from(analysisRun)
     .where(eq(analysisRun.userId, session.user.id))
     .orderBy(desc(analysisRun.createdAt));
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-4 my-12">
-      <Card className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-primary/10 rounded-2xl p-8 shadow-2xl">
-      <CardTitle><h1 className="text-2xl font-bold">Hi {session.user.name}, Check your Recent Analysis Runs</h1>
-      </CardTitle>
-      {runs.map((run) => (
-        <Link
-          key={run.id}
-          href={`/analysis/${run.id}`}
-          className="block rounded-lg border p-4 hover:bg-muted"
-        >
-          <div className="font-medium">{run.title}</div>
-          <div className="text-sm text-muted-foreground">
-            {run.createdAt.toLocaleString()}
-          </div>
-        </Link>
-      ))}
-    </Card>
-    </div>
-  );
+  const summary = runs.map(run => {
+    const result = run.result as any;
+    const bets = result.mafsCoreEngine || [];
+    const betCount = bets.length;
+
+    // Find top bet (highest edge)
+    const topBetObj = bets.length > 0 ? bets.reduce((prev: any, current: any) => {
+      const currentEdge = current?.edge_pct || -100;
+      const prevEdge = prev?.edge_pct || -100;
+      return (currentEdge > prevEdge) ? current : prev
+    }) : null;
+
+    const topBet = topBetObj ? topBetObj.label : undefined;
+
+    return {
+      id: run.id,
+      title: run.title,
+      createdAt: run.createdAt,
+      betCount,
+      topBet
+    }
+  });
+
+  return <AnalysisHistoryList runs={summary} />;
 }

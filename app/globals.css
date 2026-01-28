@@ -289,6 +289,7 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: calc(var(--radius) - 2px);
     transition: all 0.2s ease;
   }
 
@@ -435,7 +436,7 @@
     color: oklch(0.08 0.015 260);
     font-weight: 600;
     padding: 14px 28px;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) - 2px);
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;

@@ -72,22 +72,30 @@ export type SystemParlay = {
 }
 
 export type FightBreakdown = {
-    trueLine: string
-    marketLine: string
-    mispricing: string
-    bet: string
-    ev: string
-    confidence: string
-    risk: string
-    stake: string
-    fighter1Name: string
-    fighter2Name: string
-    fighter1Notes: string
-    fighter2Notes: string
-    pathToVictory: string
-    marketAnalysis: string
+    trueLine?: string
+    marketLine?: string
+    mispricing?: string
+    bet?: string
+    ev?: string
+    confidence?: string
+    risk?: string
+    stake?: string
+    fighter1Name?: string
+    fighter2Name?: string
+    fighter1Notes?: string
+    fighter2Notes?: string
+    fighter1Profile?: string
+    fighter2Profile?: string
+    outcomeDistribution?: string
+    pathToVictory?: string
+    marketAnalysis?: string | string[]
     varianceReason?: string
     primaryRisk?: string
+    modelConfidence?: string
+    signalStrength?: string
+    modelLeaningOutcome?: string
+    playableUpTo?: string
+    variance?: string
 }
 
 export type EventData = {

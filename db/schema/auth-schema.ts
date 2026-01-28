@@ -22,12 +22,18 @@ export const user = pgTable("user", {
   // 💳 Stripe
   stripeCustomerId: text("stripe_customer_id").unique(),
   stripeSubscriptionId: text("stripe_subscription_id").unique(),
-  subscriptionStatus: text("subscription_status"), 
+  subscriptionStatus: text("subscription_status"),
   // e.g. "active", "canceled", "past_due"
 
   // 💰 Access control
   isPro: boolean("is_pro").default(false).notNull(),
   analysisCount: integer("analysis_count").default(0).notNull(),
+
+  // ⚙️ Settings
+  timeZone: text("time_zone").default("America/New_York (EST)").notNull(),
+  oddsFormat: text("odds_format").default("american").notNull(),
+  emailAlerts: boolean("email_alerts").default(true).notNull(),
+  riskWarnings: boolean("risk_warnings").default(true).notNull(),
 
   // ⏱️ Meta
   createdAt: timestamp("created_at").defaultNow().notNull(),

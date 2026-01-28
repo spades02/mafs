@@ -1,7 +1,9 @@
 import ProfileSettings from "@/components/profile-settings"
-// import UserPreferences from "@/components/user-preferences"
 import { auth } from "@/app/lib/auth/auth";
 import { headers } from "next/headers";
+import { db } from "@/db";
+import { user as userSchema } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export default async function SettingsPage() {
   const h = await headers();
@@ -11,7 +13,21 @@ export default async function SettingsPage() {
   if (!session) {
     throw new Error("Unauthorized")
   }
-  const user = session?.user;
+
+
+  const dbUser = await db.query.user.findFirst({
+    where: eq(userSchema.id, session.user.id),
+  });
+
+  const rawUser = dbUser || session.user;
+
+  // Normalize user for ProfileSettings
+  const user = {
+    ...rawUser,
+    name: rawUser.name || "",
+    image: rawUser.image || null,
+    passwordHash: 'passwordHash' in rawUser ? rawUser.passwordHash : null
+  };
 
   const avatarUrl = user.image
     ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${user.image}?v=${user.updatedAt}`
@@ -25,8 +41,7 @@ export default async function SettingsPage() {
           {/* Profile Settings */}
           <ProfileSettings user={user} avatarUrl={avatarUrl} />
 
-          {/* Preferences */}
-          {/* <UserPreferences /> */}
+
         </div>
       </main>
     </div>

@@ -12,17 +12,19 @@ import { FightTable } from "@/components/pages/dashboard/fight-table"
 import { FightBreakdown } from "@/components/pages/dashboard/fight-breakdown"
 import { getEventFights } from "./actions"
 import { Fight, SimulationBet, FightBreakdown as FightBreakdownModel } from "./d-types"
+import { formatOdds } from "@/lib/odds/utils"
+
+interface DashboardClientProps {
+  initialEvents: Array<{ eventId: string; name: string; dateTime: string | null; venue: string | null; fightCount?: number }>
+  userOddsFormat?: string
+}
 
 const MIN_MAF_PROB = 0.55
 const MIN_AGENT_CONSENSUS_PASS_RATE = 0.7
 const MIN_EDGE_PCT = 0.5
 const BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW = 0.55
 
-interface DashboardClientProps {
-  initialEvents: Array<{ eventId: string; name: string; dateTime: string | null; venue: string | null }>
-}
-
-export default function DashboardClient({ initialEvents }: DashboardClientProps) {
+export default function DashboardClient({ initialEvents, userOddsFormat = "american" }: DashboardClientProps) {
   const router = useRouter()
   const [selectedEvent, setSelectedEvent] = useState(initialEvents[0]?.eventId || "")
   const [showResults, setShowResults] = useState(false)
@@ -35,6 +37,7 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
   const [simulatedBreakdowns, setSimulatedBreakdowns] = useState<Record<string, FightBreakdownModel>>({})
   const [activeFights, setActiveFights] = useState<Fight[]>([])
   const [statusMessage, setStatusMessage] = useState("")
+  const [simulationProgress, setSimulationProgress] = useState(0)
 
   const [isGeneratingBets, setIsGeneratingBets] = useState(false)
   const [betSeed, setBetSeed] = useState(0)
@@ -44,6 +47,7 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
 
   useEffect(() => {
     if (scanComplete) {
+      setSimulationProgress(100)
       const timer = setTimeout(() => {
         setShowSimulation(false)
         setIsScanning(false)
@@ -64,10 +68,12 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
     setSimulatedBets([])
     setSimulatedBreakdowns({})
     setStatusMessage("Initializing simulation...")
+    setSimulationProgress(2) // Start Low
 
     try {
       // 1. Fetch fights for event
       const dbFights = await getEventFights(selectedEvent)
+      setSimulationProgress(10) // Fights loaded
 
       // Update UI Fights List immediately
       const uiFights: Fight[] = dbFights.map(f => ({
@@ -100,10 +106,18 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
         body: JSON.stringify(payload),
       })
 
-      if (!response.ok || !response.body) throw new Error("Failed to start simulation")
+      if (!response.ok) {
+        const text = await response.text().catch(() => null);
+        throw new Error(text || "Failed to start simulation");
+      }
+
+      if (!response.body) throw new Error("Failed to start simulation")
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
+
+      let processedCount = 0
+      const totalFights = dbFights.length || 1
 
       while (true) {
         const { done, value } = await reader.read()
@@ -121,6 +135,11 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
               const data = JSON.parse(jsonStr)
 
               if (data.type === "fight") {
+                processedCount++
+                // Calculate progress: 10% (start) + (processed / total) * 85%
+                const progress = 10 + Math.round((processedCount / totalFights) * 85)
+                setSimulationProgress(progress)
+
                 const fightIdStr = data.fightId.toString()
 
                 // Add Bet
@@ -144,6 +163,7 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
               } else if (data.type === "status") {
                 setStatusMessage(data.message)
               } else if (data.type === "complete") {
+                setSimulationProgress(100)
                 setScanComplete(true)
               }
             } catch (e) {
@@ -155,7 +175,12 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
 
     } catch (error) {
       console.error("Simulation failed:", error)
-      setStatusMessage("Simulation failed. Please try again.")
+      const msg = error instanceof Error ? error.message : "Simulation failed. Please try again."
+      setStatusMessage(msg)
+      if (msg.includes("Free limit reached")) {
+        // Maybe redirect or show upgrade button? For now just show message.
+        // We could enable a button in the overlay if we modified it, but message is good start.
+      }
     } finally {
       setIsScanning(false)
       // Transition to results if we got anything
@@ -164,6 +189,7 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
   }
 
   const handleSimulationComplete = () => {
+    setSimulationProgress(100)
     setShowSimulation(false)
     setIsScanning(false)
     setShowResults(true)
@@ -172,11 +198,8 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
   }
 
   const handleRegenerateBets = () => {
-    setIsGeneratingBets(true)
-    setBetSeed((prev) => prev + 1)
-    setTimeout(() => {
-      setIsGeneratingBets(false)
-    }, 1000)
+    // Re-run the full simulation stream to get fresh insights
+    handleRunCard()
   }
 
   const qualifyBets = (bets: SimulationBet[]): SimulationBet[] => {
@@ -186,6 +209,11 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
       const agentSignals = bet.agentSignals || []
       const passCount = agentSignals.filter((s) => s.signal === "pass").length
       const agentPassRate = agentSignals.length > 0 ? passCount / agentSignals.length : 0
+
+      // Explicit Model Rejection (Signal from Agent)
+      if (bet.confidencePct === 0) {
+        rejectReasons.push("Model determined no value/edge found")
+      }
 
       if (bet.P_sim < MIN_MAF_PROB) {
         rejectReasons.push(`Win probability ${(bet.P_sim * 100).toFixed(0)}% below ${MIN_MAF_PROB * 100}% threshold`)
@@ -230,7 +258,7 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
   return (
     <div className="min-h-fit premium-bg overflow-y-hidden neural-bg font-sans selection:bg-primary/30 pb-20">
       {/* AI Simulation Overlay */}
-      <AISimulationOverlay isActive={showSimulation} message={statusMessage} />
+      <AISimulationOverlay isActive={showSimulation} message={statusMessage} progress={simulationProgress} />
 
       <div className="hero-orb" />
       <div className="hero-orb-secondary" />
@@ -299,10 +327,10 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
                   variant="outline"
                   size="sm"
                   onClick={handleRegenerateBets}
-                  disabled={isGeneratingBets}
+                  disabled={isScanning}
                   className="text-xs border-white/10 hover:border-primary/30 bg-transparent text-gray-300"
                 >
-                  {isGeneratingBets ? "Re-simulate..." : "Re-simulate"}
+                  {isScanning ? "Re-simulating..." : "Re-simulate"}
                 </Button>
               </div>
 
@@ -316,6 +344,7 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
                       isExpanded={expandedBetIdx === idx}
                       onToggle={() => setExpandedBetIdx(expandedBetIdx === idx ? null : idx)}
                       betSeed={betSeed}
+                      oddsFormat={userOddsFormat}
                     />
                   ))}
                 </div>
@@ -336,9 +365,9 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
               <section className="mt-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
                 <button
                   onClick={() => setShowFilteredBets(!showFilteredBets)}
-                  className="w-full flex items-center justify-between p-4 rounded-lg border border-white/10 bg-black/40 hover:bg-black/50 transition-colors"
+                  className="w-full flex items-center justify-between p-4 rounded-lg border border-primary/40 bg-black/40 hover:bg-black/50 hover:border-primary/60 transition-all group"
                 >
-                  <span className="flex items-center gap-2 text-muted-foreground">
+                  <span className="flex items-center gap-2 text-muted-foreground group-hover:text-white transition-colors">
                     <AlertTriangle className="w-4 h-4 text-amber-500" />
                     Filtered by Simulation ({filteredBets.length})
                   </span>
@@ -354,29 +383,65 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
 
                 {showFilteredBets && (
                   <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                    {filteredBets.map((bet) => (
-                      <Card key={bet.id} className="bg-black/30 border-white/5">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="font-medium text-muted-foreground">{bet.label}</p>
-                              <p className="text-xs text-muted-foreground/60 font-mono">{bet.odds_american}</p>
-                            </div>
-                            <span className="px-2 py-1 rounded text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                              Not recommended
-                            </span>
-                          </div>
+                    {filteredBets.map((bet) => {
+                      // Determine Pass/Fail status for indicators
+                      const passProb = bet.P_sim >= MIN_MAF_PROB
+                      const passEdge = bet.edge_pct >= MIN_EDGE_PCT
 
-                          <div className="flex flex-wrap gap-2 mt-3">
-                            {bet.rejectReasons?.map((reason, rIdx) => (
-                              <span key={rIdx} className="text-xs text-amber-400/80 bg-amber-500/10 px-2 py-1 rounded">
-                                {reason}
+                      const agentSignals = bet.agentSignals || []
+                      const passCount = agentSignals.filter((s) => s.signal === "pass").length
+                      const agentPassRate = agentSignals.length > 0 ? passCount / agentSignals.length : 0
+                      const passMatchup = agentPassRate >= MIN_AGENT_CONSENSUS_PASS_RATE
+
+                      const isHighVariance = bet.varianceTag === "high"
+                      const sufficientConfidence = bet.confidencePct / 100 >= BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW
+                      const passRisk = !(isHighVariance && !sufficientConfidence)
+
+                      return (
+                        <Card key={bet.id} className="bg-black/30 border-white/5">
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <p className="font-medium text-white text-base">{bet.label}</p>
+                                <p className="text-xs text-muted-foreground/60 font-mono mt-0.5">{formatOdds(bet.odds_american, userOddsFormat)}</p>
+                              </div>
+                              <span className="px-2 py-1 rounded text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                                Not recommended
                               </span>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 mt-3 mb-4">
+                              {bet.rejectReasons?.map((reason, rIdx) => (
+                                <span key={rIdx} className="text-[10px] sm:text-xs text-amber-400/90 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/10">
+                                  {reason}
+                                </span>
+                              ))}
+                            </div>
+
+                            {/* Status Indicators Row */}
+                            <div className="flex flex-wrap items-center gap-4 text-[10px] sm:text-xs font-medium border-t border-white/5 pt-3">
+
+                              <span className={passProb ? "text-emerald-400" : "text-red-400/80"}>
+                                {passProb ? "+Model Probability" : "-Model Probability"}
+                              </span>
+
+                              <span className={passEdge ? "text-emerald-400" : "text-red-400/80"}>
+                                {passEdge ? "+Market Efficiency" : "-Market Efficiency"}
+                              </span>
+
+                              <span className={passMatchup ? "text-emerald-400" : "text-red-400/80"}>
+                                {passMatchup ? "+Matchup Fit" : "-Matchup Fit"}
+                              </span>
+
+                              <span className={passRisk ? "text-emerald-400" : "text-red-400/80"}>
+                                {passRisk ? "~Risk Filters" : "!Risk Filters"}
+                              </span>
+
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
                   </div>
                 )}
               </section>
@@ -386,6 +451,7 @@ export default function DashboardClient({ initialEvents }: DashboardClientProps)
               fights={currentFights}
               selectedFightId={selectedFight}
               onSelectFight={setSelectedFight}
+              oddsFormat={userOddsFormat}
             />
 
             {selectedFight && fightBreakdowns[selectedFight] && (

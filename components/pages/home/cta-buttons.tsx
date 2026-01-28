@@ -33,8 +33,9 @@ async function CTAButtons() {
         )}
         asChild
       >
+
         <Link href={'/billing'}>
-          {session?.user?.isPro ? 'Manage PRO Subscription' : 'Free plan - 3 Analysis runs'}
+          {session?.user?.isPro ? 'Manage PRO Subscription' : 'Upgrade to PRO'}
         </Link>
       </Button>
     </div>

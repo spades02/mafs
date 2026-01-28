@@ -69,7 +69,8 @@ export function useStreamingAnalysis() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
+        const text = await response.text();
+        throw new Error(text || `HTTP error ${response.status}`);
       }
 
       const reader = response.body?.getReader();

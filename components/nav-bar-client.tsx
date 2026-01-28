@@ -34,9 +34,10 @@ interface NavBarClientProps {
   isAuthenticated: boolean
   isPro: boolean
   children: ReactNode // This will be the NavAvatar
+  analysisCount: number
 }
 
-export function NavBarClient({ isAuthenticated, isPro, children }: NavBarClientProps) {
+export function NavBarClient({ isAuthenticated, isPro, children, analysisCount }: NavBarClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { confirmNavigation } = useDirtyState()
   const router = useRouter()
@@ -57,6 +58,8 @@ export function NavBarClient({ isAuthenticated, isPro, children }: NavBarClientP
       router.push(href)
     })
   }
+
+  const remainingRuns = Math.max(0, 3 - analysisCount)
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-backdrop-filter-bg-card/80">
@@ -107,7 +110,7 @@ export function NavBarClient({ isAuthenticated, isPro, children }: NavBarClientP
             {/* Only show plan badge for authenticated users - hidden on mobile */}
             {isAuthenticated && !isPro && (
               <div className="hidden sm:block rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                Free Plan – 3 Analysis runs
+                Free Plan – {remainingRuns} Analysis runs left
               </div>
             )}
 
@@ -185,7 +188,7 @@ export function NavBarClient({ isAuthenticated, isPro, children }: NavBarClientP
                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
                   : "border-primary/30 bg-primary/10 text-primary"
               )}>
-                {isPro ? "PRO Plan" : "Free Plan – 3 Analysis runs"}
+                {isPro ? "PRO Plan" : `Free Plan – ${remainingRuns} Analysis runs left`}
               </div>
             </div>
           )}
