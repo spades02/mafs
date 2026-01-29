@@ -1,6 +1,7 @@
 "use client"
 
 import GoogleLoginButton from "@/components/google-login-button"
+import Logo from "@/components/shared/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -78,8 +79,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md text-primary relative z-10">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center shadow-[0_0_20px_rgba(100,255,218,0.3)] glass-glow">
-            <Target className="w-7 h-7 text-primary" />
+          <div className="pt-4 w-14 h-14 rounded-lg bg-primary/20 flex items-center justify-center shadow-[0_0_20px_rgba(100,255,218,0.3)] glass-glow">
+            <Logo height={100} width={100} />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">MAFS</h1>
@@ -152,6 +153,15 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium text-white">Logging in...</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

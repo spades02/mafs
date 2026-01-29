@@ -48,7 +48,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                         <ConfidenceRing value={bet.P_sim * 100} size={48} />
                         <div>
                             <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-0.5">Model Probability</p>
-                            <p className="text-xs font-semibold text-foreground/70 text-white">{(bet.P_sim * 100).toFixed(0)}%</p>
+                            <p className="text-xs font-semibold text-foreground/70">{(bet.P_sim * 100).toFixed(0)}%</p>
                             <p className="text-[10px] text-muted-foreground/40 font-mono">
                                 Range: {Math.max(0, bet.P_sim * 100 - 4 - Math.random() * 2).toFixed(0)}%–
                                 {Math.min(99, bet.P_sim * 100 + 3 + Math.random() * 2).toFixed(0)}%
@@ -185,7 +185,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                             </div>
                             {/* Dissent Explanation */}
                             {bet.agentSignals.some((s) => s.signal === "neutral" || s.signal === "fail") && (
-                                <div className="px-3 py-2 border-t border-white/5 bg-white/[0.02]">
+                                <div className="px-3 py-2 border-t border-white/5 bg-white/2">
                                     <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
                                         <span className="text-muted-foreground/70">Dissent note:</span>{" "}
                                         {bet.agentSignals.find((s) => s.signal === "neutral")?.desc ||

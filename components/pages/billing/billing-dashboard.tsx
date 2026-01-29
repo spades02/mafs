@@ -25,27 +25,27 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
   const MAX_FREE_ANALYSES = 3;
   const analysisCount = user?.analysisCount || 0;
   const isPro = user?.isPro || false;
-  
+
   const remainingFree = Math.max(0, MAX_FREE_ANALYSES - analysisCount);
   const hasFreeLimitReached = !isPro && remainingFree === 0;
-  
+
   // Calculate percentage for the progress bar
   const usagePercent = Math.min((analysisCount / MAX_FREE_ANALYSES) * 100, 100);
 
-    const handleUpgrade = async () => {
-        console.log("clicked")
-        setLoading(true);
-        try {
-        const res = await fetch("/api/stripe/subscribe", { method: "POST" });
-        if (!res.ok) throw new Error("Network response was not ok");
-        const data = await res.json();
-        if (data.url) window.location.href = data.url;
-        } catch (err) {
-        console.error("Upgrade error:", err);
-        } finally {
-        setLoading(false);
-        }
-    };
+  const handleUpgrade = async () => {
+    console.log("clicked")
+    setLoading(true);
+    try {
+      const res = await fetch("/api/stripe/subscribe", { method: "POST" });
+      if (!res.ok) throw new Error("Network response was not ok");
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      console.error("Upgrade error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleManageSubscription = async () => {
     setLoading(true);
@@ -64,7 +64,7 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
 
   return (
     <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-3">
-      
+
       {/* LEFT COLUMN: Current Status & Usage */}
       <div className="lg:col-span-2 space-y-6">
         <Card className="border-border/50 shadow-sm">
@@ -76,8 +76,8 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
               </Badge>
             </div>
             <CardDescription>
-              {isPro 
-                ? "You have full access to all premium features." 
+              {isPro
+                ? "You have full access to all premium features."
                 : "You are currently on the limited free tier."}
             </CardDescription>
           </CardHeader>
@@ -95,7 +95,7 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
                 )}>
                   <div className="flex items-center gap-2">
                     {hasFreeLimitReached ? (
-                      <Lock className="h-4 w-4" /> 
+                      <Lock className="h-4 w-4" />
                     ) : (
                       <Sparkles className="h-4 w-4" />
                     )}
@@ -109,10 +109,10 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
                 </div>
 
                 <Progress value={usagePercent} className={cn("h-2", hasFreeLimitReached && "[&>div]:bg-red-500")} />
-                
+
                 <p className="text-xs text-muted-foreground">
-                  {hasFreeLimitReached 
-                    ? "You have used all your free analyses for this month." 
+                  {hasFreeLimitReached
+                    ? "You have used all your free analyses for this month."
                     : `${remainingFree} analyses remaining before limit is reached.`
                   }
                 </p>
@@ -137,15 +137,15 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
             <CardTitle className="text-lg">Payment Method</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-4 text-sm text-muted-foreground">
-             <CreditCard className="h-5 w-5" />
-             {isPro ? "Managed via Stripe Secure Portal" : "No payment method on file"}
+            <CreditCard className="h-5 w-5" />
+            {isPro ? "Managed via Stripe Secure Portal" : "No payment method on file"}
           </CardContent>
           {isPro && (
-             <CardFooter>
-                <Button variant="outline" size="sm" onClick={handleManageSubscription} disabled={loading}>
-                  {loading ? "Loading..." : "Update Payment Details"}
-                </Button>
-             </CardFooter>
+            <CardFooter>
+              <Button variant="outline" size="sm" onClick={handleManageSubscription} disabled={loading}>
+                {loading ? "Loading..." : "Update Payment Details"}
+              </Button>
+            </CardFooter>
           )}
         </Card>
       </div>
@@ -156,24 +156,27 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
           // PRO USER VIEW
           <Card className="h-full border-primary/20 bg-primary/5 shadow-md flex justify-between">
             <div className="gap-2">
-            <CardHeader>
-              <CardTitle>Manage Subscription</CardTitle>
-              <CardDescription>View invoices, change plans, or cancel.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>As a Pro User, you have:</li>
-                 <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Unlimited Analyses</li>
-                 <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Advanced Metrics</li>
-                 <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Priority Support</li>
-               </ul>
-            </CardContent>
+              <CardHeader>
+                <CardTitle>Manage Subscription</CardTitle>
+                <CardDescription>View invoices, change plans, or cancel.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>As a Pro User, you have:</li>
+                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Unlimited fight Analyses</li>
+                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Advanced Metrics</li>
+                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Priority Support</li>
+                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Full card EV engine & Edges</li>
+                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Auto parlays & combos</li>
+                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Early access to models</li>
+                </ul>
+              </CardContent>
             </div>
             <CardFooter>
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 variant="default"
-                onClick={handleManageSubscription} 
+                onClick={handleManageSubscription}
                 disabled={loading}
               >
                 {loading ? "Processing..." : "Open Customer Portal"}
@@ -190,7 +193,7 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
               "absolute inset-0 bg-linear-to-br via-transparent to-transparent pointer-events-none",
               hasFreeLimitReached ? "from-amber-500/10" : "from-primary/10"
             )} />
-            
+
             <CardHeader>
               <div className={cn(
                 "flex h-12 w-12 items-center justify-center rounded-lg mb-4 text-primary-foreground",
@@ -202,8 +205,8 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
                 {hasFreeLimitReached ? "Limit Reached" : "Upgrade to Pro"}
               </CardTitle>
               <CardDescription>
-                {hasFreeLimitReached 
-                  ? "You've hit the monthly limit. Upgrade now to continue analyzing fights." 
+                {hasFreeLimitReached
+                  ? "You've hit the monthly limit. Upgrade now to continue analyzing fights."
                   : "Unlock the full potential of your analytics."}
               </CardDescription>
             </CardHeader>
@@ -227,12 +230,12 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
 
             <CardFooter>
               {/* BUTTON STYLE COPIED FROM YOUR INSPIRATION */}
-              <Button 
-              type="button"
+              <Button
+                type="button"
                 className={cn(
                   "w-full font-semibold shadow-md",
-                  hasFreeLimitReached 
-                    ? "bg-linear-to-r from-yellow-500 to-amber-500 text-black hover:from-yellow-400 hover:to-amber-400" 
+                  hasFreeLimitReached
+                    ? "bg-linear-to-r from-yellow-500 to-amber-500 text-black hover:from-yellow-400 hover:to-amber-400"
                     : "bg-primary hover:bg-primary/90 text-primary-foreground"
                 )}
                 size="lg"

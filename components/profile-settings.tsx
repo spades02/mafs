@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "./ui/switch"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { changePassword } from "@/lib/auth/auth-client"
+import { Loader2 } from "lucide-react"
 
 interface ProfileSettingsProps {
   user: {
@@ -355,6 +356,7 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
             <select
               value={timeZone}
               onChange={(e) => setTimeZone(e.target.value)}
+              disabled={isSubmitting}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm h-10"
             >
               <option value="America/New_York (EST)">America/New_York (EST)</option>
@@ -370,6 +372,7 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
               <Button
                 variant={oddsFormat === "american" ? "default" : "outline"}
                 onClick={() => setOddsFormat("american")}
+                disabled={isSubmitting}
                 className={cn("w-1/2", oddsFormat === "american" ? "bg-primary text-primary-foreground" : "")}
               >
                 American
@@ -377,6 +380,7 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
               <Button
                 variant={oddsFormat === "decimal" ? "default" : "outline"}
                 onClick={() => setOddsFormat("decimal")}
+                disabled={isSubmitting}
                 className={cn("w-1/2", oddsFormat === "decimal" ? "bg-primary text-primary-foreground" : "")}
               >
                 Decimal
@@ -390,7 +394,7 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
                 <Label htmlFor="email-alerts">Email alerts for new events</Label>
                 <p className="text-sm text-muted-foreground">Get notified when new UFC events are available for analysis</p>
               </div>
-              <Switch id="email-alerts" checked={emailAlerts ?? true} onCheckedChange={setEmailAlerts} />
+              <Switch id="email-alerts" checked={emailAlerts ?? true} onCheckedChange={setEmailAlerts} disabled={isSubmitting} />
             </div>
 
             <div className="flex items-center justify-between">
@@ -398,7 +402,7 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
                 <Label htmlFor="risk-warnings">Variance warnings</Label>
                 <p className="text-sm text-muted-foreground">Alert when simulations show high outcome uncertainty</p>
               </div>
-              <Switch id="risk-warnings" checked={riskWarnings ?? true} onCheckedChange={setRiskWarnings} />
+              <Switch id="risk-warnings" checked={riskWarnings ?? true} onCheckedChange={setRiskWarnings} disabled={isSubmitting} />
             </div>
           </div>
         </CardContent>
@@ -409,7 +413,7 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
         disabled={isSubmitting || !hasChanges}
         className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
       >
-        {isSubmitting ? 'Saving...' : 'Save Preferences'}
+        {isSubmitting ? 'Saving...' : 'Save Changes'}
       </Button>
 
       {/* Legal Section */}
@@ -446,6 +450,14 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
         </CardContent>
       </Card>
 
+      {isSubmitting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium text-white">Saving changes...</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

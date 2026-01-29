@@ -55,32 +55,22 @@ function SignupForm() {
           password: data.password
         },
         {
-          onSuccess: async () => {
+          autoSignIn: true,
+          onSuccess: () => {
+            // Better Auth handles the session creation automatically with autoSignIn
             toast.success("Account created successfully");
-            await authClient.signIn.email({
-              email: data.email,
-              password: data.password,
-            },
-              {
-                onSuccess: () => {
-                  window.location.href = "/dashboard"
-                },
-                onError: (ctx) => {
-                  console.log(ctx.error.message)
-                  toast.error(ctx.error.message);
-                },
-              });
+            window.location.href = "/dashboard";
           },
           onError: (ctx) => {
-            console.log("after calling signup error")
+            console.log("signup error", ctx)
             toast.error(ctx.error.message);
             setIsLoading(false);
-            throw new Error(ctx.error.message);
           },
         }
       );
     } catch (error) {
-      console.error(Error)
+      console.error(error)
+      setIsLoading(false)
     }
   };
   const handleGoogleClick = () => {
@@ -180,6 +170,15 @@ function SignupForm() {
           Log in
         </Link>
       </p>
+
+      {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium text-white">Creating account...</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

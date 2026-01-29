@@ -53,7 +53,7 @@ function ChoosePlan({ isGuest = false }: ChoosePlanProps) {
         <CardHeader className="pb-8">
           <CardTitle className="text-xl font-medium text-primary">Pro</CardTitle>
           <div className="mt-4 flex items-baseline">
-            <span className="text-4xl font-bold text-white">$79</span>
+            <span className="text-4xl font-bold text-white">$39</span>
             <span className="ml-2 text-muted-foreground">/month</span>
           </div>
           <p className="text-sm text-gray-400 mt-2">For serious bettors who want the edge.</p>

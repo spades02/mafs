@@ -13,10 +13,10 @@ export default function MAFSPage() {
       {/* Hero */}
       <section className="mb-20 text-center">
         <div className="flex gap-2 justify-center">
-            <Logo />
-        <h1 className="text-4xl mt-2 font-bold tracking-tight sm:text-5xl">
-          MAFS
-        </h1>
+          <Logo height={100} width={100} />
+          <h1 className="text-4xl mt-2 font-bold tracking-tight sm:text-5xl">
+            MAFS
+          </h1>
         </div>
         <p className="mt-6 text-lg text-muted-foreground">
           A professional MMA fight analysis system built to identify
