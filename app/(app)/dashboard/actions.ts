@@ -21,7 +21,7 @@ export async function getFutureEvents() {
         })
             .from(events)
             .leftJoin(fights, eq(events.eventId, fights.eventId))
-            .where(gt(events.dateTime, now))
+            .where(gt(events.dateTime, new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)))
             .groupBy(events.eventId, events.name, events.dateTime, events.venue, events.createdAt, events.updatedAt)
             .orderBy(asc(events.dateTime))
 

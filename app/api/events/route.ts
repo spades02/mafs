@@ -9,11 +9,11 @@ export async function GET() {
     const now = new Date();
     const cachedEvents = await db
       .select({
-        EventId: events.eventId, // Will need serialization
+        EventId: events.eventId,
         Name: events.name,
       })
       .from(events)
-      .where(gte(events.dateTime, now))
+      .where(gte(events.dateTime, new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)))
       .orderBy(events.dateTime);
 
     // Convert BigInts to strings
