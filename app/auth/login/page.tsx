@@ -68,7 +68,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen premium-bg overflow-hidden neural-bg font-sans selection:bg-primary/30 relative flex items-center justify-center px-4">
+    <div className="h-[calc(100vh-5rem)] premium-bg overflow-hidden neural-bg font-sans selection:bg-primary/30 relative flex items-center justify-center px-4">
       <div className="hero-orb opacity-50 scale-75" />
       <div className="scanlines" />
 

@@ -9,6 +9,7 @@ import Link from "next/link"
 
 import { authClient } from "@/lib/auth/auth-client"
 import { toast } from "sonner"
+import Logo from "@/components/shared/logo"
 
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
@@ -46,18 +47,10 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0f14] flex items-center justify-center px-4 bg-digital-noise">
-      <div className="w-full max-w-md text-primary">
+    <div className="bg-background h-[calc(100vh-5fsendrem)] flex items-center justify-center px-4 bg-digital-noise">
+      <div className="w-full max-w-md text-primary mt-12">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center shadow-lg shadow-primary/30">
-            <Target className="w-7 h-7 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">MAFS</h1>
-            <p className="text-xs">Multi-Agent Fight Simulator</p>
-          </div>
-        </div>
+        <Logo height={200} width={200} />
 
         {/* Auth Card */}
         <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-primary/10 rounded-2xl p-8 shadow-2xl">
@@ -87,7 +80,7 @@ export default function ForgotPasswordPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-linear-to-r from-primary/20 to-primary/40 hover:from-primary/40 hover:to-primary/60 text-gray-200 font-medium"
+                  className="w-full bg-linear-to-r from-primary/20 to-primary/40 hover:from-primary/40 hover:to-primary/60 text-primary-foreground font-medium"
                 >
                   {loading ? "Sending..." : "Send Reset Link"}
                 </Button>
@@ -101,7 +94,7 @@ export default function ForgotPasswordPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-primary mb-2">Check your email</h3>
-              <p className="text-sm text-primary mb-6">We've sent a password reset link to your email address.</p>
+              <p className="text-sm text-primary mb-6">If an account exists with this email, you will receive a password reset link shortly.</p>
             </div>
           )}
 
