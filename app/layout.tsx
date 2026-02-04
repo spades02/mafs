@@ -35,13 +35,13 @@ export default async function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
-      <body className="bg-background text-foreground min-h-screen">
+      <body className="bg-background text-foreground">
         {/* Navbar is fine here; it can include client components internally */}
         {/* {!session && <GuestNavbar/>}
         {session && <NavBar/>} */}
         <DirtyStateProvider>
-          <NavBar />
           <main>
+            <NavBar />
             <NextTopLoader
               color="#2299DD"
               initialPosition={0.08}

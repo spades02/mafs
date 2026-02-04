@@ -3,8 +3,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ChevronDown, ChevronUp, AlertTriangle, Shield, Sparkles } from "lucide-react"
-import { AISimulationOverlay } from "@/components/ai-simulation-overlay"
+import { ChevronDown, ChevronUp, AlertTriangle, Shield, Sparkles, Loader2 } from "lucide-react"
 import { EventSelector } from "@/components/pages/dashboard/event-selector"
 import { SimulationStats } from "@/components/pages/dashboard/simulation-stats"
 import { BetCard } from "@/components/pages/dashboard/bet-card"
@@ -37,21 +36,15 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   const [simulatedBreakdowns, setSimulatedBreakdowns] = useState<Record<string, FightBreakdownModel>>({})
   const [activeFights, setActiveFights] = useState<Fight[]>([])
   const [statusMessage, setStatusMessage] = useState("")
-  const [simulationProgress, setSimulationProgress] = useState(0)
 
   const [isGeneratingBets, setIsGeneratingBets] = useState(false)
   const [betSeed, setBetSeed] = useState(0)
   const [expandedBetIdx, setExpandedBetIdx] = useState<number | null>(null)
   const [showFilteredBets, setShowFilteredBets] = useState(false)
-  const [showSimulation, setShowSimulation] = useState(false)
 
   useEffect(() => {
     if (scanComplete) {
-      setSimulationProgress(100)
       const timer = setTimeout(() => {
-        setShowSimulation(false)
-        setIsScanning(false)
-        setShowResults(true)
         setScanComplete(false)
         router.refresh() // Refresh server components (sidebar history)
       }, 1500)
@@ -62,18 +55,15 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   const handleRunCard = async () => {
     if (!selectedEvent) return
 
-    setShowSimulation(true)
     setIsScanning(true)
-    setShowResults(false)
+    setShowResults(true)
     setSimulatedBets([])
     setSimulatedBreakdowns({})
     setStatusMessage("Initializing simulation...")
-    setSimulationProgress(2) // Start Low
 
     try {
       // 1. Fetch fights for event
       const dbFights = await getEventFights(selectedEvent)
-      setSimulationProgress(10) // Fights loaded
 
       // Update UI Fights List immediately
       const uiFights: Fight[] = dbFights.map(f => ({
@@ -136,9 +126,6 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
 
               if (data.type === "fight") {
                 processedCount++
-                // Calculate progress: 10% (start) + (processed / total) * 85%
-                const progress = 10 + Math.round((processedCount / totalFights) * 85)
-                setSimulationProgress(progress)
 
                 const fightIdStr = data.fightId.toString()
 
@@ -163,7 +150,6 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
               } else if (data.type === "status") {
                 setStatusMessage(data.message)
               } else if (data.type === "complete") {
-                setSimulationProgress(100)
                 setScanComplete(true)
               }
             } catch (e) {
@@ -186,15 +172,6 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
       // Transition to results if we got anything
       // We rely on 'scanComplete' logic in handleSimulationComplete usually
     }
-  }
-
-  const handleSimulationComplete = () => {
-    setSimulationProgress(100)
-    setShowSimulation(false)
-    setIsScanning(false)
-    setShowResults(true)
-    setScanComplete(true)
-    setTimeout(() => setScanComplete(false), 600)
   }
 
   const handleRegenerateBets = () => {
@@ -257,8 +234,6 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
 
   return (
     <div className="min-h-fit premium-bg overflow-y-hidden neural-bg font-sans selection:bg-primary/30 pb-20">
-      {/* AI Simulation Overlay */}
-      <AISimulationOverlay isActive={showSimulation} message={statusMessage} progress={simulationProgress} />
 
       <div className="hero-orb" />
       <div className="hero-orb-secondary" />
@@ -347,6 +322,14 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                       oddsFormat={userOddsFormat}
                     />
                   ))}
+                </div>
+              ) : isScanning ? (
+                <div className="flex flex-col items-center justify-center p-12 border border-white/5 rounded-lg bg-black/20">
+                  <div className="relative">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
+                  </div>
+                  <span className="text-muted-foreground text-sm mt-3 animate-pulse">Analyzing matchups...</span>
                 </div>
               ) : (
                 <Card className="glass-card glass-shimmer border-dashed border-white/10 overflow-hidden">

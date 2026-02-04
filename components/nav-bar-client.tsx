@@ -74,10 +74,10 @@ export function NavBarClient({ isAuthenticated, isPro, children, analysisCount }
           >
             <span className="text-2xl font-semibold flex items-center gap-2">
               <div className="mt-4">
-                <Logo height={70} width={70} />
+                <Logo height={100} width={100} />
               </div>
               <span className="text-primary neon-glow">MAFS</span>
-              <span className="hidden text-sm font-normal text-muted-foreground md:inline">
+              <span className="hidden text-sm font-normal text-muted-foreground lg:inline">
                 Multi-Agent Fight Simulator
               </span>
             </span>

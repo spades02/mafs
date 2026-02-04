@@ -10,7 +10,7 @@ async function CTAButtons() {
     headers: await headers()
   });
   return (
-    <div className='mt-8 flex justify-center gap-8'>
+    <div className='flex justify-center gap-8'>
       {!session && <Button className='rounded-sm' asChild>
         <Link href={'/auth/login'}>
           <ArrowRight />
