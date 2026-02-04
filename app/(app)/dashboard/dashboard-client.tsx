@@ -141,7 +141,15 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                 // Update activeFights with real odds (prefer full market line from breakdown)
                 setActiveFights(prev => prev.map(f => {
                   if (f.id === fightIdStr) {
-                    const displayOdds = data.breakdown?.marketLine || data.edge?.odds_american || "N/A"
+                    let displayOdds = "N/A"
+                    if (data.breakdown?.marketLine) {
+                      displayOdds = data.breakdown.marketLine
+                        .split("/")
+                        .map((part: string) => part.includes(":") ? part.split(":").pop()?.trim() || part : part.trim())
+                        .join(" / ")
+                    } else if (data.edge?.odds_american) {
+                      displayOdds = data.edge.odds_american
+                    }
                     return { ...f, odds: displayOdds }
                   }
                   return f

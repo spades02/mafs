@@ -277,13 +277,13 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
               name="email"
               type="email"
               value={email}
+              disabled
               onChange={handleEmailChange}
               className={cn(
                 "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm",
                 errors.email && "border-destructive focus-visible:ring-destructive"
               )}
               required
-              disabled={isSubmitting}
             />
             {errors.email && (
               <p className="text-xs text-destructive mt-1">{errors.email}</p>

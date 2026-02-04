@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { Button } from './ui/button'
-import { ChevronDown, CreditCard, Crown, RotateCcw, User } from 'lucide-react'
+import { ChevronDown, CreditCard, Crown, RotateCcw, User, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { ProfileAvatar } from './profile-avatar'
 import LogoutButton from './logout-button'
@@ -117,7 +117,16 @@ export function NavAvatarClient({ avatarUrl, name, email, isPro }: NavAvatarClie
           </Link>
         </DropdownMenuItem>
 
-
+        <DropdownMenuItem asChild>
+          <Link
+            href="/settings/security"
+            onClick={(e) => handleLinkClick(e, '/settings/security')}
+            className="flex items-center cursor-pointer mt-1"
+          >
+            <Lock className="w-4 h-4 mr-2" />
+            Change Password
+          </Link>
+        </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
