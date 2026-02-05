@@ -65,7 +65,7 @@ function VerifyEmailContent() {
     // Pending State (No token - User redirected here after signup/login)
     if (status === 'pending') {
         return (
-            <div className="bg-linear-to-br from-[#0f1419] to-[#0b0f14] border border-primary/10 rounded-2xl p-8 shadow-2xl w-full max-w-md text-center">
+            <div className="bg-background h-fit border border-primary/10 rounded-2xl p-8 shadow-2xl w-full max-w-md text-center">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
                         <Mail className="w-8 h-8 text-primary" />

@@ -5,7 +5,7 @@ import { ArrowRight, DollarSign } from 'lucide-react'
 function HeroSection() {
   return (
     <div className="mb-12 text-center hero-glow">
-      <Logo height={300} width={300} />
+      <Logo height={225} width={225} />
       <h1 className="mb-3 text-4xl font-bold text-balance">Find the truth behind the odds.</h1>
       <p className="mb-4 text-lg text-muted-foreground text-balance">
         MAFS doesn't predict winners — it finds mispriced lines and gives you the most profitable bets.

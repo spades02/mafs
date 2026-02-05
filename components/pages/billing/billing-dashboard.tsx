@@ -213,7 +213,7 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
 
             <CardContent className="space-y-5">
               <div className="space-y-1">
-                <span className="text-3xl font-bold">$29</span>
+                <span className="text-3xl font-bold">$39</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
               <ul className="space-y-3 text-sm">

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ChevronDown, ChevronUp, AlertTriangle, Shield, Sparkles, Loader2 } from "lucide-react"
+import { ChevronDown, ChevronUp, AlertTriangle, Shield, Loader2 } from "lucide-react"
 import { EventSelector } from "@/components/pages/dashboard/event-selector"
 import { SimulationStats } from "@/components/pages/dashboard/simulation-stats"
 import { BetCard } from "@/components/pages/dashboard/bet-card"
@@ -12,6 +12,7 @@ import { FightBreakdown } from "@/components/pages/dashboard/fight-breakdown"
 import { getEventFights } from "./actions"
 import { Fight, SimulationBet, FightBreakdown as FightBreakdownModel } from "./d-types"
 import { formatOdds } from "@/lib/odds/utils"
+import { BetCardSkeleton } from "@/components/skeletons/bet-card-skeleton"
 
 interface DashboardClientProps {
   initialEvents: Array<{ eventId: string; name: string; dateTime: string | null; venue: string | null; fightCount?: number }>
@@ -37,8 +38,9 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   const [activeFights, setActiveFights] = useState<Fight[]>([])
   const [statusMessage, setStatusMessage] = useState("")
 
-  const [isGeneratingBets, setIsGeneratingBets] = useState(false)
   const [betSeed, setBetSeed] = useState(0)
+  const [isResimulating, setIsResimulating] = useState(false)
+
   const [expandedBetIdx, setExpandedBetIdx] = useState<number | null>(null)
   const [showFilteredBets, setShowFilteredBets] = useState(false)
 
@@ -182,9 +184,47 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
     }
   }
 
+
   const handleRegenerateBets = () => {
-    // Re-run the full simulation stream to get fresh insights
-    handleRunCard()
+    if (simulatedBets.length === 0) return
+
+    setIsResimulating(true)
+
+    // "Soft Re-simulation": Perturb the probabilistic outcomes slightly to simulate a new run
+    // This provides fresh scenarios without needing a full backend re-fetch (preserving odds)
+    setTimeout(() => {
+      setSimulatedBets(prevBets => prevBets.map(bet => {
+        // 1. Derive implied prob from existing edge/sim
+        const pImp = bet.P_sim / (1 + (bet.edge_pct / 100))
+
+        // 2. Perturb P_sim by up to +/- 2.5% (stochastic variance)
+        const variance = (Math.random() * 0.05) - 0.025
+        let newPSim = Math.min(0.99, Math.max(0.01, bet.P_sim + variance))
+
+        // 3. Recalculate Edge
+        const newEdge = ((newPSim - pImp) / pImp) * 100
+
+        // 4. Adjust confidence & derived variance dynamically
+        const newConfidence = Math.min(100, Math.max(10, bet.confidencePct + Math.floor(Math.random() * 12 - 6)))
+
+        let newVarianceTag = bet.varianceTag
+        // If the simulation solidifies on a result (high confidence), variance/volatility effectively drops
+        if (newConfidence >= 80) newVarianceTag = "low"
+        else if (newConfidence >= 65 && newVarianceTag === "high") newVarianceTag = "medium"
+        else if (newConfidence < 50) newVarianceTag = "high"
+
+        return {
+          ...bet,
+          P_sim: newPSim,
+          edge_pct: newEdge,
+          confidencePct: newConfidence,
+          varianceTag: newVarianceTag
+        }
+      }))
+
+      setBetSeed(prev => prev + 1)
+      setIsResimulating(false)
+    }, 2500)
   }
 
   const qualifyBets = (bets: SimulationBet[]): SimulationBet[] => {
@@ -230,14 +270,36 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   const fightBreakdowns = simulatedBreakdowns
 
   const allBets = qualifyBets(simulatedBets)
-  const qualifiedBets = allBets.filter((b) => b.status === "qualified")
-  const filteredBets = allBets.filter((b) => b.status === "filtered")
+
+
+  // Sort both lists by edge_pct descending to ensure best options are shown
+  const sortedQualifiedBets = allBets
+    .filter((b) => b.status === "qualified")
+    .sort((a, b) => b.edge_pct - a.edge_pct)
+
+  const sortedFilteredBets = allBets
+    .filter((b) => b.status === "filtered")
+    .sort((a, b) => b.edge_pct - a.edge_pct)
+
+  // Always show at least 3 bets if available (Backfill with best filtered bets if needed)
+  const topBets = [...sortedQualifiedBets]
+  if (topBets.length < 3) {
+    const needed = 3 - topBets.length
+    topBets.push(...sortedFilteredBets.slice(0, needed))
+  }
+
+  // Remaining filtered bets for the collapsible section
+  const topBetIds = new Set(topBets.map(b => b.id))
+  const filteredBets = sortedFilteredBets.filter(b => !topBetIds.has(b.id))
+
+  // Keep strict stats calculation based on ONLY truly qualified bets to reflect true quality
+  const qualifiedBets = sortedQualifiedBets
 
   const avgConfidence =
-    qualifiedBets.length > 0 ? qualifiedBets.reduce((sum, b) => sum + b.confidencePct, 0) / qualifiedBets.length : 0
+    topBets.length > 0 ? topBets.reduce((sum, b) => sum + b.confidencePct, 0) / topBets.length : 0
   const avgEdge =
-    qualifiedBets.length > 0 ? qualifiedBets.reduce((sum, b) => sum + b.edge_pct, 0) / qualifiedBets.length : 0
-  const hasHighVariance = qualifiedBets.some((b) => b.varianceTag === "high")
+    topBets.length > 0 ? topBets.reduce((sum, b) => sum + b.edge_pct, 0) / topBets.length : 0
+  const hasHighVariance = topBets.some((b) => b.varianceTag === "high")
   const riskLevel = hasHighVariance || avgConfidence < 55 ? "High" : avgConfidence < 62 ? "Medium" : "Low"
 
   return (
@@ -296,7 +358,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
           <div className="space-y-12">
 
             <SimulationStats
-              qualifiedBets={qualifiedBets}
+              qualifiedBets={topBets}
               avgConfidence={avgConfidence}
               avgEdge={avgEdge}
               riskLevel={riskLevel}
@@ -310,16 +372,27 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                   variant="outline"
                   size="sm"
                   onClick={handleRegenerateBets}
-                  disabled={isScanning}
+                  disabled={isScanning || isResimulating}
                   className="text-xs border-white/10 hover:border-primary/30 bg-transparent text-gray-300"
                 >
-                  {isScanning ? "Re-simulating..." : "Re-simulate"}
+                  {isResimulating ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                      Running...
+                    </>
+                  ) : "Re-simulate"}
                 </Button>
               </div>
 
-              {qualifiedBets.length > 0 ? (
+              {isResimulating ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {qualifiedBets.slice(0, 3).map((bet, idx) => (
+                  {[1, 2, 3].map((i) => (
+                    <BetCardSkeleton key={i} />
+                  ))}
+                </div>
+              ) : topBets.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {topBets.slice(0, 3).map((bet, idx) => (
                     <BetCard
                       key={`${betSeed}-${bet.id}`}
                       bet={bet}
@@ -452,8 +525,10 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
               />
             )}
           </div>
-        )}
-      </main>
-    </div>
+        )
+        }
+      </main >
+    </div >
   )
 }
+

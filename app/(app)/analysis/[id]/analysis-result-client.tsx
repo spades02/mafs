@@ -65,14 +65,32 @@ export default function AnalysisResultClient({ eventName, eventDate, fights, bet
     }
 
     const allBets = qualifyBets(bets)
-    const qualifiedBets = allBets.filter((b) => b.status === "qualified")
-    const filteredBets = allBets.filter((b) => b.status === "filtered")
+
+    // Sort both lists by edge_pct descending to ensure best options are shown
+    const sortedQualifiedBets = allBets
+        .filter((b) => b.status === "qualified")
+        .sort((a, b) => b.edge_pct - a.edge_pct)
+
+    const sortedFilteredBets = allBets
+        .filter((b) => b.status === "filtered")
+        .sort((a, b) => b.edge_pct - a.edge_pct)
+
+    // Always show at least 3 bets if available
+    const topBets = [...sortedQualifiedBets]
+    if (topBets.length < 3) {
+        const needed = 3 - topBets.length
+        topBets.push(...sortedFilteredBets.slice(0, needed))
+    }
+
+    const topBetIds = new Set(topBets.map(b => b.id))
+    const filteredBets = sortedFilteredBets.filter(b => !topBetIds.has(b.id))
+    const qualifiedBets = sortedQualifiedBets
 
     const avgConfidence =
-        qualifiedBets.length > 0 ? qualifiedBets.reduce((sum, b) => sum + b.confidencePct, 0) / qualifiedBets.length : 0
+        topBets.length > 0 ? topBets.reduce((sum, b) => sum + b.confidencePct, 0) / topBets.length : 0
     const avgEdge =
-        qualifiedBets.length > 0 ? qualifiedBets.reduce((sum, b) => sum + b.edge_pct, 0) / qualifiedBets.length : 0
-    const hasHighVariance = qualifiedBets.some((b) => b.varianceTag === "high")
+        topBets.length > 0 ? topBets.reduce((sum, b) => sum + b.edge_pct, 0) / topBets.length : 0
+    const hasHighVariance = topBets.some((b) => b.varianceTag === "high")
     const riskLevel = hasHighVariance || avgConfidence < 55 ? "High" : avgConfidence < 62 ? "Medium" : "Low"
 
     return (
@@ -126,9 +144,9 @@ export default function AnalysisResultClient({ eventName, eventDate, fights, bet
                             <h2 className="text-2xl font-semibold text-white">Simulation Outcomes</h2>
                         </div>
 
-                        {qualifiedBets.length > 0 ? (
+                        {topBets.length > 0 ? (
                             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                {qualifiedBets.slice(0, 3).map((bet, idx) => (
+                                {topBets.slice(0, 3).map((bet, idx) => (
                                     <BetCard
                                         key={bet.id}
                                         bet={bet}

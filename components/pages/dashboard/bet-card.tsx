@@ -57,7 +57,9 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                     </div>
                     <div>
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-0.5">Model Edge</p>
-                        <p className="text-xl font-bold text-green-400">+{bet.edge_pct.toFixed(1)}%</p>
+                        <p className={`text-xl font-bold ${bet.edge_pct > 0 ? "text-green-400" : "text-red-400"}`}>
+                            {bet.edge_pct > 0 ? "+" : ""}{bet.edge_pct.toFixed(1)}%
+                        </p>
                     </div>
                 </div>
 

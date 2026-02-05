@@ -16,7 +16,7 @@ export default function Page() {
       <div className="particle" style={{ left: "70%", animationDelay: "3s" }} />
       <div className="particle" style={{ left: "85%", animationDelay: "5s" }} />
 
-      <main className="container mx-auto px-4 relative z-10 flex flex-col justify-center min-h-[calc(100vh-65px)]">
+      <main className="container pb-24 mx-auto px-2 relative z-10 flex flex-col justify-center min-h-[calc(100vh-65px)]">
         {/* Hero Section */}
         <HeroSection />
         {/* Call to action buttons */}
