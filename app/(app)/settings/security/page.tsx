@@ -17,10 +17,13 @@ export default async function SecuritySettingsPage() {
 
     const dbUser = await db.query.user.findFirst({
         where: eq(userSchema.id, session.user.id),
-        columns: {
-            passwordHash: true
+        with: {
+            accounts: true
         }
     });
+
+    // Check if user has a password hash on their profile OR has a credential account with a password
+    const hasPassword = !!dbUser?.passwordHash || dbUser?.accounts?.some(acc => !!acc.password && acc.providerId === "credential");
 
     return (
         <div className="min-h-screen">
@@ -28,7 +31,7 @@ export default async function SecuritySettingsPage() {
                 <h1 className="text-3xl font-bold text-foreground mb-8">Security Settings</h1>
 
                 <div className="grid gap-8">
-                    <ChangePasswordForm hasPassword={!!dbUser?.passwordHash} />
+                    <ChangePasswordForm hasPassword={hasPassword} />
                 </div>
             </main>
         </div>
