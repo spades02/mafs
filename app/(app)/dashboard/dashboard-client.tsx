@@ -307,7 +307,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
 
       <div className="hero-orb" />
       <div className="hero-orb-secondary" />
-      <div className="scanlines" />
+      {/* <div className="scanlines" /> */}
 
       {/* Particles */}
       <div className="particle" style={{ left: "10%", animationDelay: "0s" }} />
