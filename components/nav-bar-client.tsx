@@ -135,15 +135,9 @@ export function NavBarClient({ isAuthenticated, isPro, children, analysisCount }
         >
           <DialogHeader className="border-b border-border pb-4">
             <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20">
-                  <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                    <circle cx="12" cy="12" r="6" strokeWidth="2" />
-                    <circle cx="12" cy="12" r="2" strokeWidth="2" fill="currentColor" />
-                  </svg>
-                </div>
-                <span className="text-primary">MAFS</span>
+              <DialogTitle className="flex items-center align-middle gap-2">
+                <Logo height={70} width={70} />
+                <span className="text-primary mb-4">MAFS</span>
               </DialogTitle>
               <DialogClose asChild>
                 <Button variant="ghost" size="icon" aria-label="Close menu">

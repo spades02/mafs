@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appName: 'MAFS',
   webDir: 'public', // Placeholder, we are using server url
   server: {
-    url: 'https://mafs-indol.vercel.app', // YOUR PRODUCTION URL
+    url: 'https://mafs.ai', // YOUR PRODUCTION URL
     cleartext: true
   },
   plugins: {
