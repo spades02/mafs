@@ -257,6 +257,11 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
         )
       }
 
+      // Explicitly filter "No Bet" or "Pass" outcomes
+      if (bet.label === "No Bet" || bet.label === "Pass" || bet.bet_type === "No Bet") {
+        rejectReasons.push("Model recommends passing on this fight")
+      }
+
       return {
         ...bet,
         status: rejectReasons.length === 0 ? "qualified" : "filtered",
@@ -285,7 +290,9 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   const topBets = [...sortedQualifiedBets]
   if (topBets.length < 3) {
     const needed = 3 - topBets.length
-    topBets.push(...sortedFilteredBets.slice(0, needed))
+    // Exclude "No Bet" outcomes from being backfilled into top picks
+    const validFiltered = sortedFilteredBets.filter(b => b.label !== "No Bet" && b.label !== "Pass" && b.bet_type !== "No Bet")
+    topBets.push(...validFiltered.slice(0, needed))
   }
 
   // Remaining filtered bets for the collapsible section

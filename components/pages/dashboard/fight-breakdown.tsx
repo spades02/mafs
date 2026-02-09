@@ -23,14 +23,40 @@ export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
                 </CardHeader>
                 <CardContent className="space-y-8 pt-6">
                     {/* SYSTEM SUMMARY */}
-                    <div className="p-5 rounded-xl bg-emerald-500/[0.03] border border-emerald-500/10">
+                    <div className="p-5 rounded-xl bg-emerald-500/3 border border-emerald-500/10">
                         <p className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3 flex items-center gap-2">
                             <Info className="w-3.5 h-3.5" />
                             System Summary
                         </p>
                         <p className="text-sm text-gray-300 leading-relaxed">
-                            <span className="text-emerald-100 font-medium">Model bias favors <span className="text-emerald-400">{breakdown.fighter1Name}</span>.</span>{" "}
-                            {breakdown.fighter1Notes}. {breakdown.fighter2Name}'s path requires {breakdown.fighter2Notes?.toLowerCase() || "a specific strategy"}.
+                            {(() => {
+                                const f2Name = breakdown.fighter2Name || ""
+                                const f2LastName = f2Name.split(" ").pop()?.toLowerCase() || ""
+                                const outcome = breakdown.modelLeaningOutcome?.toLowerCase() || ""
+                                const favorsF2 = f2LastName && outcome.includes(f2LastName)
+
+                                if (favorsF2) {
+                                    return (
+                                        <>
+                                            <span className="text-emerald-100 font-medium">
+                                                Model bias favors <span className="text-emerald-400">{breakdown.fighter2Name}</span>.
+                                            </span>{" "}
+                                            {breakdown.fighter2Notes}. {breakdown.fighter1Name}'s path requires{" "}
+                                            {breakdown.fighter1Notes?.toLowerCase() || "a specific strategy"}.
+                                        </>
+                                    )
+                                }
+
+                                return (
+                                    <>
+                                        <span className="text-emerald-100 font-medium">
+                                            Model bias favors <span className="text-emerald-400">{breakdown.fighter1Name}</span>.
+                                        </span>{" "}
+                                        {breakdown.fighter1Notes}. {breakdown.fighter2Name}'s path requires{" "}
+                                        {breakdown.fighter2Notes?.toLowerCase() || "a specific strategy"}.
+                                    </>
+                                )
+                            })()}
                         </p>
                     </div>
 
@@ -110,7 +136,7 @@ export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
                     {/* OUTCOME DISTRIBUTION */}
                     <div className="space-y-3 pt-2">
                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Outcome Distribution</p>
-                        <div className="p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                        <div className="p-3 bg-white/2 border border-white/5 rounded-lg">
                             <p className="font-mono text-sm text-gray-300">
                                 {breakdown.outcomeDistribution || breakdown.pathToVictory?.replace(/\|/g, " | ") || "Calculating distribution..."}
                             </p>
@@ -126,7 +152,7 @@ export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
                     </div>
 
                     {/* MODEL METADATA BAR */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-6 p-5 bg-white/[0.02] rounded-xl border border-white/5">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-6 p-5 bg-white/2 rounded-xl border border-white/5">
                         <div className="md:col-span-1 space-y-1">
                             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Model-Leaning Outcome</p>
                             <p className="text-sm font-bold text-white max-w-[140px] truncate" title={breakdown.modelLeaningOutcome || breakdown.bet}>

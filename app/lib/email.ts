@@ -20,7 +20,7 @@ export async function sendEmail({
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'MAFS <onboarding@resend.dev>', // Update this with your verified domain in production
+            from: 'MAFS <contact.mafs.ai>', // Update this with your verified domain in production
             to,
             subject,
             html,
