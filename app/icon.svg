@@ -1,0 +1,55 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="sphere-shine" cx="40%" cy="40%" r="55%" fx="30%" fy="30%">
+      <stop offset="0%" stop-color="#80ffcc" />
+      <stop offset="100%" stop-color="#00e673" />
+    </radialGradient>
+    
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g transform="translate(100,100)" filter="url(#glow)">
+    
+    <g stroke="#00FF99" stroke-width="1" opacity="0.6">
+       <path d="M0 -80 L-28.28 -28.28 M0 -80 L28.28 -28.28" />
+       <path transform="rotate(45)" d="M0 -80 L-28.28 -28.28 M0 -80 L28.28 -28.28" />
+       <path transform="rotate(90)" d="M0 -80 L-28.28 -28.28 M0 -80 L28.28 -28.28" />
+       <path transform="rotate(135)" d="M0 -80 L-28.28 -28.28 M0 -80 L28.28 -28.28" />
+       <path transform="rotate(180)" d="M0 -80 L-28.28 -28.28 M0 -80 L28.28 -28.28" />
+       <path transform="rotate(225)" d="M0 -80 L-28.28 -28.28 M0 -80 L28.28 -28.28" />
+       <path transform="rotate(270)" d="M0 -80 L-28.28 -28.28 M0 -80 L28.28 -28.28" />
+       <path transform="rotate(315)" d="M0 -80 L-28.28 -28.28 M0 -80 L28.28 -28.28" />
+    </g>
+
+    <g stroke="#00FF99" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="0,-40 28.28,-28.28 40,0 28.28,28.28 0,40 -28.28,28.28 -40,0 -28.28,-28.28" />
+      
+      <line x1="0" y1="-40" x2="0" y2="-80" />
+      <line x1="28.28" y1="-28.28" x2="56.57" y2="-56.57" />
+      <line x1="40" y1="0" x2="80" y2="0" />
+      <line x1="28.28" y1="28.28" x2="56.57" y2="56.57" />
+      <line x1="0" y1="40" x2="0" y2="80" />
+      <line x1="-28.28" y1="28.28" x2="-56.57" y2="56.57" />
+      <line x1="-40" y1="0" x2="-80" y2="0" />
+      <line x1="-28.28" y1="-28.28" x2="-56.57" y2="-56.57" />
+    </g>
+
+    <g fill="url(#sphere-shine)">
+      <circle cx="0" cy="-80" r="11" />
+      <circle cx="56.57" cy="-56.57" r="11" />
+      <circle cx="80" cy="0" r="11" />
+      <circle cx="56.57" cy="56.57" r="11" />
+      <circle cx="0" cy="80" r="11" />
+      <circle cx="-56.57" cy="56.57" r="11" />
+      <circle cx="-80" cy="0" r="11" />
+      <circle cx="-56.57" cy="-56.57" r="11" />
+    </g>
+
+  </g>
+</svg>

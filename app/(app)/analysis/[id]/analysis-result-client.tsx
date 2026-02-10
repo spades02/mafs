@@ -79,7 +79,13 @@ export default function AnalysisResultClient({ eventName, eventDate, fights, bet
     const topBets = [...sortedQualifiedBets]
     if (topBets.length < 3) {
         const needed = 3 - topBets.length
-        topBets.push(...sortedFilteredBets.slice(0, needed))
+        // Exclude "No Bet" outcomes from being backfilled into top picks
+        const validFiltered = sortedFilteredBets.filter(b =>
+            b.label !== "No Bet" &&
+            b.label !== "Pass" &&
+            !b.label.toLowerCase().includes("no bet")
+        )
+        topBets.push(...validFiltered.slice(0, needed))
     }
 
     const topBetIds = new Set(topBets.map(b => b.id))

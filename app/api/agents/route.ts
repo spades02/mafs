@@ -2,7 +2,7 @@ import { auth } from "@/app/lib/auth/auth";
 import { user, analysisRun } from "@/db/schema";
 import { nanoid } from "nanoid";
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import Agents from "@/app/ai/agents/agents";
 import { FightResult } from "@/app/ai/agents/agents";
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
 
       await db
         .update(user)
-        .set({ analysisCount: resultUser.analysisCount + 1 })
+        .set({ analysisCount: sql`${user.analysisCount} + 1` })
         .where(eq(user.id, resultUser.id));
 
       send({ type: "complete" });

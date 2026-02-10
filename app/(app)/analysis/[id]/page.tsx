@@ -63,7 +63,7 @@ export default async function AnalysisDetailPage({
   const uiFights: Fight[] = dbFights.map(f => {
     const breakdown = data.fightBreakdowns?.[f.fightId];
 
-    let displayOdds = "Lines Pending";
+    let displayOdds = "Analysing...";
 
     if (breakdown?.marketLine) {
       displayOdds = breakdown.marketLine;

@@ -22,6 +22,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "MAFS",
   description: "Multi Agent Fight Simulator",
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default async function RootLayout({

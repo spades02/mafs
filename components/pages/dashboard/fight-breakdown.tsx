@@ -155,7 +155,7 @@ export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-6 p-5 bg-white/2 rounded-xl border border-white/5">
                         <div className="md:col-span-1 space-y-1">
                             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Model-Leaning Outcome</p>
-                            <p className="text-sm font-bold text-white max-w-[140px] truncate" title={breakdown.modelLeaningOutcome || breakdown.bet}>
+                            <p className="text-sm font-bold text-white max-w-[140px] leading-tight" title={breakdown.modelLeaningOutcome || breakdown.bet}>
                                 {breakdown.modelLeaningOutcome || breakdown.bet || "Analyzing..."}
                             </p>
                         </div>

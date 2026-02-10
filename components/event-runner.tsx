@@ -39,7 +39,7 @@ function EventRunner({
 
   async function fetchUser() {
     try {
-      const res = await fetch("/api/me");
+      const res = await fetch("/api/me", { cache: "no-store" });
       const data = await res.json();
       setUser(data.user);
     } catch {

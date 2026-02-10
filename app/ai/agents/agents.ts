@@ -147,6 +147,7 @@ TASK:
 
 5. **Generate Output**:
    - **Label**: ALWAYS set 'label' to the specific fighter/outcome you analyzed (e.g. "Fighter Name ML"). NEVER use "No Bet" or "Pass" as the label.
+   - **bet_type**: MUST be one of ["ML", "ITD", "Over", "Under", "Spread", "Prop", "No Bet"]. If passing, use "No Bet".
    - **Confidence**: If you decide to PASS (due to low edge/confidence), set 'confidencePct' to 0. This will signal the system to filter it out.
 
 6. **Generate** 'agentSignals' even if passing (explain why stats are weak/strong).

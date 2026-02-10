@@ -4,6 +4,13 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ChevronDown, ChevronUp, AlertTriangle, Shield, Loader2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { EventSelector } from "@/components/pages/dashboard/event-selector"
 import { SimulationStats } from "@/components/pages/dashboard/simulation-stats"
 import { BetCard } from "@/components/pages/dashboard/bet-card"
@@ -43,6 +50,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
 
   const [expandedBetIdx, setExpandedBetIdx] = useState<number | null>(null)
   const [showFilteredBets, setShowFilteredBets] = useState(false)
+  const [showLimitModal, setShowLimitModal] = useState(false)
 
   useEffect(() => {
     if (scanComplete) {
@@ -71,7 +79,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
       const uiFights: Fight[] = dbFights.map(f => ({
         id: f.fightId,
         matchup: `${f.fighter1?.firstName || ""} ${f.fighter1?.lastName || ""} vs ${f.fighter2?.firstName || ""} ${f.fighter2?.lastName || ""}`,
-        odds: "Lines Pending" // We'll get lines from the agent stream
+        odds: "Analysing..." // We'll get lines from the agent stream
       }))
       setActiveFights(uiFights)
 
@@ -172,11 +180,15 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
     } catch (error) {
       console.error("Simulation failed:", error)
       const msg = error instanceof Error ? error.message : "Simulation failed. Please try again."
-      setStatusMessage(msg)
+
       if (msg.includes("Free limit reached")) {
-        // Maybe redirect or show upgrade button? For now just show message.
-        // We could enable a button in the overlay if we modified it, but message is good start.
+        setIsScanning(false)
+        setShowResults(false) // Hide the results/loading view
+        setShowLimitModal(true)
+        return // Stop execution here
       }
+
+      setStatusMessage(msg)
     } finally {
       setIsScanning(false)
       // Transition to results if we got anything
@@ -258,7 +270,12 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
       }
 
       // Explicitly filter "No Bet" or "Pass" outcomes
-      if (bet.label === "No Bet" || bet.label === "Pass" || bet.bet_type === "No Bet") {
+      if (
+        bet.label === "No Bet" ||
+        bet.label === "Pass" ||
+        bet.bet_type === "No Bet" ||
+        bet.label.toLowerCase().includes("no bet")
+      ) {
         rejectReasons.push("Model recommends passing on this fight")
       }
 
@@ -291,7 +308,11 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   if (topBets.length < 3) {
     const needed = 3 - topBets.length
     // Exclude "No Bet" outcomes from being backfilled into top picks
-    const validFiltered = sortedFilteredBets.filter(b => b.label !== "No Bet" && b.label !== "Pass" && b.bet_type !== "No Bet")
+    const validFiltered = sortedFilteredBets.filter(b =>
+      b.label !== "No Bet" &&
+      b.label !== "Pass" &&
+      !b.label.toLowerCase().includes("no bet") // Extra safety
+    )
     topBets.push(...validFiltered.slice(0, needed))
   }
 
@@ -364,12 +385,14 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
         {showResults && (
           <div className="space-y-12">
 
-            <SimulationStats
-              qualifiedBets={topBets}
-              avgConfidence={avgConfidence}
-              avgEdge={avgEdge}
-              riskLevel={riskLevel}
-            />
+            {!isScanning && simulatedBets.length > 0 && (
+              <SimulationStats
+                qualifiedBets={topBets}
+                avgConfidence={avgConfidence}
+                avgEdge={avgEdge}
+                riskLevel={riskLevel}
+              />
+            )}
 
             {/* Top Simulated Outcomes Section - Intelligence Engine UI */}
             <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
@@ -534,8 +557,37 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
           </div>
         )
         }
-      </main >
-    </div >
+      </main>
+
+      <AlertDialog open={showLimitModal} onOpenChange={setShowLimitModal}>
+        <AlertDialogContent className="bg-zinc-950 border-white/10 text-white">
+          <AlertDialogHeader>
+            <div className="mx-auto bg-amber-500/10 p-3 rounded-full mb-4 w-fit">
+              <AlertTriangle className="w-8 h-8 text-amber-500" />
+            </div>
+            <AlertDialogTitle className="text-xl text-center font-bold">Analysis Limit Reached</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-muted-foreground">
+              You've used all your free analysis runs. Upgrade to Pro to unlock unlimited simulations and gain a winning edge.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button
+              onClick={() => router.push('/billing')}
+              className="w-full bg-linear-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 font-semibold"
+            >
+              Upgrade to Pro Now
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setShowLimitModal(false)}
+              className="w-full text-muted-foreground hover:text-white"
+            >
+              Cancel
+            </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   )
 }
 
