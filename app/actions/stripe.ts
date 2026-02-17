@@ -3,7 +3,7 @@
 import type { Stripe } from "stripe";
 
 import { headers } from "next/headers";
-
+import { auth } from "@/app/lib/auth/auth";
 import { stripe } from "@/lib/stripe";
 
 const CURRENCY = "usd"
@@ -60,4 +60,24 @@ export async function createPaymentIntent(
     });
 
   return { client_secret: paymentIntent.client_secret as string };
+}
+
+export async function createCustomerPortalSession(): Promise<{ url: string | null; error?: string }> {
+  const nextHeaders = await headers();
+  const session = await auth.api.getSession({
+    headers: nextHeaders
+  });
+
+  if (!session?.user?.stripeCustomerId) {
+    return { url: null, error: "No Stripe customer ID found" };
+  }
+
+  const origin = nextHeaders.get("origin") as string;
+
+  const portalSession = await stripe.billingPortal.sessions.create({
+    customer: session.user.stripeCustomerId,
+    return_url: `${origin}/billing`,
+  });
+
+  return { url: portalSession.url };
 }

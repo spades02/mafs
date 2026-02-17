@@ -40,22 +40,61 @@ export async function POST(req: NextRequest) {
        */
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.metadata?.userId;
+        let userId = session.metadata?.userId || session.client_reference_id;
+
+        // 📧 EMAIL FALLBACK: If no userId, try to find user by email
+        if (!userId) {
+          console.warn("⚠️ No user ID found in session. Attempting email fallback...");
+          const customerEmail = session.customer_details?.email || session.customer_email;
+
+          if (customerEmail) {
+            const userByEmail = await db
+              .select()
+              .from(user)
+              .where(eq(user.email, customerEmail))
+              .limit(1);
+
+            if (userByEmail[0]) {
+              userId = userByEmail[0].id;
+              console.log(`✅ Email fallback successful! Matched user ${userId} (${customerEmail})`);
+            } else {
+              console.error(`❌ Email fallback failed: No user found with email ${customerEmail}`);
+            }
+          } else {
+            console.error("❌ No email found in session for fallback.");
+          }
+        }
 
         if (!userId) {
-          console.error("❌ No userId in session metadata");
+          console.error("❌ Webhook processing skipped: Could not identify user.");
           break;
         }
 
-        await db
-          .update(user)
-          .set({
-            stripeCustomerId: session.customer as string,
-            stripeSubscriptionId: session.subscription as string,
-          })
-          .where(eq(user.id, userId));
+        if (session.mode === "subscription" && session.payment_status === "paid") {
+          await db
+            .update(user)
+            .set({
+              stripeCustomerId: session.customer as string,
+              stripeSubscriptionId: session.subscription as string,
+              subscriptionStatus: "active",
+              isPro: true,
+            })
+            .where(eq(user.id, userId));
 
-        console.log(`✅ Stripe IDs saved for user ${userId}`);
+          console.log(`✅ User ${userId} auto-provisioned via checkout session`);
+        } else {
+          // Fallback just for ID linking if not paid yet or not subscription
+          await db
+            .update(user)
+            .set({
+              stripeCustomerId: session.customer as string,
+              stripeSubscriptionId: session.subscription as string,
+            })
+            .where(eq(user.id, userId));
+
+          console.log(`✅ Stripe IDs saved for user ${userId}`);
+        }
+
         break;
       }
 

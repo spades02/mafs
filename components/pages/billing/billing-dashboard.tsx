@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createCustomerPortalSession } from "@/app/actions/stripe";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../ui/card";
 import { Progress } from "../../ui/progress";
@@ -14,6 +15,7 @@ interface BillingDashboardProps {
     email: string;
     isPro: boolean;
     analysisCount: number;
+    stripeCustomerId?: string | null;
     // ... other fields
   } | null | undefined;
 }
@@ -32,27 +34,22 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
   // Calculate percentage for the progress bar
   const usagePercent = Math.min((analysisCount / MAX_FREE_ANALYSES) * 100, 100);
 
-  const handleUpgrade = async () => {
-    console.log("clicked")
-    setLoading(true);
-    try {
-      const res = await fetch("/api/stripe/subscribe", { method: "POST" });
-      if (!res.ok) throw new Error("Network response was not ok");
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch (err) {
-      console.error("Upgrade error:", err);
-    } finally {
-      setLoading(false);
-    }
+  const handleUpgrade = () => {
+    if (!user) return;
+    const link = `${process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL}?client_reference_id=${user.id}&prefilled_email=${user.email}`;
+    window.open(link, '_blank');
   };
 
   const handleManageSubscription = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/stripe/portal", { method: "POST" });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      const { url, error } = await createCustomerPortalSession();
+      if (error) {
+        console.error(error);
+        // You might want to show a toast notification here
+      } else if (url) {
+        window.location.href = url;
+      }
     } catch (err) {
       console.error(err);
     } finally {
