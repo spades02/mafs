@@ -279,6 +279,15 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
         rejectReasons.push("Model recommends passing on this fight")
       }
 
+      // Explicitly filter fights with no real odds
+      if (
+        bet.odds_american === "No odds available" ||
+        bet.odds_american === "N/A" ||
+        bet.odds_american === "0"
+      ) {
+        rejectReasons.push("No market odds available for this fight")
+      }
+
       return {
         ...bet,
         status: rejectReasons.length === 0 ? "qualified" : "filtered",
@@ -294,31 +303,35 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   const allBets = qualifyBets(simulatedBets)
 
 
+  // Helper: check if a bet has real odds (not "No odds available")
+  const hasRealOdds = (b: SimulationBet) =>
+    b.odds_american !== "No odds available" &&
+    b.odds_american !== "N/A" &&
+    b.odds_american !== "0"
+
   // Sort both lists by edge_pct descending to ensure best options are shown
   const sortedQualifiedBets = allBets
-    .filter((b) => b.status === "qualified")
+    .filter((b) => b.status === "qualified" && hasRealOdds(b))
     .sort((a, b) => b.edge_pct - a.edge_pct)
 
   const sortedFilteredBets = allBets
     .filter((b) => b.status === "filtered")
     .sort((a, b) => b.edge_pct - a.edge_pct)
 
-  // Always show at least 3 bets if available (Backfill with best filtered bets if needed)
-  const topBets = [...sortedQualifiedBets]
-  if (topBets.length < 3) {
-    const needed = 3 - topBets.length
-    // Exclude "No Bet" outcomes from being backfilled into top picks
-    const validFiltered = sortedFilteredBets.filter(b =>
+  // Show ALL fights with real odds: qualified first, then filtered (excluding "No Bet" / "Pass" without odds)
+  const topBets = [
+    ...sortedQualifiedBets,
+    ...sortedFilteredBets.filter(b =>
+      hasRealOdds(b) &&
       b.label !== "No Bet" &&
       b.label !== "Pass" &&
-      !b.label.toLowerCase().includes("no bet") // Extra safety
+      !b.label.toLowerCase().includes("no bet")
     )
-    topBets.push(...validFiltered.slice(0, needed))
-  }
+  ]
 
-  // Remaining filtered bets for the collapsible section
+  // Remaining: fights with no odds or explicit "No Bet" go to the collapsible section
   const topBetIds = new Set(topBets.map(b => b.id))
-  const filteredBets = sortedFilteredBets.filter(b => !topBetIds.has(b.id))
+  const filteredBets = allBets.filter(b => !topBetIds.has(b.id))
 
   // Keep strict stats calculation based on ONLY truly qualified bets to reflect true quality
   const qualifiedBets = sortedQualifiedBets
@@ -327,8 +340,21 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
     topBets.length > 0 ? topBets.reduce((sum, b) => sum + b.confidencePct, 0) / topBets.length : 0
   const avgEdge =
     topBets.length > 0 ? topBets.reduce((sum, b) => sum + b.edge_pct, 0) / topBets.length : 0
-  const hasHighVariance = topBets.some((b) => b.varianceTag === "high")
-  const riskLevel = hasHighVariance || avgConfidence < 55 ? "High" : avgConfidence < 62 ? "Medium" : "Low"
+
+  // Use majority-based variance instead of "any one high = all high"
+  const varianceCounts = { low: 0, medium: 0, high: 0 }
+  topBets.forEach(b => { varianceCounts[b.varianceTag] = (varianceCounts[b.varianceTag] || 0) + 1 })
+  const majorityVariance = varianceCounts.high > topBets.length / 2
+    ? "High"
+    : varianceCounts.low > topBets.length / 2
+      ? "Low"
+      : "Medium"
+
+  // Risk level based on confidence and majority variance — use reasonable thresholds
+  const riskLevel: "Low" | "Medium" | "High" =
+    avgConfidence < 40 || majorityVariance === "High" ? "High"
+      : avgConfidence < 55 || majorityVariance === "Medium" ? "Medium"
+        : "Low"
 
   return (
     <div className="min-h-fit premium-bg overflow-y-hidden neural-bg font-sans selection:bg-primary/30 pb-20">
@@ -391,6 +417,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                 avgConfidence={avgConfidence}
                 avgEdge={avgEdge}
                 riskLevel={riskLevel}
+                simulationKey={betSeed}
               />
             )}
 
@@ -416,13 +443,13 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
 
               {isResimulating ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {[1, 2, 3].map((i) => (
+                  {Array.from({ length: Math.max(topBets.length, 3) }, (_, i) => i + 1).map((i) => (
                     <BetCardSkeleton key={i} />
                   ))}
                 </div>
               ) : topBets.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {topBets.slice(0, 3).map((bet, idx) => (
+                  {topBets.map((bet, idx) => (
                     <BetCard
                       key={`${betSeed}-${bet.id}`}
                       bet={bet}

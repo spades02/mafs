@@ -1534,4 +1534,22 @@
     transition: background-color 5000s ease-in-out 0s;
     color-scheme: dark;
   }
+
+  /* Simulation stats scan-line sweep */
+  @keyframes stats-scan-line {
+    0% {
+      left: -2%;
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      left: 102%;
+      opacity: 0;
+    }
+  }
 }

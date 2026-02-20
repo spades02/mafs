@@ -12,7 +12,7 @@ import {
   FightBreakdownType,
   FightBreakdownsSchema,
 } from "@/lib/agents/schemas/fight-breakdown-schema";
-import { resolveLiveOdds, fetchAllOdds } from "@/lib/odds/resolve-live-odds";
+import { resolveLiveOdds } from "@/lib/odds/resolve-live-odds";
 import { buildMafsEventInput } from "@/lib/mafs/fetchFighterStats";
 
 import { americanToDecimal, oddsToProb } from "@/lib/odds/utils";
@@ -122,6 +122,28 @@ async function analyzeFight(
     ? `${f1Name}: ${fight.moneylines[0]} / ${f2Name}: ${fight.moneylines[1]}`
     : "No odds available";
 
+  // Build clean fighter stat blocks — strip zero/empty values so AI doesn't think data is "limited"
+  const formatFighterStats = (f: any) => {
+    if (!f) return "No fighter data available";
+    const stats: Record<string, any> = {};
+    if (f.name) stats.name = f.name;
+    if (f.nickname) stats.nickname = f.nickname;
+    if (f.weightClass) stats.weightClass = f.weightClass;
+    if (f.wins || f.losses) stats.record = `${f.wins || 0}-${f.losses || 0}`;
+    if (f.height) stats.heightIn = f.height;
+    if (f.reach) stats.reachIn = f.reach;
+    if (f.strikingPerMinute) stats.strikesLandedPerMin = f.strikingPerMinute;
+    if (f.strikingAccuracy) stats.strikingAccuracy = `${(f.strikingAccuracy * 100).toFixed(0)}%`;
+    if (f.takedownAverage) stats.takedownAvgPer15Min = f.takedownAverage;
+    if (f.submissionAverage) stats.submissionAvgPer15Min = f.submissionAverage;
+    if (f.knockoutPct) stats.koRate = `${(f.knockoutPct * 100).toFixed(0)}%`;
+    if (f.stance) stats.stance = f.stance;
+    return JSON.stringify(stats);
+  };
+
+  const f1Stats = formatFighterStats(fighter1);
+  const f2Stats = formatFighterStats(fighter2);
+
   // -------- AGENT 1: EDGE CALCULATION --------
   const { object: edgeObj } = await generateObject({
     model: openai(MODEL),
@@ -133,9 +155,9 @@ EVENT: ${eventName}
 MATCHUP: ${fight.matchup}
 MONEYLINES: ${moneylineText}
 
-STATS:
-- ${fighter1?.name}: ${JSON.stringify(fighter1 ?? {})}
-- ${fighter2?.name}: ${JSON.stringify(fighter2 ?? {})}
+FIGHTER STATS:
+- ${f1Name}: ${f1Stats}
+- ${f2Name}: ${f2Stats}
 
 TASK:
 1. **Analyze** the stats and stylistic matchup deeply.
@@ -148,10 +170,24 @@ TASK:
 5. **Generate Output**:
    - **Label**: ALWAYS set 'label' to the specific fighter/outcome you analyzed (e.g. "Fighter Name ML"). NEVER use "No Bet" or "Pass" as the label.
    - **bet_type**: MUST be one of ["ML", "ITD", "Over", "Under", "Spread", "Prop", "No Bet"]. If passing, use "No Bet".
-   - **Confidence**: If you decide to PASS (due to low edge/confidence), set 'confidencePct' to 0. This will signal the system to filter it out.
 
-6. **Generate** 'agentSignals' even if passing (explain why stats are weak/strong).
-7. **Populate** 'detailedReason'.
+6. **confidencePct** — CRITICAL RULES:
+   - If you decide to PASS (low edge/no value), set 'confidencePct' to 0.
+   - If you ARE recommending a bet, confidencePct MUST reflect how certain you are in the pick:
+     - 85-95: Very high conviction (dominant favorite, clear style mismatch, strong data backing)
+     - 70-84: Solid conviction (clear edge, reasonable data support)
+     - 55-69: Moderate conviction (some edge but notable uncertainty)
+     - 45-54: Low conviction (marginal edge, high uncertainty)
+   - NEVER leave confidencePct at 0 when recommending a real bet. That is a schema violation.
+
+7. **varianceTag** — How chaotic/unpredictable is the fight outcome:
+   - "low": Dominant favorite ML, clear skill gap, predictable outcome path
+   - "medium": Competitive matchup, standard ML or prop bet, some uncertainty
+   - "high": Heavy underdog play, ITD/finish bet, volatile weight class, coinflip fight
+   - Default to "medium" when unsure. Do NOT default to "high".
+
+8. **Generate** 'agentSignals' even if passing (explain why stats are weak/strong).
+9. **Populate** 'detailedReason'.
 
 IMPORTANT:
 - Be strict. Do not force a bet on 50/50 fights with bad odds.
@@ -218,6 +254,43 @@ IMPORTANT:
 
   // override odds string if 0
   if (marketOdd === 0) finalEdge.odds_american = "No odds available";
+
+  // ---- Safety net: ALWAYS ensure sensible confidencePct and varianceTag ----
+  // The model frequently returns confidencePct=0 and varianceTag="high" regardless of actual data.
+  // We derive these values from computed metrics when the model returns bad values.
+
+  console.log(`[MAFS DEBUG] ${fight.matchup} | Raw model output: confidencePct=${edgeObj.confidencePct}, varianceTag=${edgeObj.varianceTag}, bet_type=${edgeObj.bet_type}, stability=${edgeObj.stability_score}`);
+
+  // Always derive confidence from data if model returns 0 or unreasonably low
+  if (!finalEdge.confidencePct || finalEdge.confidencePct <= 5) {
+    const edgeBoost = Math.min(Math.abs(edgePct) * 2, 20); // Up to +20 from edge
+    const probBoost = Math.max(0, (pSim - 0.3) * 80); // Scale from 30% probability up
+    const stabilityBoost = (edgeObj.stability_score || 0.5) * 20; // Up to +20 from stability
+    const hasOdds = marketOdd !== 0 ? 5 : 0; // Small boost if we have real odds
+
+    finalEdge.confidencePct = Math.round(
+      Math.min(95, Math.max(35, 30 + edgeBoost + probBoost + stabilityBoost + hasOdds))
+    );
+    console.log(`[MAFS DEBUG] ${fight.matchup} | Derived confidencePct=${finalEdge.confidencePct} (edgeBoost=${edgeBoost.toFixed(1)}, probBoost=${probBoost.toFixed(1)}, stabilityBoost=${stabilityBoost.toFixed(1)})`);
+  }
+
+  // Derive variance from actual data instead of trusting model
+  if (finalEdge.varianceTag === "high") {
+    // Only keep "high" if it's truly warranted by the data
+    const isStrongFavorite = pSim >= 0.6;
+    const isStable = (edgeObj.stability_score || 0) >= 0.5;
+    const isMLBet = finalEdge.bet_type === "ML" || finalEdge.bet_type === "No Bet";
+
+    if (isStrongFavorite && isStable) {
+      finalEdge.varianceTag = "low";
+    } else if (isStable || (isMLBet && pSim >= 0.45)) {
+      finalEdge.varianceTag = "medium";
+    }
+    // Otherwise keep "high" (genuine underdog/volatile fight)
+    console.log(`[MAFS DEBUG] ${fight.matchup} | Corrected varianceTag to: ${finalEdge.varianceTag}`);
+  }
+
+  console.log(`[MAFS DEBUG] ${fight.matchup} | FINAL: confidencePct=${finalEdge.confidencePct}, varianceTag=${finalEdge.varianceTag}, edge=${edgePct}%`);
 
 
   // -------- AGENT 2: BREAKDOWN WRITER --------
@@ -306,36 +379,12 @@ export default async function Agents(
     message: "Checking historical odds database...",
   });
 
-  let missingOddsCount = 0;
-
-  // First pass: Try to resolve using DB only
+  // Resolve odds from database only
   for (const fight of event.fights) {
     if (!fight.moneylines) {
-      const res = await resolveLiveOdds(fight.matchup, null); // null cache forces DB or global cache check
+      const res = await resolveLiveOdds(fight.matchup);
       if (res.odds) {
         fight.moneylines = res.odds;
-      } else {
-        missingOddsCount++;
-      }
-    }
-  }
-
-  // Second pass: If missing odds, fetch API cache
-  if (missingOddsCount > 0) {
-    onStreamUpdate?.({
-      type: "status",
-      phase: "fetching_odds",
-      message: `Fetching fresh live odds from API (${missingOddsCount} fights pending)...`,
-    });
-
-    const { cache: apiCache } = await fetchAllOdds();
-
-    if (apiCache) {
-      for (const fight of event.fights) {
-        if (!fight.moneylines) {
-          const res = await resolveLiveOdds(fight.matchup, apiCache);
-          fight.moneylines = res.odds;
-        }
       }
     }
   }
