@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Target, ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import { authClient } from "@/lib/auth/auth-client"
 import { toast } from "sonner"
@@ -14,6 +14,7 @@ import Logo from "@/components/shared/logo"
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -99,13 +100,13 @@ export default function ForgotPasswordPage() {
           )}
 
           <div className="mt-6">
-            <Link
-              href="/auth/login"
-              className="flex items-center justify-center gap-2 text-sm text-blue-400 hover:text-blue-300"
+            <button
+              onClick={async () => { await authClient.signOut(); }}
+              className="flex items-center justify-center gap-2 text-sm text-blue-400 hover:text-blue-300 w-full"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to login
-            </Link>
+            </button>
           </div>
         </div>
       </div>

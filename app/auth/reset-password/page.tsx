@@ -127,13 +127,13 @@ function ResetPasswordContent() {
             </form>
 
             <div className="mt-6">
-                <Link
-                    href="/auth/login"
-                    className="flex items-center justify-center gap-2 text-sm text-blue-400 hover:text-blue-300"
+                <button
+                    onClick={async () => { await authClient.signOut(); }}
+                    className="flex items-center justify-center gap-2 text-sm text-blue-400 hover:text-blue-300 w-full"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     Back to login
-                </Link>
+                </button>
             </div>
         </div>
     )

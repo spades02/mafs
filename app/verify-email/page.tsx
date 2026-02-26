@@ -97,8 +97,8 @@ function VerifyEmailContent() {
                             )}
                         </Button>
 
-                        <Button asChild variant="ghost" className="text-gray-400 hover:text-white">
-                            <Link href="/auth/login">Back to Login</Link>
+                        <Button variant="ghost" className="text-gray-400 hover:text-white" onClick={async () => { await authClient.signOut() }}>
+                            Back to Login
                         </Button>
                     </div>
                 </div>
@@ -132,8 +132,8 @@ function VerifyEmailContent() {
                     <XCircle className="w-12 h-12 text-red-500" />
                     <h2 className="text-2xl font-bold text-white">Verification Failed</h2>
                     <p className="text-red-400">{message}</p>
-                    <Button asChild variant="outline" className="w-full mt-4">
-                        <Link href="/auth/login">Back to Login</Link>
+                    <Button variant="outline" className="w-full mt-4" onClick={async () => { await authClient.signOut() }}>
+                        Back to Login
                     </Button>
                 </div>
             )}
