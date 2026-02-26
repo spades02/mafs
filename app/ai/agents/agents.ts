@@ -161,17 +161,32 @@ FIGHTER STATS:
 
 TASK:
 1. **Analyze** the stats and stylistic matchup deeply.
-2. **Estimate** "truthProbability" (Win %) for both sides.
+2. **Estimate** "truthProbability" (Win %) for the fighter you favor.
 3. **Compare** with market lines if available.
-4. **DECIDE**: Is there a bet?
-   - **Scenario A (Odds Available)**: You MUST only recommend a bet if your estimated Win % > Market Implied %. Otherwise, PASS.
-   - **Scenario B (No Odds)**: Only recommend a bet if valid Win % is > 65%. Otherwise, PASS.
 
-5. **Generate Output**:
-   - **Label**: ALWAYS set 'label' to the specific fighter/outcome you analyzed (e.g. "Fighter Name ML"). NEVER use "No Bet" or "Pass" as the label.
-   - **bet_type**: MUST be one of ["ML", "ITD", "Over", "Under", "Spread", "Prop", "No Bet"]. If passing, use "No Bet".
+4. **MULTI-MARKET EVALUATION** — THIS IS CRITICAL:
+   You MUST evaluate AT LEAST 3 of these 6 betting markets and populate the 'marketEvaluations' array:
+   - **ML** (Moneyline): Who wins?
+   - **Over / Under**: Will the fight go past 2.5 rounds (or 1.5 for 3-round fights)?
+   - **ITD** (Inside The Distance): Does the fight end by KO/TKO or submission?
+   - **MOV** (Method of Victory): HOW does the winner win — KO, submission, or decision?
+   - **Round**: What round or round group does it end in?
+   - **Double Chance**: Combined outcomes (e.g. Fighter wins by KO OR decision)
 
-6. **confidencePct** — CRITICAL RULES:
+   For EACH market you evaluate, provide: market, label, probability (0-1), edge (%), and reasoning.
+   Then SET 'bet_type' and 'label' to the SINGLE BEST MARKET — the one with the highest edge.
+
+   DO NOT default to Moneyline. If O/U or ITD has a bigger edge, recommend THAT instead.
+
+5. **DECIDE**: Is the best market worth betting?
+   - **Scenario A (ML Odds Available)**: Recommend if your estimated prob > Market Implied %. Otherwise, PASS.
+   - **Scenario B (Non-ML or No Odds)**: Recommend only if probability is > 60% AND you have high confidence. Otherwise, PASS.
+
+6. **Generate Output**:
+   - **Label**: ALWAYS set 'label' to the specific bet (e.g. "Pereira ITD", "Over 2.5 Rounds", "Pantoja by Sub"). NEVER use "No Bet" or "Pass" as the label.
+   - **bet_type**: MUST be one of ["ML", "ITD", "Over", "Under", "MOV", "Round", "Double Chance", "Spread", "Prop", "No Bet"]. If passing, use "No Bet".
+
+7. **confidencePct** — CRITICAL RULES:
    - If you decide to PASS (low edge/no value), set 'confidencePct' to 0.
    - If you ARE recommending a bet, confidencePct MUST reflect how certain you are in the pick:
      - 85-95: Very high conviction (dominant favorite, clear style mismatch, strong data backing)
@@ -180,17 +195,18 @@ TASK:
      - 45-54: Low conviction (marginal edge, high uncertainty)
    - NEVER leave confidencePct at 0 when recommending a real bet. That is a schema violation.
 
-7. **varianceTag** — How chaotic/unpredictable is the fight outcome:
+8. **varianceTag** — How chaotic/unpredictable is the fight outcome:
    - "low": Dominant favorite ML, clear skill gap, predictable outcome path
    - "medium": Competitive matchup, standard ML or prop bet, some uncertainty
    - "high": Heavy underdog play, ITD/finish bet, volatile weight class, coinflip fight
    - Default to "medium" when unsure. Do NOT default to "high".
 
-8. **Generate** 'agentSignals' even if passing (explain why stats are weak/strong).
-9. **Populate** 'detailedReason'.
+9. **Generate** 'agentSignals' even if passing (explain why stats are weak/strong).
+10. **Populate** 'detailedReason'.
 
 IMPORTANT:
 - Be strict. Do not force a bet on 50/50 fights with bad odds.
+- Prioritize the market with the HIGHEST EDGE, not the most obvious one.
 - Use explicit visual language for 'executiveSummary'.
 `,
   });

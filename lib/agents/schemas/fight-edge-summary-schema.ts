@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+// --- Market Evaluation (Multi-Market Scan) ---
+
+export const MarketEvaluationSchema = z.object({
+  market: z.enum(["ML", "ITD", "Over", "Under", "MOV", "Round", "Double Chance"]).describe("The betting market evaluated"),
+  label: z.string().describe("Specific bet label, e.g. 'Pereira ITD', 'Over 2.5 Rounds'"),
+  probability: z.number().min(0).max(1).describe("Estimated probability this outcome occurs (0-1)"),
+  edge: z.number().describe("Estimated edge percentage vs implied market"),
+  reasoning: z.string().describe("1 sentence why this market does or doesn't have value"),
+});
+
 // --- Nested Types ---
 
 export const AgentSignalInputSchema = z.object({
@@ -19,7 +29,7 @@ export const DetailedReasonInputSchema = z.object({
 export const FightEdgeSummaryGenerationSchema = z.object({
   // Basic Info
   fight: z.string(),
-  bet_type: z.enum(["ML", "ITD", "Over", "Under", "Spread", "Prop", "No Bet"]).describe("Type of bet"),
+  bet_type: z.enum(["ML", "ITD", "Over", "Under", "MOV", "Round", "Double Chance", "Spread", "Prop", "No Bet"]).describe("Type of bet — must be the BEST market from your multi-market evaluation"),
   label: z.string().describe("e.g. 'Pereira ITD', 'Volk ML'"),
 
   // Probabilities
@@ -42,6 +52,9 @@ export const FightEdgeSummaryGenerationSchema = z.object({
   patternMechanics: z.array(z.string()).optional(),
   marketThesis: z.string().optional().describe("Why is the market pricing this incorrectly?"),
   edgeSource: z.string().optional().describe("What is the source of our edge? (e.g. 'Latency', 'Chin Durability', 'Cardio')"),
+
+  // Multi-Market Evaluation
+  marketEvaluations: z.array(MarketEvaluationSchema).min(2).max(6).describe("Evaluate AT LEAST 2-6 betting markets for this fight. Include ML + any other applicable markets. The top-level bet_type/label should be the BEST one."),
 
   // Legacy/Compat fields (Optional or computed later)
   rank: z.number().optional().default(0),

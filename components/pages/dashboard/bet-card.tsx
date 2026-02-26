@@ -39,7 +39,19 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                 {/* OUTCOME LAYER - Always Visible */}
                 <div className="mb-4">
                     <p className="font-semibold text-lg leading-tight text-white">{bet.label}</p>
-                    <p className="text-sm text-muted-foreground/60 font-mono mt-1">{formatOdds(bet.odds_american, oddsFormat || "american")}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-muted-foreground/60 font-mono">{formatOdds(bet.odds_american, oddsFormat || "american")}</p>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${bet.bet_type === "ML" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                                bet.bet_type === "ITD" ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
+                                    bet.bet_type === "Over" || bet.bet_type === "Under" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
+                                        bet.bet_type === "MOV" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                                            bet.bet_type === "Round" ? "bg-pink-500/10 text-pink-400 border-pink-500/20" :
+                                                bet.bet_type === "Double Chance" ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" :
+                                                    "bg-white/5 text-muted-foreground border-white/10"
+                            }`}>
+                            {bet.bet_type === "Over" || bet.bet_type === "Under" ? "O/U" : bet.bet_type}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Metrics Row with premium styling */}

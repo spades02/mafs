@@ -31,6 +31,14 @@ export type SimulationBet = {
     historicalValidation?: string
     executiveSummary?: string
     whySummary?: string
+    // Multi-market evaluations from the engine
+    marketEvaluations?: Array<{
+        market: string
+        label: string
+        probability: number
+        edge: number
+        reasoning: string
+    }>
 }
 
 export type Fight = {

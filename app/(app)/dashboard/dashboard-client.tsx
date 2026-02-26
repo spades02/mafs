@@ -20,6 +20,7 @@ import { getEventFights } from "./actions"
 import { Fight, SimulationBet, FightBreakdown as FightBreakdownModel } from "./d-types"
 import { formatOdds } from "@/lib/odds/utils"
 import { BetCardSkeleton } from "@/components/skeletons/bet-card-skeleton"
+import { BetFilters, BetFiltersState, DEFAULT_FILTERS } from "@/components/pages/dashboard/bet-filters"
 
 interface DashboardClientProps {
   initialEvents: Array<{ eventId: string; name: string; dateTime: string | null; venue: string | null; fightCount?: number }>
@@ -51,6 +52,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   const [expandedBetIdx, setExpandedBetIdx] = useState<number | null>(null)
   const [showFilteredBets, setShowFilteredBets] = useState(false)
   const [showLimitModal, setShowLimitModal] = useState(false)
+  const [betFilters, setBetFilters] = useState<BetFiltersState>(DEFAULT_FILTERS)
 
   useEffect(() => {
     if (scanComplete) {
@@ -319,7 +321,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
     .sort((a, b) => b.edge_pct - a.edge_pct)
 
   // Show ALL fights with real odds: qualified first, then filtered (excluding "No Bet" / "Pass" without odds)
-  const topBets = [
+  const allTopBets = [
     ...sortedQualifiedBets,
     ...sortedFilteredBets.filter(b =>
       hasRealOdds(b) &&
@@ -328,6 +330,50 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
       !b.label.toLowerCase().includes("no bet")
     )
   ]
+
+  // Apply user filters
+  const applyUserFilters = (bets: typeof allTopBets) => {
+    return bets.filter(bet => {
+      // Bet type filter
+      if (!betFilters.betTypes.includes("ALL")) {
+        if (!betFilters.betTypes.includes(bet.bet_type)) return false
+      }
+
+      // Min probability filter
+      if (betFilters.minProbability > 0) {
+        if ((bet.P_sim * 100) < betFilters.minProbability) return false
+      }
+
+      // Variance filter
+      if (!betFilters.varianceLevels.includes(bet.varianceTag)) return false
+
+      // Min edge filter
+      if (betFilters.minEdge > 0) {
+        if (bet.edge_pct < betFilters.minEdge) return false
+      }
+
+      return true
+    })
+  }
+
+  // Sort: Probability (desc) → Variance (low first) → Edge (desc)
+  const varianceOrder: Record<string, number> = { low: 0, medium: 1, high: 2 }
+  const sortBets = (bets: typeof allTopBets) => {
+    return [...bets].sort((a, b) => {
+      // 1. Probability descending
+      const probDiff = b.P_sim - a.P_sim
+      if (Math.abs(probDiff) > 0.02) return probDiff
+
+      // 2. Variance ascending (low first)
+      const varDiff = (varianceOrder[a.varianceTag] ?? 1) - (varianceOrder[b.varianceTag] ?? 1)
+      if (varDiff !== 0) return varDiff
+
+      // 3. Edge descending
+      return b.edge_pct - a.edge_pct
+    })
+  }
+
+  const topBets = sortBets(applyUserFilters(allTopBets))
 
   // Remaining: fights with no odds or explicit "No Bet" go to the collapsible section
   const topBetIds = new Set(topBets.map(b => b.id))
@@ -440,6 +486,16 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                   ) : "Re-simulate"}
                 </Button>
               </div>
+
+              {/* Filter Bar */}
+              {!isScanning && allTopBets.length > 0 && (
+                <BetFilters
+                  filters={betFilters}
+                  onChange={setBetFilters}
+                  totalCount={allTopBets.length}
+                  filteredCount={topBets.length}
+                />
+              )}
 
               {isResimulating ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
