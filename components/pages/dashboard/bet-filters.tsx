@@ -8,6 +8,8 @@ const BET_TYPES = [
     { key: "ALL", label: "All" },
     { key: "ML", label: "ML" },
     { key: "ITD", label: "ITD" },
+    { key: "GTD", label: "GTD" },
+    { key: "DGTD", label: "DGTD" },
     { key: "Over", label: "Over" },
     { key: "Under", label: "Under" },
     { key: "MOV", label: "MOV" },

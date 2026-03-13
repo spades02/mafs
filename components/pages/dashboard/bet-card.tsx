@@ -2,8 +2,9 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle2, AlertTriangle, ChevronUp, ChevronDown } from "lucide-react"
-import { ConfidenceRing, ModelAgreement } from "@/components/premium-metrics"
+import { ConfidenceRing } from "@/components/premium-metrics"
 import { SimulationBet } from "@/app/(app)/dashboard/d-types"
+import { LineMovementChart } from "./line-movement-chart"
 
 import { formatOdds } from "@/lib/odds/utils"
 
@@ -20,6 +21,28 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
     const hasRiskFlag = bet.agentSignals.some((s) => s.signal === "neutral" || s.signal === "fail")
     const passedSignals = bet.agentSignals.filter((s) => s.signal === "pass").length
 
+    // Compute pricing metrics for the expanded Market Pricing table
+    const marketOdds = parseInt(bet.odds_american.replace("+", ""))
+    const modelProb = bet.P_sim
+    const trueLineAmerican = modelProb >= 0.5
+        ? -Math.round((modelProb / (1 - modelProb)) * 100)
+        : Math.round(((1 - modelProb) / modelProb) * 100)
+    const marketImpliedProb = marketOdds > 0
+        ? 100 / (marketOdds + 100)
+        : (-marketOdds) / ((-marketOdds) + 100)
+    const decimalOdds = marketOdds > 0 ? 1 + (marketOdds / 100) : 1 + (100 / -marketOdds)
+    const evPerUnit = (modelProb * (decimalOdds - 1)) - ((1 - modelProb) * 1)
+    const mispricingProb = modelProb - marketImpliedProb
+
+    // Kelly Criterion estimation
+    const kellyFraction = ((modelProb * (decimalOdds - 1)) - (1 - modelProb)) / (decimalOdds - 1)
+    const varianceMultiplier = bet.varianceTag === "low" ? 0.5 : bet.varianceTag === "medium" ? 0.35 : 0.25
+    const confidenceMultiplier = Math.min(1, (bet.confidencePct || 70) / 100)
+    const adjustedKelly = kellyFraction * varianceMultiplier * confidenceMultiplier
+    const kellyUnits = Math.max(0, Math.round(adjustedKelly * 20) / 10)
+    const kellyIsPass = kellyUnits <= 0 || evPerUnit <= 0
+    const kellyMethod = `${(varianceMultiplier * 100).toFixed(0)}% Kelly × ${(confidenceMultiplier * 100).toFixed(0)}% conf`
+
     return (
         <Card
             className={`glass-card glass-glow best-bet-entrance-polish spotlight-hover overflow-hidden ${index === 0 ? "top-ev-spotlight glass-shimmer morph-border" : ""
@@ -27,53 +50,80 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
             style={{ animationDelay: `${index * 80}ms` }}
         >
             <CardContent className="p-5 relative">
-                {/* Top rank badge for first card */}
-                {index === 0 && (
-                    <div className="absolute top-3 right-3">
-                        <div className="px-2 py-1 rounded-full bg-primary/20 border border-primary/30 text-[10px] font-bold text-primary uppercase tracking-wider edge-pulse">
-                            Top Pick
-                        </div>
-                    </div>
-                )}
-
                 {/* OUTCOME LAYER - Always Visible */}
                 <div className="mb-4">
                     <p className="font-semibold text-lg leading-tight text-white">{bet.label}</p>
                     <div className="flex items-center gap-2 mt-1">
                         <p className="text-sm text-muted-foreground/60 font-mono">{formatOdds(bet.odds_american, oddsFormat || "american")}</p>
                         <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${bet.bet_type === "ML" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
-                                bet.bet_type === "ITD" ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
-                                    bet.bet_type === "Over" || bet.bet_type === "Under" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
-                                        bet.bet_type === "MOV" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                                            bet.bet_type === "Round" ? "bg-pink-500/10 text-pink-400 border-pink-500/20" :
-                                                bet.bet_type === "Double Chance" ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" :
-                                                    "bg-white/5 text-muted-foreground border-white/10"
+                            bet.bet_type === "ITD" ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
+                                bet.bet_type === "Over" || bet.bet_type === "Under" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
+                                    bet.bet_type === "MOV" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                                        bet.bet_type === "Round" ? "bg-pink-500/10 text-pink-400 border-pink-500/20" :
+                                            bet.bet_type === "Double Chance" ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" :
+                                                bet.bet_type === "GTD" ? "bg-teal-500/10 text-teal-400 border-teal-500/20" :
+                                                    bet.bet_type === "DGTD" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                                                        "bg-white/5 text-muted-foreground border-white/10"
                             }`}>
                             {bet.bet_type === "Over" || bet.bet_type === "Under" ? "O/U" : bet.bet_type}
                         </span>
                     </div>
                 </div>
 
-                {/* Metrics Row with premium styling */}
-                <div className="flex gap-6 mb-4">
-                    <div className="flex items-center gap-3">
+                {/* Metrics Row — matching screenshot layout */}
+                <div className="flex items-start gap-6 mb-4">
+                    <div className="flex items-center gap-3 shrink-0">
                         <ConfidenceRing value={bet.P_sim * 100} size={48} />
                         <div>
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-0.5">Model Probability</p>
-                            <p className="text-xs font-semibold text-foreground/70">{(bet.P_sim * 100).toFixed(0)}%</p>
-                            <p className="text-[10px] text-muted-foreground/40 font-mono">
-                                Range: {Math.max(0, bet.P_sim * 100 - 4 - Math.random() * 2).toFixed(0)}%–
-                                {Math.min(99, bet.P_sim * 100 + 3 + Math.random() * 2).toFixed(0)}%
+                            <p className="text-[9px] uppercase tracking-wider text-muted-foreground/50 mb-0.5">Model Probability</p>
+                            <p className="text-xl font-bold text-white">{(bet.P_sim * 100).toFixed(0)}%</p>
+                            <p className="text-[9px] text-muted-foreground/40">
+                                Range: {Math.max(0, Math.round(bet.P_sim * 100 - (bet.varianceTag === "high" ? 8 : bet.varianceTag === "medium" ? 5 : 3)))}%-{Math.min(100, Math.round(bet.P_sim * 100 + (bet.varianceTag === "high" ? 8 : bet.varianceTag === "medium" ? 5 : 3)))}%
                             </p>
                         </div>
                     </div>
-                    <div>
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-0.5">Model Edge</p>
-                        <p className={`text-xl font-bold ${bet.edge_pct > 0 ? "text-green-400" : "text-red-400"}`}>
+                    <div className="shrink-0 pl-4 border-l border-white/5">
+                        <p className="text-[9px] uppercase tracking-wider text-muted-foreground/50 mb-0.5">Model Edge <span className="text-muted-foreground/30">(Risk-Adj.)</span></p>
+                        <p className={`text-2xl font-bold font-mono tracking-tight ${bet.edge_pct > 0 ? "text-primary" : "text-red-400"}`}>
                             {bet.edge_pct > 0 ? "+" : ""}{bet.edge_pct.toFixed(1)}%
                         </p>
                     </div>
                 </div>
+
+                {/* Line Movement Box — separate bordered container */}
+                {bet.oddsHistory && bet.oddsHistory.length >= 2 && (() => {
+                    const firstOdds = bet.oddsHistory[0].oddsAmerican
+                    const lastOdds = bet.oddsHistory[bet.oddsHistory.length - 1].oddsAmerican
+                    const currentOdds = typeof bet.odds_american === 'string' && (bet.odds_american.includes('+') || bet.odds_american.includes('-'))
+                        ? parseInt(bet.odds_american) : lastOdds
+                    const isMovingToward = Math.abs(currentOdds) < Math.abs(firstOdds) || currentOdds < firstOdds
+                    const isMovingAway = Math.abs(currentOdds) > Math.abs(firstOdds) || currentOdds > firstOdds
+
+                    return (
+                        <div className="p-3 rounded-lg bg-black/30 border border-white/5 mb-4">
+                            <p className="text-[9px] uppercase tracking-wider text-muted-foreground/40 mb-2">Line Movement</p>
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 max-w-[140px]">
+                                    <LineMovementChart
+                                        data={bet.oddsHistory}
+                                        color={bet.edge_pct > 0 ? "#10b981" : "#f43f5e"}
+                                        height={30}
+                                        openingOdds={firstOdds}
+                                        currentOdds={currentOdds}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 text-sm font-mono">
+                                    <span className="text-muted-foreground/60">{firstOdds > 0 ? `+${firstOdds}` : firstOdds}</span>
+                                    <span className="text-muted-foreground/30">→</span>
+                                    <span className="font-bold text-white">{currentOdds > 0 ? `+${currentOdds}` : currentOdds}</span>
+                                </div>
+                            </div>
+                            <p className={`text-[10px] font-medium mt-1.5 flex items-center gap-1 ${isMovingToward ? "text-green-400/80" : isMovingAway ? "text-amber-400/80" : "text-muted-foreground/50"}`}>
+                                {isMovingToward ? "Market Moving Toward Bet →" : isMovingAway ? "Market Moving Away ←" : "Market Stable"}
+                            </p>
+                        </div>
+                    )
+                })()}
 
                 {/* Outcome Indicators */}
                 <div className="flex flex-wrap gap-2 mb-4">
@@ -115,39 +165,16 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                 {/* EXPANDABLE SECTION */}
                 {isExpanded && (
                     <div className="pt-4 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
-                        {/* Executive Summary - First thing read */}
-                        <p className="text-sm text-muted-foreground/80 leading-relaxed border-l-2 border-white/10 pl-3 italic">
+
+                        {/* Executive Summary */}
+                        <p className="text-sm text-muted-foreground/80 leading-relaxed border-l-2 border-white/10 pl-3">
                             {bet.executiveSummary ||
                                 bet.whySummary ||
-                                `${bet.detailedReason.keyDrivers[0]?.split("—")[0] || bet.label} creates exploitable inefficiency in current market pricing.`}
+                                bet.detailedReason.marketInefficiency ||
+                                `${bet.label} possesses a structural advantage overlooked by public pricing.`}
                         </p>
 
-                        {/* 2A: Pattern Insight - THE ALPHA */}
-                        <div>
-                            <p className="text-[10px] uppercase tracking-wider text-primary mb-2">Pattern Insight Detected</p>
-                            <p className="text-sm text-foreground/90 leading-relaxed">
-                                {bet.patternInsight || bet.detailedReason.marketInefficiency}
-                            </p>
-                        </div>
-
-                        {/* 2B: Why Pattern Exists */}
-                        {bet.patternMechanics && bet.patternMechanics.length > 0 && (
-                            <ul className="space-y-1 pl-1">
-                                {bet.patternMechanics.map((mechanic, mIdx) => (
-                                    <li key={mIdx} className="text-xs text-muted-foreground/70 flex items-start gap-2">
-                                        <span className="text-muted-foreground/40 mt-0.5">•</span>
-                                        {mechanic}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-
-                        {/* 2C: Model Agreement Visualization */}
-                        <div className="rounded-lg border border-white/5 bg-black/20 p-4">
-                            <ModelAgreement agents={bet.agentSignals} />
-                        </div>
-
-                        {/* MAFS Verdict - Actionable Decision */}
+                        {/* MAFS VERDICT */}
                         <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
                             <p className="text-[10px] uppercase tracking-wider text-primary mb-2">MAFS Verdict</p>
                             <p className="text-sm font-medium text-foreground leading-relaxed">
@@ -160,65 +187,38 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                             </p>
                         </div>
 
-                        {/* 2D: Engine Validation */}
+                        {/* AGENT SIGNALS */}
                         <div className="rounded-lg border border-white/5 bg-black/20">
                             <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
-                                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Agent Signals</span>
+                                <div>
+                                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Agent Signals</span>
+                                    <span className="text-[9px] text-muted-foreground/40 ml-2">Signal Agreement Check</span>
+                                </div>
                                 <span className="text-[10px] font-mono text-primary/70">
-                                    {passedSignals}/{bet.agentSignals.length} —{" "}
-                                    {passedSignals >= 3
-                                        ? "Strong consensus"
-                                        : passedSignals >= 2
-                                            ? "Moderate consensus"
-                                            : "Mixed signals"}
+                                    {passedSignals}/{bet.agentSignals.length}
                                 </span>
                             </div>
-                            <div className="px-3 py-2.5 space-y-2">
+                            <div className="px-3 py-2.5 space-y-1.5">
                                 {bet.agentSignals.map((signal, sIdx) => (
-                                    <div
-                                        key={sIdx}
-                                        className="flex items-start gap-2 text-xs stagger-entrance"
-                                        style={{ animationDelay: `${sIdx * 50}ms` }}
-                                    >
-                                        <span
-                                            className={`font-mono font-bold uppercase ${signal.signal === "pass"
-                                                ? "text-green-400"
-                                                : signal.signal === "fail"
-                                                    ? "text-red-400"
-                                                    : "text-yellow-400"
-                                                }`}
-                                        >
-                                            {signal.signal}
+                                    <div key={sIdx} className="flex items-center gap-2 text-xs">
+                                        <span className={signal.signal === "pass" ? "text-green-400" : signal.signal === "neutral" ? "text-amber-400" : "text-red-400"}>
+                                            {signal.signal === "pass" ? "✓" : signal.signal === "neutral" ? "⚠" : "✗"}
                                         </span>
-                                        <span className="text-muted-foreground/80 flex-1">
-                                            <span className="font-medium text-foreground/70">{signal.name}</span>
-                                            <span className="text-muted-foreground/50 block text-[11px] mt-0.5">{signal.desc}</span>
-                                        </span>
+                                        <span className="text-foreground/70">{signal.name}</span>
                                     </div>
                                 ))}
                             </div>
-                            {/* Dissent Explanation */}
-                            {bet.agentSignals.some((s) => s.signal === "neutral" || s.signal === "fail") && (
-                                <div className="px-3 py-2 border-t border-white/5 bg-white/2">
-                                    <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
-                                        <span className="text-muted-foreground/70">Dissent note:</span>{" "}
-                                        {bet.agentSignals.find((s) => s.signal === "neutral")?.desc ||
-                                            bet.agentSignals.find((s) => s.signal === "fail")?.desc ||
-                                            "Variance threshold flagged due to outcome volatility in this weight class."}
-                                    </p>
-                                </div>
-                            )}
                         </div>
 
-                        {/* MAFS Edge Source - Proprietary Insight */}
-                        <div className="px-3 py-2.5 rounded border border-white/5 bg-black/30">
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1.5">MAFS Edge Source</p>
-                            <p className="text-xs text-foreground/80 leading-relaxed">
-                                {bet.edgeSource || bet.detailedReason.marketInefficiency}
+                        {/* MAFS Edge Source */}
+                        <div className="px-3 py-2 rounded border border-white/5 bg-black/30">
+                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Edge Source</p>
+                            <p className="text-xs text-foreground/80 leading-snug line-clamp-2">
+                                {bet.edgeSource || bet.detailedReason.marketInefficiency?.split('.').slice(0, 2).join('.') + '.' || "Identified systemic discrepancy between fighter win conditions and generic market pricing."}
                             </p>
                         </div>
 
-                        {/* Risk Callout (only if risk flag exists) */}
+                        {/* RISK CALLOUT */}
                         {hasRiskFlag && bet.detailedReason.riskFactors[0] && (
                             <div className="px-3 py-2 rounded bg-amber-500/5 border border-amber-500/10">
                                 <p className="text-xs text-amber-400/80">
@@ -227,24 +227,62 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                             </div>
                         )}
 
-                        {/* Historical Validation Anchor */}
-                        <p className="text-[11px] text-muted-foreground/50 italic px-1">
-                            {bet.historicalValidation ||
-                                `Comparable matchup profiles have produced this outcome type in ${Math.round(
-                                    bet.P_sim * 100 * 0.85 + Math.random() * 10,
-                                )} of the last ${Math.round(20 + Math.random() * 15)} similar scenarios.`}
-                        </p>
-
-                        {/* Market Thesis */}
-                        {(bet.marketThesis || bet.detailedReason.keyDrivers.length > 0) && (
-                            <div>
-                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-2">Market Thesis</p>
-                                <p className="text-xs text-muted-foreground/70 leading-relaxed">
-                                    {bet.marketThesis ||
-                                        `${bet.detailedReason.keyDrivers[0]}. ${bet.detailedReason.keyDrivers[1] || ""}`}
-                                </p>
+                        {/* MARKET PRICING TABLE */}
+                        <div className="rounded-lg border border-white/5 bg-black/20 overflow-hidden">
+                            <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
+                                <div>
+                                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Market Pricing</span>
+                                    <p className="text-[9px] text-muted-foreground/40 mt-0.5">Derived from aggregated market odds</p>
+                                </div>
                             </div>
-                        )}
+                            {/* Row 1: Market Line + True Line */}
+                            <div className="grid grid-cols-2 gap-4 p-3 border-b border-white/5">
+                                <div className="text-center">
+                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Market Line</p>
+                                    <p className="text-lg font-bold font-mono text-foreground/90">{formatOdds(bet.odds_american, oddsFormat)}</p>
+                                    <p className="text-[9px] text-muted-foreground/40 mt-0.5">Implied: {(marketImpliedProb * 100).toFixed(0)}%</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">MAFS True Line</p>
+                                    <p className="text-lg font-bold font-mono text-primary">{trueLineAmerican > 0 ? `+${trueLineAmerican}` : trueLineAmerican}</p>
+                                    <p className="text-[9px] text-muted-foreground/40 mt-0.5">Model: {(modelProb * 100).toFixed(0)}%</p>
+                                </div>
+                            </div>
+                            {/* Row 2: Mispricing + EV */}
+                            <div className="grid grid-cols-2 gap-4 p-3 border-b border-white/5">
+                                <div className="text-center">
+                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Mispricing</p>
+                                    <p className={`text-lg font-bold font-mono ${mispricingProb >= 0.05 ? "text-green-400" : mispricingProb >= 0 ? "text-amber-400" : "text-red-400"}`}>
+                                        {mispricingProb >= 0 ? "+" : ""}{(mispricingProb * 100).toFixed(1)}%
+                                    </p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Expected Value</p>
+                                    <p className={`text-lg font-bold font-mono ${evPerUnit > 0 ? "text-green-400" : "text-red-400"}`}>
+                                        {evPerUnit >= 0 ? "+" : ""}{(evPerUnit * 100).toFixed(1)}%
+                                    </p>
+                                </div>
+                            </div>
+                            {/* Row 3: Recommended Stake */}
+                            <div className="px-3 py-2.5">
+                                <div className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[9px] text-muted-foreground/50 uppercase tracking-wide">Recommended Stake</span>
+                                        <span className={`text-sm font-bold font-mono ${kellyIsPass ? "text-muted-foreground" : "text-green-400"}`}>
+                                            {kellyIsPass ? "Pass" : `${kellyUnits} units`}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[9px] text-muted-foreground/50 uppercase tracking-wide">Sizing Method</span>
+                                        <span className="text-xs font-mono text-muted-foreground/70">{kellyMethod}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {/* Formula Note */}
+                            <div className="px-3 py-2 border-t border-white/5">
+                                <p className="text-[9px] text-muted-foreground/40 italic">EV = (Model Prob × Profit) - (1 - Model Prob) | Mispricing = Model Prob - Market Implied</p>
+                            </div>
+                        </div>
                     </div>
                 )}
             </CardContent>

@@ -144,10 +144,13 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                 // Add Bet
                 setSimulatedBets(prev => [...prev, data.edge])
 
-                // Add Breakdown (ensure key is string)
+                // Add Breakdown (ensure key is string) — merge oddsHistory from edge
                 setSimulatedBreakdowns(prev => ({
                   ...prev,
-                  [fightIdStr]: data.breakdown
+                  [fightIdStr]: {
+                    ...data.breakdown,
+                    oddsHistory: data.edge?.oddsHistory || data.breakdown?.oddsHistory || [],
+                  }
                 }))
 
                 // Update activeFights with real odds (prefer full market line from breakdown)
@@ -167,9 +170,21 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                   return f
                 }))
 
+              } else if (data.type === "fight_error") {
+                // Handle fight analysis errors — update display so it doesn't stay "Analysing..."
+                const errorFightId = data.fightId?.toString()
+                if (errorFightId) {
+                  setActiveFights(prev => prev.map(f =>
+                    f.id === errorFightId ? { ...f, odds: "Error" } : f
+                  ))
+                }
               } else if (data.type === "status") {
                 setStatusMessage(data.message)
               } else if (data.type === "complete") {
+                // When complete, ensure any remaining "Analysing..." fights show "N/A"
+                setActiveFights(prev => prev.map(f =>
+                  f.odds === "Analysing..." ? { ...f, odds: "N/A" } : f
+                ))
                 setScanComplete(true)
               }
             } catch (e) {
@@ -313,7 +328,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
 
   // Sort both lists by edge_pct descending to ensure best options are shown
   const sortedQualifiedBets = allBets
-    .filter((b) => b.status === "qualified" && hasRealOdds(b))
+    .filter((b) => b.status === "qualified" && hasRealOdds(b) && b.bet_type !== "No Bet")
     .sort((a, b) => b.edge_pct - a.edge_pct)
 
   const sortedFilteredBets = allBets
@@ -327,6 +342,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
       hasRealOdds(b) &&
       b.label !== "No Bet" &&
       b.label !== "Pass" &&
+      b.bet_type !== "No Bet" &&
       !b.label.toLowerCase().includes("no bet")
     )
   ]

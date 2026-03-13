@@ -6,7 +6,17 @@ import { user } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 
-export async function POST() {
+export async function POST(req: Request) {
+  // 🛡️ Defense-in-depth: Block Stripe requests from iOS native app
+  const platform = req.headers.get("x-platform");
+  const userAgent = req.headers.get("user-agent") || "";
+  if (platform === "ios" || /MAFS.*Capacitor.*iOS/i.test(userAgent)) {
+    return NextResponse.json(
+      { error: "Payment operations are not available on this platform" },
+      { status: 403 }
+    );
+  }
+
   const nextHeaders = await headers()
   const session = await auth.api.getSession(
     {

@@ -97,14 +97,14 @@ export function SimulationStats({ qualifiedBets, avgConfidence, avgEdge, riskLev
                     </p>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        {/* Stat 1: Qualified Scenarios */}
+                        {/* Stat 1: Markets Scanned */}
                         <div className={cn(
                             "stat-card-premium transition-all duration-600",
                             showCards ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-8 scale-95"
                         )} style={{ transitionDelay: "0ms" }}>
-                            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Qualified Scenarios</p>
+                            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Markets Scanned</p>
                             {showCards && <AnimatedStat key={`qs-${simulationKey}`} value={qualifiedBets.length} label="" />}
-                            <p className="text-xs text-muted-foreground/60 mt-3">Passed simulation filters</p>
+                            <p className="text-xs text-muted-foreground/60 mt-3">{qualifiedBets.filter(b => b.status === 'qualified' || !b.status).length} high-value detected</p>
                         </div>
 
                         {/* Stat 2: Model Confidence */}

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Sparkles, Lock, Bot } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
+import WebPaymentBoundary from "@/components/WebPaymentBoundary";
 
 interface AnalysisButtonProps {
   user: {
@@ -45,8 +46,8 @@ export default function AnalysisButton({
       >
         {loading ? (
           <>
-          <Bot className="mr-2 h-4 w-4" />
-          Analyzing...
+            <Bot className="mr-2 h-4 w-4" />
+            Analyzing...
           </>
         ) : (
           <>
@@ -66,12 +67,21 @@ export default function AnalysisButton({
           <Lock className="inline h-3.5 w-3.5 mr-1" />
           Free analyses used: {analysisCount}/{maxFreeAnalyses}
         </div>
-        <Button
-          onClick={() => (window.location.href = "/billing")}
-          className="bg-linear-to-r from-yellow-500 to-amber-500 text-black hover:from-yellow-400 hover:to-amber-400 font-semibold min-w-[200px]"
-        >
-          Upgrade to Pro for Unlimited Runs
-        </Button>
+        <WebPaymentBoundary fallback={
+          <Button
+            onClick={() => (window.location.href = "/billing")}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold min-w-[200px]"
+          >
+            Subscribe in App
+          </Button>
+        }>
+          <Button
+            onClick={() => (window.location.href = "/billing")}
+            className="bg-linear-to-r from-yellow-500 to-amber-500 text-black hover:from-yellow-400 hover:to-amber-400 font-semibold min-w-[200px]"
+          >
+            Upgrade to Pro for Unlimited Runs
+          </Button>
+        </WebPaymentBoundary>
       </div>
     );
   }
@@ -89,12 +99,21 @@ export default function AnalysisButton({
       >
         {loading ? "Analyzing..." : "Run Full Card Analysis"}
       </Button>
-      <button
-        onClick={() => (window.location.href = "/billing")}
-        className="text-xs text-muted-foreground hover:text-foreground underline decoration-dotted"
-      >
-        Upgrade for unlimited analysis runs
-      </button>
+      <WebPaymentBoundary fallback={
+        <button
+          onClick={() => (window.location.href = "/billing")}
+          className="text-xs text-muted-foreground hover:text-foreground underline decoration-dotted"
+        >
+          Subscribe for unlimited analysis runs
+        </button>
+      }>
+        <button
+          onClick={() => (window.location.href = "/billing")}
+          className="text-xs text-muted-foreground hover:text-foreground underline decoration-dotted"
+        >
+          Upgrade for unlimited analysis runs
+        </button>
+      </WebPaymentBoundary>
     </div>
   );
 }

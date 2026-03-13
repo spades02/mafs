@@ -27,6 +27,18 @@ export const auth = betterAuth({
                 type: "string",
                 required: false,
             },
+            rcCustomerId: {
+                type: "string",
+                required: false,
+            },
+            subscriptionPlatform: {
+                type: "string",
+                required: false,
+            },
+            subscriptionExpiresAt: {
+                type: "date",
+                required: false,
+            },
             isPro: {
                 type: "boolean",
                 required: true,

@@ -3,7 +3,8 @@
 import { db } from "@/db/client"
 import { events } from "@/db/schema/events-schema"
 import { fights } from "@/db/schema/fights-schema"
-import { gt, asc, eq, sql } from "drizzle-orm"
+import { historicalOdds } from "@/db/schema/historical-odds-schema"
+import { gt, asc, eq, and, sql } from "drizzle-orm"
 
 export async function getFutureEvents() {
     try {
@@ -61,8 +62,6 @@ export async function getEventFights(eventId: string) {
             ...fight,
             fightId: fight.id, // Normalized to fightId for frontend compatibility
             eventId: fight.eventId,
-            // createdAt: fight.createdAt.toISOString(), // Removed
-            // updatedAt: fight.updatedAt.toISOString(), // Removed
             fighter1: f1 ? {
                 id: f1.id,
                 firstName: f1.firstName,
@@ -79,5 +78,47 @@ export async function getEventFights(eventId: string) {
     } catch (error) {
         console.error(`Failed to fetch fights for event ${eventId}:`, error)
         return []
+    }
+}
+
+export async function getFightOddsHistory(fightId: string, fighterId: string) {
+    try {
+        const history = await db.select({
+            timestamp: historicalOdds.timestamp,
+            moneyline: historicalOdds.moneyline
+        })
+            .from(historicalOdds)
+            .where(
+                and(
+                    eq(historicalOdds.fightId, fightId),
+                    eq(historicalOdds.fighterId, fighterId)
+                )
+            )
+            .orderBy(asc(historicalOdds.timestamp));
+
+        // Return a condensed, ordered subset of points to avoid sending thousands of rows
+        // For line charts we only need max ~50 points
+        const step = Math.max(1, Math.floor(history.length / 50));
+        const chartData = [];
+
+        for (let i = 0; i < history.length; i += step) {
+            chartData.push({
+                timestamp: history[i].timestamp?.toISOString() ?? new Date().toISOString(),
+                oddsAmerican: history[i].moneyline || 0
+            });
+        }
+
+        // Always include the absolute last known odds point if it wasn't captured by the step logic
+        if (history.length > 0 && chartData.length > 0 && chartData[chartData.length - 1].timestamp !== history[history.length - 1].timestamp?.toISOString()) {
+            chartData.push({
+                timestamp: history[history.length - 1].timestamp?.toISOString() || new Date().toISOString(),
+                oddsAmerican: history[history.length - 1].moneyline || 0
+            });
+        }
+
+        return chartData;
+    } catch (error) {
+        console.error(`Failed to fetch odds history for fight ${fightId}:`, error);
+        return [];
     }
 }

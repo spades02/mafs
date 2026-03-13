@@ -8,6 +8,7 @@ import { Progress } from "../../ui/progress";
 import { Badge } from "../../ui/badge";
 import { Check, CreditCard, ShieldCheck, Lock, Sparkles, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import WebPaymentBoundary from "@/components/WebPaymentBoundary";
 
 interface BillingDashboardProps {
   user: {
@@ -139,9 +140,11 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
           </CardContent>
           {isPro && (
             <CardFooter>
-              <Button variant="outline" size="sm" onClick={handleManageSubscription} disabled={loading}>
-                {loading ? "Loading..." : "Update Payment Details"}
-              </Button>
+              <WebPaymentBoundary>
+                <Button variant="outline" size="sm" onClick={handleManageSubscription} disabled={loading}>
+                  {loading ? "Loading..." : "Update Payment Details"}
+                </Button>
+              </WebPaymentBoundary>
             </CardFooter>
           )}
         </Card>
@@ -170,14 +173,16 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
               </CardContent>
             </div>
             <CardFooter>
-              <Button
-                className="w-full"
-                variant="default"
-                onClick={handleManageSubscription}
-                disabled={loading}
-              >
-                {loading ? "Processing..." : "Open Customer Portal"}
-              </Button>
+              <WebPaymentBoundary>
+                <Button
+                  className="w-full"
+                  variant="default"
+                  onClick={handleManageSubscription}
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : "Open Customer Portal"}
+                </Button>
+              </WebPaymentBoundary>
             </CardFooter>
           </Card>
         ) : (
@@ -227,20 +232,22 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
 
             <CardFooter>
               {/* BUTTON STYLE COPIED FROM YOUR INSPIRATION */}
-              <Button
-                type="button"
-                className={cn(
-                  "w-full font-semibold shadow-md",
-                  hasFreeLimitReached
-                    ? "bg-linear-to-r from-yellow-500 to-amber-500 text-black hover:from-yellow-400 hover:to-amber-400"
-                    : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                )}
-                size="lg"
-                onClick={handleUpgrade}
-                disabled={loading}
-              >
-                {loading ? "Processing..." : (hasFreeLimitReached ? "Upgrade for Unlimited Runs" : "Upgrade Now")}
-              </Button>
+              <WebPaymentBoundary>
+                <Button
+                  type="button"
+                  className={cn(
+                    "w-full font-semibold shadow-md",
+                    hasFreeLimitReached
+                      ? "bg-linear-to-r from-yellow-500 to-amber-500 text-black hover:from-yellow-400 hover:to-amber-400"
+                      : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                  )}
+                  size="lg"
+                  onClick={handleUpgrade}
+                  disabled={loading}
+                >
+                  {loading ? "Processing..." : (hasFreeLimitReached ? "Upgrade for Unlimited Runs" : "Upgrade Now")}
+                </Button>
+              </WebPaymentBoundary>
             </CardFooter>
           </Card>
         )}

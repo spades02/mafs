@@ -39,7 +39,27 @@ export type SimulationBet = {
         edge: number
         reasoning: string
     }>
+
+    // New Prototype UI Elements
+    walkthroughSimulations?: Array<{
+        category: string
+        probability: number
+    }>
+    advantageMetrix?: {
+        marketPositioning: boolean
+        modelEfficiency: boolean
+        matchupFit: boolean
+        valueReturn: boolean
+    }
+    oddsHistory?: OddsHistoryPoint[]
+    ev?: number | null
 }
+
+export type OddsHistoryPoint = {
+    timestamp: string;
+    oddsAmerican: number;
+}
+
 
 export type Fight = {
     id: string
@@ -104,6 +124,20 @@ export type FightBreakdown = {
     modelLeaningOutcome?: string
     playableUpTo?: string
     variance?: string
+    // Prototype UI Elements
+    walkthroughSimulations?: Array<{
+        category: string
+        probability: number
+    }>
+    advantageMetrix?: {
+        marketPositioning: boolean
+        modelEfficiency: boolean
+        matchupFit: boolean
+        valueReturn: boolean
+    }
+    oddsHistory?: OddsHistoryPoint[] // Injected from server component
+    mafsIntelligence?: Array<{ type: string; text: string }>
+    simulationPaths?: Array<{ name: string; pct: number; desc: string }>
 }
 
 export type EventData = {

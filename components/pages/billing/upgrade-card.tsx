@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import WebPaymentBoundary from "@/components/WebPaymentBoundary";
 
 export default function UpgradeCard({ isPro }: { isPro: boolean }) {
   const upgrade = async () => {
@@ -29,9 +30,11 @@ export default function UpgradeCard({ isPro }: { isPro: boolean }) {
       <p className="text-sm text-muted-foreground">
         Unlock unlimited fight card analysis
       </p>
-      <Button className="mt-4" onClick={upgrade}>
-        Upgrade
-      </Button>
+      <WebPaymentBoundary>
+        <Button className="mt-4" onClick={upgrade}>
+          Upgrade
+        </Button>
+      </WebPaymentBoundary>
     </div>
   );
 }

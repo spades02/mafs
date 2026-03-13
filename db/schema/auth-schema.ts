@@ -23,7 +23,12 @@ export const user = pgTable("user", {
   stripeCustomerId: text("stripe_customer_id").unique(),
   stripeSubscriptionId: text("stripe_subscription_id").unique(),
   subscriptionStatus: text("subscription_status"),
-  // e.g. "active", "canceled", "past_due"
+  // e.g. "active", "canceled", "past_due", "expired"
+
+  // 🍎 RevenueCat (Apple IAP)
+  rcCustomerId: text("rc_customer_id").unique(),
+  subscriptionPlatform: text("subscription_platform"), // "stripe" | "revenuecat"
+  subscriptionExpiresAt: timestamp("subscription_expires_at"),
 
   // 💰 Access control
   isPro: boolean("is_pro").default(false).notNull(),

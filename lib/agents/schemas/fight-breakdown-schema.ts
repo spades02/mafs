@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const FightBreakdownSchema = z.object({
   // Basic lines
-  trueLine: z.string().optional().describe("My fair line, both sides e.g. '-200 / +170'"),
+  trueLine: z.string().optional().describe("MONEYLINE fair odds for both fighters, format: '-200 / +170'. Must be numeric odds with +/- signs, never bet labels or descriptions."),
   marketLine: z.string().optional().describe("Current market line, both sides e.g. '-150 / +130'"),
   mispricing: z.string().optional().describe("Percentage mispricing e.g. '+5.2%'"),
 
@@ -43,6 +43,19 @@ export const FightBreakdownSchema = z.object({
     pathToVictory: z.string().optional(),
     marketAnalysis: z.array(z.string()).optional(),
   }).optional(),
+
+  // MAFS Intelligence — structured reasoning bullets
+  mafsIntelligence: z.array(z.object({
+    type: z.string().describe("Category: 'Matchup Edge', 'Style Clash', 'Market Gap', 'Conditioning', etc."),
+    text: z.string().describe("1-2 sentence reasoning for this intelligence point"),
+  })).min(2).max(4).optional().describe("2-4 key intelligence insights about this fight"),
+
+  // Simulation Path Breakdown — named outcome paths with probabilities
+  simulationPaths: z.array(z.object({
+    name: z.string().describe("Path name, e.g. 'Pressure KO', 'Late Decision', 'Submission Path'"),
+    pct: z.number().min(0).max(100).describe("Probability percentage"),
+    desc: z.string().describe("1 sentence explanation of this path"),
+  })).min(2).max(5).optional().describe("2-5 outcome path scenarios with probabilities"),
 });
 
 export const FightBreakdownsSchema = z.object({

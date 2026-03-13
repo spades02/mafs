@@ -13,9 +13,9 @@ import {
   FightBreakdownsSchema,
 } from "@/lib/agents/schemas/fight-breakdown-schema";
 import { resolveLiveOdds } from "@/lib/odds/resolve-live-odds";
-import { buildMafsEventInput } from "@/lib/mafs/fetchFighterStats";
-
 import { americanToDecimal, oddsToProb } from "@/lib/odds/utils";
+import { getFightOddsHistory } from "@/app/(app)/dashboard/actions";
+import { buildMafsEventInput } from "@/lib/mafs/fetchFighterStats";
 
 // ---------------- CONFIG ----------------
 
@@ -165,10 +165,12 @@ TASK:
 3. **Compare** with market lines if available.
 
 4. **MULTI-MARKET EVALUATION** — THIS IS CRITICAL:
-   You MUST evaluate AT LEAST 3 of these 6 betting markets and populate the 'marketEvaluations' array:
+   You MUST evaluate AT LEAST 3 of these 8 betting markets and populate the 'marketEvaluations' array:
    - **ML** (Moneyline): Who wins?
    - **Over / Under**: Will the fight go past 2.5 rounds (or 1.5 for 3-round fights)?
    - **ITD** (Inside The Distance): Does the fight end by KO/TKO or submission?
+   - **GTD** (Goes The Distance): The fight goes the full scheduled rounds and ends by decision.
+   - **DGTD** (Doesn't Go The Distance): The fight does NOT go the full distance — ends by finish.
    - **MOV** (Method of Victory): HOW does the winner win — KO, submission, or decision?
    - **Round**: What round or round group does it end in?
    - **Double Chance**: Combined outcomes (e.g. Fighter wins by KO OR decision)
@@ -176,15 +178,15 @@ TASK:
    For EACH market you evaluate, provide: market, label, probability (0-1), edge (%), and reasoning.
    Then SET 'bet_type' and 'label' to the SINGLE BEST MARKET — the one with the highest edge.
 
-   DO NOT default to Moneyline. If O/U or ITD has a bigger edge, recommend THAT instead.
+   DO NOT default to Moneyline. If GTD, ITD, or O/U has a bigger edge, recommend THAT instead.
 
 5. **DECIDE**: Is the best market worth betting?
    - **Scenario A (ML Odds Available)**: Recommend if your estimated prob > Market Implied %. Otherwise, PASS.
    - **Scenario B (Non-ML or No Odds)**: Recommend only if probability is > 60% AND you have high confidence. Otherwise, PASS.
 
 6. **Generate Output**:
-   - **Label**: ALWAYS set 'label' to the specific bet (e.g. "Pereira ITD", "Over 2.5 Rounds", "Pantoja by Sub"). NEVER use "No Bet" or "Pass" as the label.
-   - **bet_type**: MUST be one of ["ML", "ITD", "Over", "Under", "MOV", "Round", "Double Chance", "Spread", "Prop", "No Bet"]. If passing, use "No Bet".
+   - **Label**: ALWAYS set 'label' to the specific bet (e.g. "Pereira ITD", "Over 2.5 Rounds", "Pantoja by Sub", "Fight GTD"). NEVER use "No Bet" or "Pass" as the label.
+   - **bet_type**: MUST be one of ["ML", "ITD", "Over", "Under", "MOV", "Round", "Double Chance", "GTD", "DGTD", "Spread", "Prop", "No Bet"]. If passing, use "No Bet".
 
 7. **confidencePct** — CRITICAL RULES:
    - If you decide to PASS (low edge/no value), set 'confidencePct' to 0.
@@ -201,8 +203,12 @@ TASK:
    - "high": Heavy underdog play, ITD/finish bet, volatile weight class, coinflip fight
    - Default to "medium" when unsure. Do NOT default to "high".
 
-9. **Generate** 'agentSignals' even if passing (explain why stats are weak/strong).
-10. **Populate** 'detailedReason'.
+9. **NEW UI ELEMENTS** — REQUIRED:
+   - **walkthroughSimulations**: Supply exactly 3 items: 'Pressure/Pacing Control', 'Early Window Finish', and 'Damage/Durability Edge' with estimated probabilities (0-100).
+   - **advantageMetrix**: Evaluate the 4 criteria (marketPositioning, modelEfficiency, matchupFit, valueReturn) based on the bet's qualities. Set to true if it holds a strong advantage.
+
+10. **Generate** 'agentSignals' even if passing.
+11. **Populate** 'detailedReason'.
 
 IMPORTANT:
 - Be strict. Do not force a bet on 50/50 fights with bad odds.
@@ -255,6 +261,13 @@ IMPORTANT:
     ev = parseFloat(((pSim * decimalOdds - 1) * 100).toFixed(1));
   }
 
+  // Fetch Odds History for Line Movement Chart
+  let oddsHistory: any[] = [];
+  if (matchedIndex !== -1) {
+    const targetFighterId = fight.fighterIds[matchedIndex];
+    oddsHistory = await getFightOddsHistory(fight.id, targetFighterId);
+  }
+
   // Final Object Construction
   const finalEdge: FightEdgeSummary = {
     ...edgeObj,
@@ -266,6 +279,7 @@ IMPORTANT:
     ev: ev,
     status: "qualified", // Default, filtering happens on frontend
     rejectReasons: [],
+    oddsHistory: oddsHistory.length > 0 ? oddsHistory : undefined,
   };
 
   // override odds string if 0
@@ -323,7 +337,7 @@ MARKET IMPLIED: ${(pImp * 100).toFixed(1)}%
 EDGE: ${edgePct}%
 
 Generate a detailed "FightBreakdown" including:
-- "trueLine": Your fair odds for both fighters (e.g. "-150 / +130")
+- "trueLine": Your FAIR MONEYLINE ODDS for BOTH FIGHTERS in the format "Fighter1Odds / Fighter2Odds" (e.g. "-150 / +130"). This must ALWAYS be numeric moneyline odds with +/- signs separated by " / ". NEVER put bet labels, descriptions, or prop names here — only odds.
 - "marketLine": The actual market MLs provided: "${moneylineText}"
 - "mispricing": The percentage gap.
 - "pathToVictory": Most likely outcomes.
@@ -335,6 +349,8 @@ Generate a detailed "FightBreakdown" including:
 - "playableUpTo": Price limit.
 - "variance": e.g. "Medium (late-finish dependency)".
 - "primaryRisk": Key risk factor.
+- "mafsIntelligence": 2-4 key intelligence points. Each has a "type" (e.g. "Matchup Edge", "Style Clash", "Market Gap", "Conditioning") and "text" (1-2 sentence reasoning).
+- "simulationPaths": 2-5 named outcome scenarios. Each has "name" (e.g. "Pressure KO", "Late Decision", "Submission Path"), "pct" (probability 0-100), and "desc" (1 sentence).
 
 Keep it punchy, professional, and analytical.
 `,
@@ -438,7 +454,7 @@ export default async function Agents(
         onStreamUpdate?.(payload);
         results.push(payload);
       } catch (err: any) {
-        console.error(`✗ Fight failed: ${fight.matchup}`, err);
+        console.error(`✗ Fight failed: ${fight.matchup}`, err?.message, err?.stack?.split('\n').slice(0, 3).join('\n'));
         // Fallback logic could be added here similar to previous version if robustness is key
         // For brevity in this refactor, skipping full graceful degradation reconstruction
         onStreamUpdate?.({
