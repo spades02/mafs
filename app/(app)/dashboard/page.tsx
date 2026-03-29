@@ -5,6 +5,7 @@ import { headers } from "next/headers"
 import { db } from "@/db"
 import { user } from "@/db/schema"
 import { eq } from "drizzle-orm"
+import { getThresholds } from "@/lib/calibration/thresholds"
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
   }
 
   const futureEvents = await getFutureEvents()
+  const thresholds = await getThresholds()
 
-  return <DashboardClient initialEvents={futureEvents} userOddsFormat={oddsFormat} />
+  return <DashboardClient initialEvents={futureEvents} userOddsFormat={oddsFormat} thresholds={thresholds} />
 }

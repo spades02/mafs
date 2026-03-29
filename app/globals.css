@@ -1552,4 +1552,29 @@
       opacity: 0;
     }
   }
+
+  @keyframes splash-logo-reveal {
+    0% {
+      opacity: 0;
+      transform: translateY(60px);
+    }
+    15% {
+      opacity: 1;
+      transform: translateY(0);
+      /* Slow down in the middle */
+    }
+    85% {
+      opacity: 1;
+      transform: translateY(-10px);
+      /* Accelerate up at the end */
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-80px) scale(0.95);
+    }
+  }
+
+  .animate-splash-logo {
+    animation: splash-logo-reveal 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  }
 }

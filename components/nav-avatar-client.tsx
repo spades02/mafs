@@ -12,7 +12,7 @@ import { useDirtyState } from './dirty-state-provider'
 import { useRouter } from 'next/navigation'
 
 interface NavAvatarClientProps {
-  avatarUrl: string
+  avatarUrl: string | null
   name: string | null
   email: string | null
   isPro: boolean

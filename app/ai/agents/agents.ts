@@ -12,10 +12,11 @@ import {
   FightBreakdownType,
   FightBreakdownsSchema,
 } from "@/lib/agents/schemas/fight-breakdown-schema";
-import { resolveLiveOdds } from "@/lib/odds/resolve-live-odds";
+import { resolveLiveOdds, FighterOdds } from "@/lib/odds/resolve-live-odds";
 import { americanToDecimal, oddsToProb } from "@/lib/odds/utils";
 import { getFightOddsHistory } from "@/app/(app)/dashboard/actions";
 import { buildMafsEventInput } from "@/lib/mafs/fetchFighterStats";
+import { getActiveCalibrationConfig, CalibrationConfig } from "@/lib/calibration/get-active-config";
 
 // ---------------- CONFIG ----------------
 
@@ -29,6 +30,7 @@ export type SimplifiedFight = {
   matchup: string;
   moneylines?: [number, number] | null;
   fighterIds: [string, string];
+  fullOdds?: { a: FighterOdds | null; b: FighterOdds | null };
 };
 
 export type SimplifiedEvent = {
@@ -110,7 +112,8 @@ function getBestOddsIndex(
 async function analyzeFight(
   fight: SimplifiedFight,
   eventName: string,
-  mafsEventInputFighters: any[]
+  mafsEventInputFighters: any[],
+  calibrationConfig?: CalibrationConfig
 ): Promise<{ edge: FightEdgeSummary; breakdown: FightBreakdownType }> {
 
   const fighter1 = mafsEventInputFighters.find((f) => f.id === fight.fighterIds[0]);
@@ -121,6 +124,27 @@ async function analyzeFight(
   const moneylineText = fight.moneylines
     ? `${f1Name}: ${fight.moneylines[0]} / ${f2Name}: ${fight.moneylines[1]}`
     : "No odds available";
+
+  const oddsA = fight.fullOdds?.a;
+  const oddsB = fight.fullOdds?.b;
+
+  function fmtOdd(v: number | null | undefined): string {
+    if (v == null) return "N/A";
+    return v > 0 ? `+${v}` : `${v}`;
+  }
+
+  // Fight-level props (same regardless of fighter)
+  const fightProps = oddsA ?? oddsB;
+  const marketOddsBlock = fight.fullOdds
+    ? `
+FULL MARKET ODDS (use these to identify the best edge across all markets):
+Fighter A - ${f1Name}: ML ${fmtOdd(oddsA?.moneyline)} | KO/TKO ${fmtOdd(oddsA?.koTko)} | Sub ${fmtOdd(oddsA?.submission)} | Decision ${fmtOdd(oddsA?.decision)} | Win by Dec ${fmtOdd(oddsA?.winByDecision)}
+Fighter B - ${f2Name}: ML ${fmtOdd(oddsB?.moneyline)} | KO/TKO ${fmtOdd(oddsB?.koTko)} | Sub ${fmtOdd(oddsB?.submission)} | Decision ${fmtOdd(oddsB?.decision)} | Win by Dec ${fmtOdd(oddsB?.winByDecision)}
+Fight Props: ITD Yes ${fmtOdd(fightProps?.itdYes)} | ITD No ${fmtOdd(fightProps?.itdNo)} | Over 1.5 ${fmtOdd(fightProps?.over1_5)} | Under 1.5 ${fmtOdd(fightProps?.under1_5)} | Over 2.5 ${fmtOdd(fightProps?.over2_5)} | Under 2.5 ${fmtOdd(fightProps?.under2_5)} | Over 3.5 ${fmtOdd(fightProps?.over3_5)} | Under 3.5 ${fmtOdd(fightProps?.under3_5)}
+GTD (Goes to Decision) ${fmtOdd(fightProps?.fightGoesToDecision)} | DGTD (Doesn't Go Distance) ${fmtOdd(fightProps?.fightNotGoToDecision)} | Draw ${fmtOdd(fightProps?.draw)}
+Round Finishes - ${f1Name}: R1 ${fmtOdd(oddsA?.round1Finish)} | R2 ${fmtOdd(oddsA?.round2Finish)} | R3 ${fmtOdd(oddsA?.round3Finish)}
+Round Finishes - ${f2Name}: R1 ${fmtOdd(oddsB?.round1Finish)} | R2 ${fmtOdd(oddsB?.round2Finish)} | R3 ${fmtOdd(oddsB?.round3Finish)}`
+    : "";
 
   // Build clean fighter stat blocks — strip zero/empty values so AI doesn't think data is "limited"
   const formatFighterStats = (f: any) => {
@@ -154,6 +178,7 @@ async function analyzeFight(
 EVENT: ${eventName}
 MATCHUP: ${fight.matchup}
 MONEYLINES: ${moneylineText}
+${marketOddsBlock}
 
 FIGHTER STATS:
 - ${f1Name}: ${f1Stats}
@@ -218,34 +243,55 @@ IMPORTANT:
   });
 
   // Reconcile Data
-  const chosenBetName = edgeObj.label.toLowerCase(); // or edgeObj.bet? label is "Pereira ITD", bet is "ITD"
-
-  // Determining which side the bet is on to grab odds
-  // We try to match the label or the 'fight' string parts?
-  // Let's rely on the AI to have picked a side in 'label' often being names
   const matchedIndex = getBestOddsIndex(edgeObj.label, f1Name, f2Name);
+  const betSideOdds = matchedIndex === 0 ? oddsA : matchedIndex === 1 ? oddsB : (oddsA ?? oddsB);
 
+  // Pick the right market odds column based on bet_type
   let marketOdd = 0;
-  if (fight.moneylines && matchedIndex !== -1) {
-    marketOdd = fight.moneylines[matchedIndex];
-  } else if (fight.moneylines) {
-    // Robust fallback: Check if label contains names directly
-    const f1Last = f1Name.split(" ").pop()?.toLowerCase() || "";
-    const f2Last = f2Name.split(" ").pop()?.toLowerCase() || "";
-    const labelLower = edgeObj.label.toLowerCase();
+  const bt = edgeObj.bet_type;
 
-    if (f1Last && labelLower.includes(f1Last)) {
-      marketOdd = fight.moneylines[0];
-    } else if (f2Last && labelLower.includes(f2Last)) {
-      marketOdd = fight.moneylines[1];
+  if (bt === "ML") {
+    // Use moneyline of the matched fighter side
+    if (fight.moneylines && matchedIndex !== -1) {
+      marketOdd = fight.moneylines[matchedIndex];
+    } else if (fight.moneylines) {
+      const f1Last = f1Name.split(" ").pop()?.toLowerCase() || "";
+      const f2Last = f2Name.split(" ").pop()?.toLowerCase() || "";
+      const labelLower = edgeObj.label.toLowerCase();
+      if (f1Last && labelLower.includes(f1Last)) marketOdd = fight.moneylines[0];
+      else if (f2Last && labelLower.includes(f2Last)) marketOdd = fight.moneylines[1];
     }
+    if (marketOdd === 0) marketOdd = betSideOdds?.moneyline ?? 0;
+  } else if (bt === "ITD") {
+    marketOdd = (oddsA ?? oddsB)?.itdYes ?? 0;
+  } else if (bt === "GTD") {
+    marketOdd = (oddsA ?? oddsB)?.fightGoesToDecision ?? 0;
+  } else if (bt === "DGTD") {
+    marketOdd = (oddsA ?? oddsB)?.fightNotGoToDecision ?? 0;
+  } else if (bt === "Over") {
+    const label = edgeObj.label.toLowerCase();
+    if (label.includes("3.5")) marketOdd = (oddsA ?? oddsB)?.over3_5 ?? 0;
+    else if (label.includes("1.5")) marketOdd = (oddsA ?? oddsB)?.over1_5 ?? 0;
+    else marketOdd = (oddsA ?? oddsB)?.over2_5 ?? 0;
+  } else if (bt === "Under") {
+    const label = edgeObj.label.toLowerCase();
+    if (label.includes("3.5")) marketOdd = (oddsA ?? oddsB)?.under3_5 ?? 0;
+    else if (label.includes("1.5")) marketOdd = (oddsA ?? oddsB)?.under1_5 ?? 0;
+    else marketOdd = (oddsA ?? oddsB)?.under2_5 ?? 0;
+  } else if (bt === "MOV") {
+    const label = edgeObj.label.toLowerCase();
+    if (label.includes("ko") || label.includes("tko")) marketOdd = betSideOdds?.koTko ?? 0;
+    else if (label.includes("sub")) marketOdd = betSideOdds?.submission ?? 0;
+    else if (label.includes("dec")) marketOdd = betSideOdds?.decision ?? 0;
+  } else if (bt === "Round") {
+    const label = edgeObj.label.toLowerCase();
+    if (label.includes("r1") || label.includes("round 1")) marketOdd = betSideOdds?.round1Finish ?? 0;
+    else if (label.includes("r2") || label.includes("round 2")) marketOdd = betSideOdds?.round2Finish ?? 0;
+    else if (label.includes("r3") || label.includes("round 3")) marketOdd = betSideOdds?.round3Finish ?? 0;
+  } else {
+    // Fallback for Double Chance, Spread, Prop etc: use ML
+    if (fight.moneylines && matchedIndex !== -1) marketOdd = fight.moneylines[matchedIndex];
   }
-
-  // If bet type is NOT ML (e.g. ITD, Over/Under), we generally don't have those specific odds in 'fight.moneylines' (which are usually MLs).
-  // So 'marketOdd' might be misleading if used for ITD calculation.
-  // For now, if bet_type != "ML", we might mark oddsUnavailable unless AI provided them?
-  // But the prompt gave MLs.
-  // For MVP: If bet_type is ML, use ML odds. Else, if we can't get props, we default to 0/Unknown.
 
   // Calculate P_imp
   const pImp = marketOdd !== 0 ? oddsToProb(marketOdd) : 0.5;
@@ -271,7 +317,8 @@ IMPORTANT:
   // Final Object Construction
   const finalEdge: FightEdgeSummary = {
     ...edgeObj,
-    id: fight.id, // Generate or pass
+    id: fight.id,
+    fighterId: matchedIndex !== -1 ? fight.fighterIds[matchedIndex] : undefined,
     odds_american: marketOdd > 0 ? `+${marketOdd}` : `${marketOdd}`,
     P_sim: pSim,
     P_imp: pImp,
@@ -282,7 +329,7 @@ IMPORTANT:
     oddsHistory: oddsHistory.length > 0 ? oddsHistory : undefined,
   };
 
-  // override odds string if 0
+  // Override odds string if 0
   if (marketOdd === 0) finalEdge.odds_american = "No odds available";
 
   // ---- Safety net: ALWAYS ensure sensible confidencePct and varianceTag ----
@@ -291,8 +338,14 @@ IMPORTANT:
 
   console.log(`[MAFS DEBUG] ${fight.matchup} | Raw model output: confidencePct=${edgeObj.confidencePct}, varianceTag=${edgeObj.varianceTag}, bet_type=${edgeObj.bet_type}, stability=${edgeObj.stability_score}`);
 
+  // Calibration config bounds
+  const confScaling = calibrationConfig?.confidenceScaling ?? { multiplier: 1.0, clampMin: 30, clampMax: 95 };
+  const varPenalties = calibrationConfig?.variancePenalties ?? {};
+  const signalWeights = calibrationConfig?.agentSignalWeights ?? {};
+
   // Always derive confidence from data if model returns 0 or unreasonably low
-  if (!finalEdge.confidencePct || finalEdge.confidencePct <= 5) {
+  // Skip derivation for No Bet — 0 confidence is correct in that case
+  if (finalEdge.bet_type !== "No Bet" && (!finalEdge.confidencePct || finalEdge.confidencePct <= 5)) {
     const edgeBoost = Math.min(Math.abs(edgePct) * 2, 20); // Up to +20 from edge
     const probBoost = Math.max(0, (pSim - 0.3) * 80); // Scale from 30% probability up
     const stabilityBoost = (edgeObj.stability_score || 0.5) * 20; // Up to +20 from stability
@@ -302,6 +355,14 @@ IMPORTANT:
       Math.min(95, Math.max(35, 30 + edgeBoost + probBoost + stabilityBoost + hasOdds))
     );
     console.log(`[MAFS DEBUG] ${fight.matchup} | Derived confidencePct=${finalEdge.confidencePct} (edgeBoost=${edgeBoost.toFixed(1)}, probBoost=${probBoost.toFixed(1)}, stabilityBoost=${stabilityBoost.toFixed(1)})`);
+  }
+
+  // Apply calibration confidence scaling
+  if (confScaling.multiplier !== 1.0) {
+    finalEdge.confidencePct = Math.round(
+      Math.min(confScaling.clampMax, Math.max(confScaling.clampMin, finalEdge.confidencePct * confScaling.multiplier))
+    );
+    console.log(`[MAFS DEBUG] ${fight.matchup} | Calibrated confidencePct=${finalEdge.confidencePct} (multiplier=${confScaling.multiplier})`);
   }
 
   // Derive variance from actual data instead of trusting model
@@ -320,6 +381,29 @@ IMPORTANT:
     console.log(`[MAFS DEBUG] ${fight.matchup} | Corrected varianceTag to: ${finalEdge.varianceTag}`);
   }
 
+  // Apply calibration variance penalty to confidence
+  const varPenalty = varPenalties[finalEdge.varianceTag] ?? 0;
+  if (varPenalty !== 0) {
+    finalEdge.confidencePct = Math.round(
+      Math.min(95, Math.max(10, finalEdge.confidencePct + varPenalty))
+    );
+    console.log(`[MAFS DEBUG] ${fight.matchup} | Variance penalty ${varPenalty} applied → confidencePct=${finalEdge.confidencePct}`);
+  }
+
+  // Apply calibration agent signal weights for weighted consensus
+  if (finalEdge.agentSignals && Object.keys(signalWeights).length > 0) {
+    let weightedPass = 0;
+    let totalWeight = 0;
+    for (const sig of finalEdge.agentSignals) {
+      const w = signalWeights[sig.name] ?? 1.0;
+      totalWeight += w;
+      if (sig.signal === "pass") weightedPass += w;
+    }
+    const weightedConsensus = totalWeight > 0 ? weightedPass / totalWeight : 0;
+    (finalEdge as any)._weightedAgentConsensus = weightedConsensus;
+    console.log(`[MAFS DEBUG] ${fight.matchup} | Weighted agent consensus: ${(weightedConsensus * 100).toFixed(0)}%`);
+  }
+
   console.log(`[MAFS DEBUG] ${fight.matchup} | FINAL: confidencePct=${finalEdge.confidencePct}, varianceTag=${finalEdge.varianceTag}, edge=${edgePct}%`);
 
 
@@ -328,6 +412,7 @@ IMPORTANT:
     model: openai(MODEL),
     schema: FightBreakdownsSchema,
     system: MAFS_PROMPT,
+    maxRetries: 3,
     prompt: `
 EVENT: ${eventName}
 FIGHT: ${fight.matchup}
@@ -381,6 +466,14 @@ export default async function Agents(
   event: SimplifiedEvent,
   onStreamUpdate?: StreamCallback
 ) {
+  // Load calibration config (non-blocking — falls back to defaults)
+  let calibrationConfig: CalibrationConfig | undefined;
+  try {
+    calibrationConfig = await getActiveCalibrationConfig();
+  } catch (err) {
+    console.error("[MAFS] Failed to load calibration config, using defaults:", err);
+  }
+
   // 1. Initial Status
   onStreamUpdate?.({
     type: "status",
@@ -411,12 +504,13 @@ export default async function Agents(
     message: "Checking historical odds database...",
   });
 
-  // Resolve odds from database only
+  // Resolve full props odds from mma_odds_data
   for (const fight of event.fights) {
-    if (!fight.moneylines) {
+    if (!fight.moneylines && !fight.fullOdds) {
       const res = await resolveLiveOdds(fight.matchup);
-      if (res.odds) {
-        fight.moneylines = res.odds;
+      if (res.odds) fight.moneylines = res.odds;
+      if (res.fighterA || res.fighterB) {
+        fight.fullOdds = { a: res.fighterA, b: res.fighterB };
       }
     }
   }
@@ -440,7 +534,8 @@ export default async function Agents(
         const { edge, breakdown } = await analyzeFight(
           fight,
           event.Name,
-          mafsEventInput.fighters
+          mafsEventInput.fighters,
+          calibrationConfig
         );
 
         const payload: FightResult = {

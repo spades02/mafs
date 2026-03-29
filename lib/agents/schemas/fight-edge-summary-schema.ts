@@ -80,6 +80,7 @@ export const FightEdgeSummaryGenerationSchema = z.object({
 export type FightEdgeSummary = z.infer<typeof FightEdgeSummaryGenerationSchema> & {
   // These will be calculated/injected by the engine
   id: string | number;
+  fighterId?: string;
   odds_american: string;
   P_sim: number; // mapped from truthProbability
   P_imp: number; // calculated from odds

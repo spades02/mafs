@@ -24,7 +24,7 @@ export const FightBreakdownSchema = z.object({
   // Deep Dive
   pathToVictory: z.string().optional().describe("Most likely outcomes separated by pipe | e.g. 'Pereira KO (45%) | Decision (20%)'"),
   outcomeDistribution: z.string().optional().describe("Detailed outcome distribution string e.g. 'Du Plessis: TKO R3-R5 (48%) | Adesanya: KO R1-R2 (28%) | Decision (24%)'"),
-  marketAnalysis: z.array(z.string()).optional().describe("Why the market line exists and why it is wrong"),
+  marketAnalysis: z.union([z.string(), z.array(z.string())]).optional().describe("Why the market line exists and why it is wrong"),
   varianceReason: z.string().optional().describe("If variance is high, why?"),
   primaryRisk: z.string().optional().describe("The biggest threat to this bet"),
 
@@ -41,7 +41,7 @@ export const FightBreakdownSchema = z.object({
     marketLine: z.string().optional(),
     mispricing: z.string().optional(),
     pathToVictory: z.string().optional(),
-    marketAnalysis: z.array(z.string()).optional(),
+    marketAnalysis: z.union([z.string(), z.array(z.string())]).optional(),
   }).optional(),
 
   // MAFS Intelligence — structured reasoning bullets

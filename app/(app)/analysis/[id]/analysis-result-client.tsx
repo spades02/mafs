@@ -12,11 +12,6 @@ import { FightBreakdown } from "@/components/pages/dashboard/fight-breakdown"
 import { Fight, SimulationBet, FightBreakdown as FightBreakdownModel } from "@/app/(app)/dashboard/d-types"
 import { formatOdds } from "@/lib/odds/utils"
 
-const MIN_MAF_PROB = 0.55
-const MIN_AGENT_CONSENSUS_PASS_RATE = 0.7
-const MIN_EDGE_PCT = 0.5
-const BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW = 0.55
-
 interface AnalysisResultClientProps {
     eventName: string
     eventDate: string
@@ -24,9 +19,19 @@ interface AnalysisResultClientProps {
     bets: SimulationBet[]
     breakdowns: Record<string, FightBreakdownModel>
     userOddsFormat?: string
+    thresholds?: {
+        MIN_MAF_PROB: number
+        MIN_EDGE_PCT: number
+        MIN_AGENT_CONSENSUS_PASS_RATE: number
+        BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW: number
+    }
 }
 
-export default function AnalysisResultClient({ eventName, eventDate, fights, bets, breakdowns, userOddsFormat = "american" }: AnalysisResultClientProps) {
+export default function AnalysisResultClient({ eventName, eventDate, fights, bets, breakdowns, userOddsFormat = "american", thresholds }: AnalysisResultClientProps) {
+    const MIN_MAF_PROB = thresholds?.MIN_MAF_PROB ?? 0.55
+    const MIN_AGENT_CONSENSUS_PASS_RATE = thresholds?.MIN_AGENT_CONSENSUS_PASS_RATE ?? 0.7
+    const MIN_EDGE_PCT = thresholds?.MIN_EDGE_PCT ?? 0.5
+    const BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW = thresholds?.BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW ?? 0.55
     const router = useRouter()
     const [selectedFight, setSelectedFight] = useState<string | null>(null)
     const [expandedBetIdx, setExpandedBetIdx] = useState<number | null>(null)

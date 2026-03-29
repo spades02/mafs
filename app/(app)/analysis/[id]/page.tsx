@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { getEventFights } from "@/app/(app)/dashboard/actions";
 import AnalysisResultClient from "./analysis-result-client";
 import { Fight } from "@/app/(app)/dashboard/d-types";
+import { getThresholds } from "@/lib/calibration/thresholds";
 
 interface AnalysisResult {
   mafsCoreEngine: any[];
@@ -80,6 +81,8 @@ export default async function AnalysisDetailPage({
     };
   });
 
+  const thresholds = await getThresholds();
+
   return (
     <AnalysisResultClient
       eventName={title}
@@ -88,6 +91,7 @@ export default async function AnalysisDetailPage({
       bets={data.mafsCoreEngine || []}
       breakdowns={data.fightBreakdowns || {}}
       userOddsFormat={oddsFormat}
+      thresholds={thresholds}
     />
   );
 }

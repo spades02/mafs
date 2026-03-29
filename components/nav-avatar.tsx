@@ -11,7 +11,9 @@ export default function NavAvatar({ session, isPro }: { session: any; isPro: boo
     )
   }
 
-  const avatarUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${session.user.image}?v=${session.user.updatedAt}`
+  const avatarUrl = session.user.image
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${session.user.image}?v=${session.user.updatedAt}`
+    : null
 
   return (
     <NavAvatarClient

@@ -6,6 +6,7 @@ import { eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import Agents from "@/app/ai/agents/agents";
 import { FightResult } from "@/app/ai/agents/agents";
+import { logPredictions } from "@/lib/calibration/log-predictions";
 
 export async function POST(req: Request) {
   const authResult = await auth.api.getSession({
@@ -71,8 +72,9 @@ export async function POST(req: Request) {
 
 
       // Save AFTER streaming completes
+      const runId = nanoid();
       await db.insert(analysisRun).values({
-        id: nanoid(),
+        id: runId,
         userId: authResult.user.id,
         title: simplifiedEvent.Name,
         eventId: simplifiedEvent.EventId,
@@ -83,6 +85,11 @@ export async function POST(req: Request) {
           ),
         },
       });
+
+      // Log predictions for calibration tracking
+      await logPredictions(runId, simplifiedEvent.EventId, allResults).catch(
+        (err) => console.error("[MAFS] Failed to log predictions:", err)
+      );
 
       await db
         .update(user)

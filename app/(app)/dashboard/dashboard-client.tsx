@@ -25,14 +25,19 @@ import { BetFilters, BetFiltersState, DEFAULT_FILTERS } from "@/components/pages
 interface DashboardClientProps {
   initialEvents: Array<{ eventId: string; name: string; dateTime: string | null; venue: string | null; fightCount?: number }>
   userOddsFormat?: string
+  thresholds?: {
+    MIN_MAF_PROB: number
+    MIN_EDGE_PCT: number
+    MIN_AGENT_CONSENSUS_PASS_RATE: number
+    BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW: number
+  }
 }
 
-const MIN_MAF_PROB = 0.55
-const MIN_AGENT_CONSENSUS_PASS_RATE = 0.7
-const MIN_EDGE_PCT = 0.5
-const BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW = 0.55
-
-export default function DashboardClient({ initialEvents, userOddsFormat = "american" }: DashboardClientProps) {
+export default function DashboardClient({ initialEvents, userOddsFormat = "american", thresholds }: DashboardClientProps) {
+  const MIN_MAF_PROB = thresholds?.MIN_MAF_PROB ?? 0.55
+  const MIN_AGENT_CONSENSUS_PASS_RATE = thresholds?.MIN_AGENT_CONSENSUS_PASS_RATE ?? 0.7
+  const MIN_EDGE_PCT = thresholds?.MIN_EDGE_PCT ?? 0.5
+  const BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW = thresholds?.BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW ?? 0.55
   const router = useRouter()
   const [selectedEvent, setSelectedEvent] = useState(initialEvents[0]?.eventId || "")
   const [showResults, setShowResults] = useState(false)

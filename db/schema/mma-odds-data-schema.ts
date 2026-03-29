@@ -1,0 +1,27 @@
+import { pgTable, bigserial, text, real } from "drizzle-orm/pg-core";
+
+export const mmaOddsData = pgTable("mma_odds_data", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  event: text("event"),
+  fighter: text("fighter"),
+  bookmaker: text("bookmaker"),
+  moneylineOdds: real("moneyline_odds"),
+  methodKoTkoOdds: real("method_ko_tko_odds"),
+  methodSubmissionOdds: real("method_submission_odds"),
+  methodDecisionOdds: real("method_decision_odds"),
+  insideDistanceYesOdds: real("inside_distance_yes_odds"),
+  insideDistanceNoOdds: real("inside_distance_no_odds"),
+  over1_5Odds: real("over_1_5_odds"),
+  under1_5Odds: real("under_1_5_odds"),
+  over2_5Odds: real("over_2_5_odds"),
+  under2_5Odds: real("under_2_5_odds"),
+  over3_5Odds: real("over_3_5_odds"),
+  under3_5Odds: real("under_3_5_odds"),
+  round1FinishOdds: real("round1_finish_odds"),
+  round2FinishOdds: real("round2_finish_odds"),
+  round3FinishOdds: real("round3_finish_odds"),
+  fighterWinByDecisionOdds: real("fighter_win_by_decision_odds"),
+  fightGoesToDecisionOdds: real("fight_goes_to_decision_odds"),
+  fightNotGoToDecisionOdds: real("fight_not_go_to_decision_odds"),
+  drawOdds: real("draw_odds"),
+});
