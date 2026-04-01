@@ -426,9 +426,9 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
             <button onClick={() => toast.info("Terms of Use coming soon")} className="w-full text-left px-4 py-3 rounded-lg border border-input bg-background hover:bg-muted/50 transition-colors">
               <span className="text-sm font-medium">Terms of Use</span>
             </button>
-            <button onClick={() => toast.info("Privacy Policy coming soon")} className="w-full text-left px-4 py-3 rounded-lg border border-input bg-background hover:bg-muted/50 transition-colors">
+            <a href="/privacy" className="w-full text-left px-4 py-3 rounded-lg border border-input bg-background hover:bg-muted/50 transition-colors block">
               <span className="text-sm font-medium">Privacy Policy</span>
-            </button>
+            </a>
           </div>
 
           <div className="pt-4 border-t border-input">

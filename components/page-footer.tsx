@@ -2,7 +2,7 @@ export function PageFooter() {
   return (
     <footer className="border-t border-foreground/10 bg-[#0b0f14] py-8 mt-12">
       <div className="container mx-auto px-4 max-w-[1600px]">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-400">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-sm text-gray-400">
           <div>
             <h4 className="font-semibold text-foreground mb-2">Disclaimer</h4>
             <p className="text-xs leading-relaxed">
@@ -20,6 +20,14 @@ export function PageFooter() {
             <h4 className="font-semibold text-foreground mb-2">Contact</h4>
             <p className="text-xs leading-relaxed">
               For support or feedback, contact support@ufcai.terminal
+            </p>
+          </div>
+          <div>
+            <h4 className="font-semibold text-foreground mb-2">Legal</h4>
+            <p className="text-xs leading-relaxed">
+              <a href="/privacy" className="text-[#64FFDA]/70 hover:text-[#64FFDA] transition-colors">
+                Privacy Policy
+              </a>
             </p>
           </div>
         </div>
