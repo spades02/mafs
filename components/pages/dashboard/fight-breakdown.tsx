@@ -6,15 +6,22 @@ import { LineMovementChart } from "./line-movement-chart"
 
 interface FightBreakdownProps {
     breakdown: FightBreakdownType
+    matchup?: string
     onClose: () => void
 }
 
-export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
+export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownProps) {
+    // Resolve fighter names: prefer breakdown fields, fall back to matchup string
+    const resolvedF1Name = breakdown.fighter1Name || (matchup?.split(" vs ")?.[0]?.trim()) || ""
+    const resolvedF2Name = breakdown.fighter2Name || (matchup?.split(" vs ")?.[1]?.trim()) || ""
+
     return (
         <section className="mt-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
             <Card className="glass-card-intense glass-glow overflow-hidden border-white/5 bg-black/40">
                 <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-white/5">
-                    <CardTitle className="text-lg font-medium text-white tracking-wide">Fight Breakdown</CardTitle>
+                    <CardTitle className="text-lg font-medium text-white tracking-wide">
+                        Fight Breakdown{matchup ? ` — ${matchup}` : ""}
+                    </CardTitle>
                     <button
                         onClick={onClose}
                         className="text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
@@ -31,7 +38,20 @@ export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
                         </p>
                         <p className="text-sm text-gray-300 leading-relaxed">
                             {(() => {
-                                const f2Name = breakdown.fighter2Name || ""
+                                const f1Name = resolvedF1Name
+                                const f2Name = resolvedF2Name
+
+                                // If both names are missing, show a generic summary
+                                if (!f1Name && !f2Name) {
+                                    return (
+                                        <span className="text-emerald-100 font-medium">
+                                            {breakdown.modelLeaningOutcome
+                                                ? `Model leans toward ${breakdown.modelLeaningOutcome}.`
+                                                : "Model analysis complete. See detailed metrics below."}
+                                        </span>
+                                    )
+                                }
+
                                 const f2LastName = f2Name.split(" ").pop()?.toLowerCase() || ""
                                 const outcome = breakdown.modelLeaningOutcome?.toLowerCase() || ""
                                 const favorsF2 = f2LastName && outcome.includes(f2LastName)
@@ -40,10 +60,10 @@ export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
                                     return (
                                         <>
                                             <span className="text-emerald-100 font-medium">
-                                                Model bias favors <span className="text-emerald-400">{breakdown.fighter2Name}</span>.
+                                                Model bias favors <span className="text-emerald-400">{f2Name}</span>.
                                             </span>{" "}
-                                            {breakdown.fighter2Notes}. {breakdown.fighter1Name}'s path requires{" "}
-                                            {breakdown.fighter1Notes?.toLowerCase() || "a specific strategy"}.
+                                            {breakdown.fighter2Notes}{breakdown.fighter2Notes ? "." : ""} {f1Name}{f1Name ? "'s path requires " : ""}
+                                            {f1Name ? (breakdown.fighter1Notes?.toLowerCase() || "a specific strategy") : ""}{f1Name ? "." : ""}
                                         </>
                                     )
                                 }
@@ -51,10 +71,10 @@ export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
                                 return (
                                     <>
                                         <span className="text-emerald-100 font-medium">
-                                            Model bias favors <span className="text-emerald-400">{breakdown.fighter1Name}</span>.
+                                            Model bias favors <span className="text-emerald-400">{f1Name}</span>.
                                         </span>{" "}
-                                        {breakdown.fighter1Notes}. {breakdown.fighter2Name}'s path requires{" "}
-                                        {breakdown.fighter2Notes?.toLowerCase() || "a specific strategy"}.
+                                        {breakdown.fighter1Notes}{breakdown.fighter1Notes ? "." : ""} {f2Name}{f2Name ? "'s path requires " : ""}
+                                        {f2Name ? (breakdown.fighter2Notes?.toLowerCase() || "a specific strategy") : ""}{f2Name ? "." : ""}
                                     </>
                                 )
                             })()}
@@ -75,11 +95,11 @@ export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
                                     return (
                                         <div className="space-y-1.5">
                                             <div className="flex justify-between items-baseline">
-                                                <span className="text-sm text-gray-400">{breakdown.fighter1Name}</span>
+                                                <span className="text-sm text-gray-400">{resolvedF1Name}</span>
                                                 <span className="font-mono text-sm font-bold text-white">{parts[0]}</span>
                                             </div>
                                             <div className="flex justify-between items-baseline">
-                                                <span className="text-sm text-gray-400">{breakdown.fighter2Name}</span>
+                                                <span className="text-sm text-gray-400">{resolvedF2Name}</span>
                                                 <span className="font-mono text-sm font-bold text-white">{parts[1] || "N/A"}</span>
                                             </div>
                                         </div>
@@ -103,11 +123,11 @@ export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
                                     return (
                                         <div className="space-y-1.5">
                                             <div className="flex justify-between items-baseline">
-                                                <span className="text-sm text-gray-400">{breakdown.fighter1Name}</span>
+                                                <span className="text-sm text-gray-400">{resolvedF1Name}</span>
                                                 <span className="font-mono text-sm font-bold text-white">{parts[0]}</span>
                                             </div>
                                             <div className="flex justify-between items-baseline">
-                                                <span className="text-sm text-gray-400">{breakdown.fighter2Name}</span>
+                                                <span className="text-sm text-gray-400">{resolvedF2Name}</span>
                                                 <span className="font-mono text-sm font-bold text-white">{parts[1] || "N/A"}</span>
                                             </div>
                                         </div>
@@ -160,7 +180,7 @@ export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
                     <div className="grid md:grid-cols-2 gap-8 border-t border-white/5 pt-6">
                         <div className="space-y-2">
                             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
-                                {breakdown.fighter1Name} Profile
+                                {resolvedF1Name || "Fighter 1"} Profile
                             </p>
                             <p className="text-sm text-gray-300 leading-relaxed">
                                 {breakdown.fighter1Profile || breakdown.fighter1Notes || "No profile available."}
@@ -168,7 +188,7 @@ export function FightBreakdown({ breakdown, onClose }: FightBreakdownProps) {
                         </div>
                         <div className="space-y-2">
                             <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-2">
-                                {breakdown.fighter2Name} Profile
+                                {resolvedF2Name || "Fighter 2"} Profile
                             </p>
                             <p className="text-sm text-gray-300 leading-relaxed">
                                 {breakdown.fighter2Profile || breakdown.fighter2Notes || "No profile available."}

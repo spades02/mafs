@@ -52,9 +52,10 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
             <CardContent className="p-5 relative">
                 {/* OUTCOME LAYER - Always Visible */}
                 <div className="mb-4">
+                    {bet.fight && <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">{bet.fight}</p>}
                     <p className="font-semibold text-lg leading-tight text-white">{bet.label}</p>
                     <div className="flex items-center gap-2 mt-1">
-                        <p className="text-sm text-muted-foreground/60 font-mono">{formatOdds(bet.odds_american, oddsFormat || "american")}</p>
+                        <p className="text-sm text-muted-foreground/60 font-mono">{formatOdds(bet.odds_american, "american")}</p>
                         <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${bet.bet_type === "ML" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
                             bet.bet_type === "ITD" ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
                                 bet.bet_type === "Over" || bet.bet_type === "Under" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
@@ -239,7 +240,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                             <div className="grid grid-cols-2 gap-4 p-3 border-b border-white/5">
                                 <div className="text-center">
                                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Market Line</p>
-                                    <p className="text-lg font-bold font-mono text-foreground/90">{formatOdds(bet.odds_american, oddsFormat)}</p>
+                                    <p className="text-lg font-bold font-mono text-foreground/90">{formatOdds(bet.odds_american, "american")}</p>
                                     <p className="text-[9px] text-muted-foreground/40 mt-0.5">Implied: {(marketImpliedProb * 100).toFixed(0)}%</p>
                                 </div>
                                 <div className="text-center">

@@ -239,6 +239,7 @@ export default function AnalysisResultClient({ eventName, eventDate, fights, bet
                     {selectedFight && breakdowns[selectedFight] && (
                         <FightBreakdown
                             breakdown={breakdowns[selectedFight]}
+                            matchup={fights.find(f => f.id === selectedFight)?.matchup}
                             onClose={() => setSelectedFight(null)}
                         />
                     )}

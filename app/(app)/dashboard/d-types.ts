@@ -2,6 +2,7 @@
 
 export type SimulationBet = {
     id: string
+    fight?: string
     bet_type: string
     label: string
     odds_american: string

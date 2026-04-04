@@ -655,6 +655,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
             {selectedFight && fightBreakdowns[selectedFight] && (
               <FightBreakdown
                 breakdown={fightBreakdowns[selectedFight]}
+                matchup={currentFights.find(f => f.id === selectedFight)?.matchup}
                 onClose={() => setSelectedFight(null)}
               />
             )}
