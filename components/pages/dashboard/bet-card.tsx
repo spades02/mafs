@@ -52,7 +52,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
             <CardContent className="p-5 relative">
                 {/* OUTCOME LAYER - Always Visible */}
                 <div className="mb-4">
-                    {bet.fight && <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">{bet.fight}</p>}
+                    {bet.fight && <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground/80 mb-1.5 font-medium">{bet.fight}</p>}
                     <p className="font-semibold text-lg leading-tight text-white">{bet.label}</p>
                     <div className="flex items-center gap-2 mt-1">
                         <p className="text-sm text-muted-foreground/60 font-mono">{formatOdds(bet.odds_american, "american")}</p>
