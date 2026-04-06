@@ -2,6 +2,7 @@
 
 import { db } from "@/db/client"
 import { predictionLogs } from "@/db/schema/prediction-logs-schema"
+import { predictionOutcomes } from "@/db/schema/prediction-outcomes-schema"
 import { fighters } from "@/db/schema/fighters-schema"
 import { analysisRun } from "@/db/schema/analysis-run"
 import { fights } from "@/db/schema/fights-schema"
@@ -430,34 +431,30 @@ export async function getLandingPageData() {
       pastResults = pendingRaw.map(r => enrichPast(r, "PENDING"))
     }
 
-    // Aggregate summary across ALL settled logs (not just the 6 displayed)
+    // Aggregate summary across all graded outcomes (canonical source of truth)
     const allSettled = await db.select({
-      oddsAmerican: predictionLogs.oddsAmerican,
-      status: predictionLogs.status,
+      outcome: predictionOutcomes.outcome,
+      profitUnits: predictionOutcomes.profitUnits,
     })
-    .from(predictionLogs)
-    .where(sql`${predictionLogs.status} IN ('WON', 'LOST', 'won', 'lost', 'WIN', 'LOSS')`)
+    .from(predictionOutcomes)
+    .where(sql`${predictionOutcomes.outcome} IN ('win', 'loss')`)
 
     let trackRecordSummary: TrackRecordSummary = { netProfitStr: "—", winRatePct: 0, roiPct: 0 }
     if (allSettled.length > 0) {
-      let net = 0
+      let netUnits = 0
       let wins = 0
       for (const r of allSettled) {
-        const isWin = ['WON', 'WIN'].includes((r.status || '').toUpperCase())
-        const odds = r.oddsAmerican || -110
-        if (isWin) {
-          wins++
-          net += odds > 0 ? odds : Math.round(10000 / Math.abs(odds))
-        } else {
-          net -= 100
-        }
+        if (r.outcome === 'win') wins++
+        netUnits += r.profitUnits ?? 0
       }
       const total = allSettled.length
       const winRate = Math.round((wins / total) * 100)
-      const wagered = total * 100
-      const roi = wagered > 0 ? Math.round((net / wagered) * 100) : 0
+      // 1 unit = $100 wager
+      const netDollars = Math.round(netUnits * 100)
+      const wageredDollars = total * 100
+      const roi = wageredDollars > 0 ? Math.round((netDollars / wageredDollars) * 100) : 0
       trackRecordSummary = {
-        netProfitStr: net >= 0 ? `+$${net}` : `-$${Math.abs(net)}`,
+        netProfitStr: netDollars >= 0 ? `+$${netDollars}` : `-$${Math.abs(netDollars)}`,
         winRatePct: winRate,
         roiPct: roi,
       }
