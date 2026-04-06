@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
-const isCapacitorBuild = process.env.CAPACITOR_BUILD === "1";
+// Vercel sets VERCEL=1 automatically. Everywhere else (Appflow, local iOS builds)
+// defaults to static export so Capacitor gets its `out/` directory.
+const isVercelBuild = process.env.VERCEL === "1";
 
 const nextConfig: NextConfig = {
-  ...(isCapacitorBuild ? { output: "export" as const } : {}),
+  ...(isVercelBuild ? {} : { output: "export" as const }),
   images: {
     unoptimized: true,
     remotePatterns: [

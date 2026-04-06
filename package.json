@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:ios": "node -e \"process.env.CAPACITOR_BUILD='1';require('child_process').execSync('next build',{stdio:'inherit',env:process.env})\"",
     "start": "next start",
     "lint": "next lint",
     "migrate": "drizzle-kit migrate"
