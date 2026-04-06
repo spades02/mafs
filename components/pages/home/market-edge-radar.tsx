@@ -1,48 +1,36 @@
 import Link from "next/link"
-import { Lock } from "lucide-react"
+import { Lock, Target } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 interface MarketEdgeRadarProps {
   isPro?: boolean
+  radarEdges?: {
+    fighterName: string
+    betType: string
+    edgePct: number
+    confidence: string
+    type: 'fighter' | 'prop'
+  }[]
 }
 
-const edgeCards = [
-  {
-    fighter: "Alex Pereira",
-    category: "Finish Method",
-    confidence: "High",
-    confidenceClass: "bg-primary/20 text-primary",
-    edge: "+19%",
-    locked: false,
-  },
-  {
-    fighter: "Ilia Topuria",
-    category: "Victory Method",
-    confidence: null,
-    confidenceClass: "",
-    edge: "Strong Value",
-    locked: false,
-  },
-  {
-    fighter: "Petr Yan",
-    category: "Fight Outcome",
-    confidence: null,
-    confidenceClass: "",
-    edge: "High Edge",
-    locked: false,
-  },
-  {
-    fighter: "Khamzat Chimaev",
-    category: "Victory Method",
-    confidence: null,
-    confidenceClass: "",
-    edge: "Strong Value",
-    locked: true,
-  },
+const fallbackEdgeCards = [
+  { fighter: "Alex Pereira", category: "Finish Method", confidence: "High", confidenceClass: "bg-primary/20 text-primary", edge: "+19%", locked: false, type: 'fighter' as const },
+  { fighter: "Ilia Topuria", category: "Victory Method", confidence: null, confidenceClass: "", edge: "Strong Value", locked: false, type: 'fighter' as const },
+  { fighter: "Petr Yan", category: "Fight Outcome", confidence: null, confidenceClass: "", edge: "High Edge", locked: false, type: 'fighter' as const },
+  { fighter: "Khamzat Chimaev", category: "Victory Method", confidence: null, confidenceClass: "", edge: "Strong Value", locked: true, type: 'prop' as const },
 ]
 
-function MarketEdgeRadar({ isPro = false }: MarketEdgeRadarProps) {
+function MarketEdgeRadar({ isPro = false, radarEdges }: MarketEdgeRadarProps) {
+  const dynamicEdgeCards = radarEdges?.length ? radarEdges.slice(0, 4).map((e, index) => ({
+    fighter: e.fighterName,
+    category: e.betType,
+    confidence: e.confidence === "High" ? "High" : null,
+    confidenceClass: e.confidence === "High" ? "bg-primary/20 text-primary" : "",
+    edge: index === 0 ? `+${e.edgePct}%` : e.edgePct > 10 ? "Strong Value" : "High Edge",
+    locked: index === 3 && !isPro,
+    type: e.type
+  })) : fallbackEdgeCards;
   return (
     <section className="py-20 md:py-28 px-4 relative">
       {/* Background grid pattern */}
@@ -71,7 +59,7 @@ function MarketEdgeRadar({ isPro = false }: MarketEdgeRadarProps) {
 
         {/* Cards Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {edgeCards.map((card, i) => {
+          {dynamicEdgeCards.map((card, i) => {
             const isLocked = card.locked && !isPro
             return (
             <div key={i} className="relative">
@@ -102,24 +90,20 @@ function MarketEdgeRadar({ isPro = false }: MarketEdgeRadarProps) {
                   </div>
                 </div>
               ) : (
-                <Card className="terminal-card">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">{card.fighter}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          Market Category: <span className="text-foreground/70">{card.category}</span>
-                        </p>
-                      </div>
-                      {card.confidence && (
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${card.confidenceClass}`}>
-                          {card.confidence}
-                        </span>
-                      )}
+                <Card className="terminal-card h-full">
+                  <CardContent className="p-4 flex flex-col h-full">
+                    <div className="flex items-center gap-3 mb-3">
+                       <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                         {card.type === 'prop' ? <Target className="h-4 w-4 text-primary" /> : <span className="text-[10px] font-bold text-primary">{card.fighter.slice(0,2).toUpperCase()}</span>}
+                       </div>
+                       <div className="flex-1 min-w-0">
+                         <p className="text-sm font-bold truncate leading-tight">{card.fighter}</p>
+                         <p className="text-[10px] text-muted-foreground truncate">{card.category}</p>
+                       </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-4">
-                      <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                      <span className="text-sm font-bold text-primary">{card.edge}</span>
+                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/30">
+                       <span className="text-[10px] font-bold text-primary">{card.edge}</span>
+                       <span className={`text-[8px] font-black px-1 rounded ${card.confidenceClass || 'bg-muted text-muted-foreground'}`}>{card.confidence || 'MED'}</span>
                     </div>
                   </CardContent>
                 </Card>

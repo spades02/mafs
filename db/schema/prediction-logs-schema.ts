@@ -4,7 +4,6 @@ import { analysisRun } from "./analysis-run";
 export const predictionLogs = pgTable("prediction_logs", {
   id: text("id").primaryKey(),
   analysisRunId: text("analysis_run_id")
-    .notNull()
     .references(() => analysisRun.id, { onDelete: "cascade" }),
   eventId: text("event_id"),
   fightId: text("fight_id"),
@@ -21,5 +20,6 @@ export const predictionLogs = pgTable("prediction_logs", {
   status: text("status"),
   agentSignals: jsonb("agent_signals"),
   marketEvals: jsonb("market_evals"),
+  source: text("source").notNull().default("live"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -109,7 +109,7 @@ function getBestOddsIndex(
 
 // ---------------- ANALYSIS ----------------
 
-async function analyzeFight(
+export async function analyzeFight(
   fight: SimplifiedFight,
   eventName: string,
   mafsEventInputFighters: any[],

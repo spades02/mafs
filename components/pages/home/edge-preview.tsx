@@ -1,48 +1,42 @@
 import Link from "next/link"
-import { Lock } from "lucide-react"
+import { Lock, Target } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 interface EdgePreviewProps {
   isPro?: boolean
+  previewEdges?: {
+    fighterName: string
+    betType: string
+    modelProb: number
+    marketProb: number
+    edgePct: number
+    confidence: string
+    type?: 'fighter' | 'prop'
+    matchupLabel?: string
+  }[]
 }
 
-const edges = [
-  {
-    fighter: "Alex Pereira",
-    category: "Finish Method",
-    confidence: "High",
-    confidenceClass: "bg-primary/20 text-primary",
-    mafsProb: 61,
-    marketProb: 42,
-    edge: 19,
-    locked: false,
-  },
-  {
-    fighter: "Petr Yan",
-    category: "Fight Outcome",
-    confidence: "Medium",
-    confidenceClass: "bg-amber-500/20 text-amber-400",
-    mafsProb: 58,
-    marketProb: 47,
-    edge: null,
-    edgeLabel: "Strong Value",
-    locked: false,
-  },
-  {
-    fighter: "Ilia Topuria",
-    category: "Victory Method",
-    confidence: "High",
-    confidenceClass: "bg-primary/20 text-primary",
-    mafsProb: 48,
-    marketProb: 29,
-    edge: 19,
-    edgeLabel: null,
-    locked: true,
-  },
+const fallbackEdges = [
+  { fighter: "Alex Pereira", category: "Finish Method", confidence: "High", confidenceClass: "bg-primary/20 text-primary", mafsProb: 61, marketProb: 42, edge: 19, edgeLabel: null, locked: false, type: 'fighter' as const, matchupLabel: undefined as string | undefined },
+  { fighter: "Petr Yan", category: "Fight Outcome", confidence: "Medium", confidenceClass: "bg-amber-500/20 text-amber-400", mafsProb: 58, marketProb: 47, edge: null, edgeLabel: "Strong Value", locked: false, type: 'fighter' as const, matchupLabel: undefined as string | undefined },
+  { fighter: "Ilia Topuria", category: "Victory Method", confidence: "High", confidenceClass: "bg-primary/20 text-primary", mafsProb: 48, marketProb: 29, edge: 19, edgeLabel: null, locked: true, type: 'fighter' as const },
 ]
 
-function EdgePreview({ isPro = false }: EdgePreviewProps) {
+function EdgePreview({ isPro = false, previewEdges }: EdgePreviewProps) {
+  const dynamicEdges = previewEdges?.length ? previewEdges.slice(0, 3).map((e, index) => ({
+    fighter: e.fighterName,
+    category: e.betType,
+    matchupLabel: e.matchupLabel,
+    confidence: e.confidence === "High" ? "High" : "Medium",
+    confidenceClass: e.confidence === "High" ? "bg-primary/20 text-primary" : "bg-amber-500/20 text-amber-400",
+    mafsProb: e.modelProb,
+    marketProb: e.marketProb,
+    edge: index === 2 && !isPro ? null : e.edgePct, 
+    edgeLabel: index === 2 && !isPro ? "Strong Value" : null,
+    locked: index === 2 && !isPro,
+    type: e.type
+  })) : fallbackEdges;
   return (
     <section id="live-edges" className="py-20 md:py-28 px-4">
       <div className="container mx-auto max-w-5xl">
@@ -55,7 +49,7 @@ function EdgePreview({ isPro = false }: EdgePreviewProps) {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {edges.map((edge, i) => {
+          {dynamicEdges.map((edge, i) => {
             const isLocked = edge.locked && !isPro
             return isLocked ? (
               <Card key={i} className="terminal-card relative overflow-hidden">
@@ -102,14 +96,18 @@ function EdgePreview({ isPro = false }: EdgePreviewProps) {
             ) : (
               <Card key={i} className="terminal-card group">
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <p className="text-lg font-bold">{edge.fighter}</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Market Category: <span className="text-foreground/70">{edge.category}</span>
-                      </p>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                       {edge.type === 'prop' ? <Target className="h-6 w-6 text-primary" /> : <span className="text-sm font-bold text-primary">{edge.fighter.slice(0,2).toUpperCase()}</span>}
                     </div>
-                    <div className={`px-2 py-1 rounded text-xs font-semibold ${edge.confidenceClass}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-lg font-bold truncate">{edge.fighter}</p>
+                      {edge.matchupLabel && edge.matchupLabel !== edge.fighter && (
+                        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider truncate">{edge.matchupLabel}</p>
+                      )}
+                      <p className="text-sm text-muted-foreground truncate">{edge.category}</p>
+                    </div>
+                    <div className={`px-2 py-1 rounded text-xs font-semibold shrink-0 ${edge.confidenceClass}`}>
                       {edge.confidence}
                     </div>
                   </div>

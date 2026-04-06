@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Network } from "lucide-react"
+import Logo from "@/components/shared/logo"
 
 function LandingFooter() {
   return (
@@ -7,11 +7,9 @@ function LandingFooter() {
       <div className="container mx-auto max-w-6xl">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <Network className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-lg">MAFS</span>
+          <div className="flex items-center gap-3">
+            <Logo height={80} width={80} />
+            <span className="text-2xl font-bold tracking-tight">MAFS</span>
           </div>
 
           {/* Links */}

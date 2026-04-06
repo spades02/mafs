@@ -4,9 +4,10 @@ import { nanoid } from "nanoid";
 import { FightResult } from "@/app/ai/agents/agents";
 
 export async function logPredictions(
-  analysisRunId: string,
+  analysisRunId: string | null,
   eventId: string,
-  results: FightResult[]
+  results: FightResult[],
+  source: "live" | "backfill" = "live"
 ) {
   const rows = results.map((r) => {
     const edge = r.edge;
@@ -37,6 +38,7 @@ export async function logPredictions(
       status: edge.status ?? null,
       agentSignals: edge.agentSignals ?? null,
       marketEvals: edge.marketEvaluations ?? null,
+      source,
     };
   });
 

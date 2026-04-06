@@ -6,9 +6,10 @@ import { Card, CardContent } from "@/components/ui/card"
 interface FinalCTAProps {
   isPro?: boolean
   isAuthenticated?: boolean
+  liveEdgeCount?: number
 }
 
-function FinalCTA({ isPro = false, isAuthenticated = false }: FinalCTAProps) {
+function FinalCTA({ isPro = false, isAuthenticated = false, liveEdgeCount = 0 }: FinalCTAProps) {
   return (
     <section className="py-20 md:py-28 px-4 bg-muted/20">
       <div className="container mx-auto max-w-4xl">
@@ -22,7 +23,7 @@ function FinalCTA({ isPro = false, isAuthenticated = false }: FinalCTAProps) {
                   <div className="h-2 w-2 rounded-full bg-primary" />
                   <div className="absolute inset-0 h-2 w-2 rounded-full bg-primary animate-ping opacity-75" />
                 </div>
-                <span className="text-sm font-medium text-primary">Live simulation running now</span>
+                <span className="text-sm font-medium text-primary">{liveEdgeCount > 0 ? `${liveEdgeCount} live edges detected` : "Live simulation running now"}</span>
               </div>
 
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-balance">
@@ -46,7 +47,7 @@ function FinalCTA({ isPro = false, isAuthenticated = false }: FinalCTAProps) {
                       </Link>
                     </Button>
                     {!isPro && (
-                      <Button variant="outline" className="glass-button hover:bg-primary/5 text-base px-8 py-6 h-auto" asChild>
+                      <Button variant="outline" className="text-base px-8 py-6 h-auto rounded-xl border-border/60 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground" asChild>
                         <Link href="/billing">
                           <BarChart3 className="h-4 w-4 mr-2" />
                           Upgrade to Pro
@@ -62,7 +63,7 @@ function FinalCTA({ isPro = false, isAuthenticated = false }: FinalCTAProps) {
                         Run Free Simulation
                       </Link>
                     </Button>
-                    <Button variant="outline" className="glass-button hover:bg-primary/5 text-base px-8 py-6 h-auto" asChild>
+                    <Button variant="outline" className="text-base px-8 py-6 h-auto rounded-xl border-border/60 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground" asChild>
                       <Link href="/dashboard">
                         <Eye className="h-4 w-4 mr-2" />
                         View Live Edges

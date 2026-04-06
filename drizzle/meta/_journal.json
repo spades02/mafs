@@ -43,6 +43,13 @@
       "when": 1774424652878,
       "tag": "0005_crazy_microbe",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775468924138,
+      "tag": "0006_flippant_barracuda",
+      "breakpoints": true
     }
   ]
 }

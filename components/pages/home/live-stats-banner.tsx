@@ -1,31 +1,51 @@
-import { Radar } from "lucide-react"
+"use client"
 
-const stats = [
-  { value: "847,293", label: "Simulations Run", color: "text-foreground" },
-  { value: "12,847", label: "Edges Found", color: "text-primary" },
-  { value: "+18%", label: "Avg ROI", color: "text-foreground" },
-  { value: "71%", label: "Edge Accuracy", color: "text-foreground" },
-]
+import { useRef } from "react"
+import { useCountUpOnView } from "@/lib/hooks/use-count-up"
 
-function LiveStatsBanner() {
+interface LiveStatsBannerProps {
+  stats?: {
+    simulationsRun: number
+    edgesFound: number
+  }
+  trackRecordSummary?: {
+    winRatePct: number
+    roiPct: number
+  }
+}
+
+function LiveStatsBanner({ stats, trackRecordSummary }: LiveStatsBannerProps) {
+  const simRef = useRef<HTMLDivElement>(null)
+  const edgesRef = useRef<HTMLDivElement>(null)
+  const roiRef = useRef<HTMLDivElement>(null)
+  const accRef = useRef<HTMLDivElement>(null)
+
+  const simulations = useCountUpOnView(simRef, stats?.simulationsRun ?? 847293, 2500)
+  const edgesFound = useCountUpOnView(edgesRef, stats?.edgesFound ?? 12847, 2200)
+  const roi = useCountUpOnView(roiRef, trackRecordSummary?.roiPct ?? 18, 1800, { suffix: "%", prefix: "+" })
+  const accuracy = useCountUpOnView(accRef, trackRecordSummary?.winRatePct ?? 71, 2000, { suffix: "%" })
+
   return (
-    <section className="border-b border-border/50 bg-muted/20">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-border/50">
-          {stats.map((stat) => (
-            <div key={stat.label} className="py-8 md:py-10 text-center">
-              <p className={`text-2xl md:text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-              <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wider">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Sportsbooks scanned banner */}
-      <div className="flex items-center justify-center py-4 border-t border-border/30">
-        <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-amber-500/10 border border-amber-500/30">
-          <Radar className="h-4 w-4 text-amber-400" />
-          <span className="text-sm font-semibold text-amber-400">27+ sportsbooks scanned every minute</span>
+    <section className="relative border-y border-primary/20 overflow-hidden bg-gradient-to-r from-primary/[0.03] via-primary/[0.08] to-primary/[0.03]">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.1),transparent_70%)]" />
+      <div className="container mx-auto px-4 relative">
+        <div className="grid grid-cols-2 md:grid-cols-4">
+          <div ref={simRef} className="py-10 md:py-14 text-center border-r border-primary/15 last:border-r-0 group cursor-default">
+            <p className="text-3xl md:text-5xl font-black tracking-tight tabular-nums transition-all duration-300 group-hover:scale-105 text-primary" style={{ textShadow: '0 0 50px hsl(var(--primary) / 0.5)' }}>{simulations}</p>
+            <p className="text-[10px] text-foreground/60 mt-2.5 uppercase tracking-[0.12em] font-semibold">Simulations Run</p>
+          </div>
+          <div ref={edgesRef} className="py-10 md:py-14 text-center border-r border-primary/15 last:border-r-0 group cursor-default">
+            <p className="text-3xl md:text-5xl font-black text-foreground tracking-tight tabular-nums transition-all duration-300 group-hover:scale-105">{edgesFound}</p>
+            <p className="text-[10px] text-foreground/60 mt-2.5 uppercase tracking-[0.12em] font-semibold">Edges Exposed</p>
+          </div>
+          <div ref={roiRef} className="py-10 md:py-14 text-center border-r border-primary/15 last:border-r-0 group cursor-default">
+            <p className="text-3xl md:text-5xl font-black tracking-tight tabular-nums transition-all duration-300 group-hover:scale-105 text-primary" style={{ textShadow: '0 0 50px hsl(var(--primary) / 0.5)' }}>{roi}</p>
+            <p className="text-[10px] text-foreground/60 mt-2.5 uppercase tracking-[0.12em] font-semibold">Avg ROI</p>
+          </div>
+          <div ref={accRef} className="py-10 md:py-14 text-center group cursor-default">
+            <p className="text-3xl md:text-5xl font-black text-foreground tracking-tight tabular-nums transition-all duration-300 group-hover:scale-105">{accuracy}</p>
+            <p className="text-[10px] text-foreground/60 mt-2.5 uppercase tracking-[0.12em] font-semibold">Hit Rate</p>
+          </div>
         </div>
       </div>
     </section>
