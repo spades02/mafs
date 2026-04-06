@@ -1,12 +1,12 @@
 import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
-  appId: 'com.mafs.app',
+  appId: 'ai.mafs.app',
   appName: 'MAFS',
   webDir: 'out', // Placeholder, we are using server url
-  server: {
-    url: 'https://mafs.ai', // YOUR PRODUCTION URL
-    cleartext: true
-  },
+  // server: {
+  //   url: 'https://mafs.ai', // YOUR PRODUCTION URL
+  //   cleartext: true
+  // },
   plugins: {
     StatusBar: {
       style: 'DARK',
