@@ -432,12 +432,20 @@ export async function getLandingPageData() {
     }
 
     // Aggregate summary across all graded outcomes (canonical source of truth)
+    // Only count graded outcomes whose underlying log was an actual recommendation
+    // (label != 'no bet' AND edgePct > 5) — same threshold used for the live-edges feed.
+    // This excludes low-confidence probes that the system would never recommend wagering on.
     const allSettled = await db.select({
       outcome: predictionOutcomes.outcome,
       profitUnits: predictionOutcomes.profitUnits,
     })
     .from(predictionOutcomes)
-    .where(sql`${predictionOutcomes.outcome} IN ('win', 'loss')`)
+    .innerJoin(predictionLogs, eq(predictionOutcomes.predictionLogId, predictionLogs.id))
+    .where(and(
+      sql`${predictionOutcomes.outcome} IN ('win', 'loss')`,
+      sql`LOWER(${predictionLogs.label}) != 'no bet'`,
+      gt(predictionLogs.edgePct, 5),
+    ))
 
     let trackRecordSummary: TrackRecordSummary = { netProfitStr: "—", winRatePct: 0, roiPct: 0 }
     if (allSettled.length > 0) {
