@@ -43,4 +43,5 @@ export type FightBreakdownType = {
   }[];
 
   whyLineExists: string[];
+  oddsHistory?: Array<{ timestamp: string, oddsAmerican: number }>;
 };

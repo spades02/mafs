@@ -81,20 +81,34 @@ export async function getEventFights(eventId: string) {
     }
 }
 
-export async function getFightOddsHistory(fightId: string, fighterId: string) {
+export async function getFightOddsHistory(fightId: string, fighterId?: string) {
     try {
-        const history = await db.select({
-            timestamp: historicalOdds.timestamp,
-            moneyline: historicalOdds.moneyline
-        })
-            .from(historicalOdds)
-            .where(
-                and(
-                    eq(historicalOdds.fightId, fightId),
-                    eq(historicalOdds.fighterId, fighterId)
-                )
-            )
-            .orderBy(asc(historicalOdds.timestamp));
+        // Try fighter-specific history first
+        let history = fighterId
+            ? await db.select({
+                  timestamp: historicalOdds.timestamp,
+                  moneyline: historicalOdds.moneyline
+              })
+                  .from(historicalOdds)
+                  .where(
+                      and(
+                          eq(historicalOdds.fightId, fightId),
+                          eq(historicalOdds.fighterId, fighterId)
+                      )
+                  )
+                  .orderBy(asc(historicalOdds.timestamp))
+            : [];
+
+        // Fallback: if no fighter-specific history, fetch any odds for this fight
+        if (history.length < 2) {
+            history = await db.select({
+                timestamp: historicalOdds.timestamp,
+                moneyline: historicalOdds.moneyline
+            })
+                .from(historicalOdds)
+                .where(eq(historicalOdds.fightId, fightId))
+                .orderBy(asc(historicalOdds.timestamp));
+        }
 
         // Return a condensed, ordered subset of points to avoid sending thousands of rows
         // For line charts we only need max ~50 points

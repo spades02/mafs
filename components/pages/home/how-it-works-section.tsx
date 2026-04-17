@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import {
   Brain, Zap, Target, Activity, TrendingUp, Gauge, Shield,
-  DollarSign, AlertTriangle,
+  DollarSign, AlertTriangle, Play, RotateCcw,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -54,17 +54,76 @@ const FALLBACK_FIGHT: FeaturedFight = {
 
 function HowItWorksSection({ featuredFight, sharpMoney }: HowItWorksSectionProps) {
   const fight = featuredFight ?? FALLBACK_FIGHT
-  const [activeAgent, setActiveAgent] = useState(0)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveAgent(prev => (prev + 1) % fight.agents.length)
-    }, 2000)
-    return () => clearInterval(interval)
-  }, [fight.agents.length])
+  const [activeAgent, setActiveAgent] = useState(-1)
+  const [revealedCount, setRevealedCount] = useState(0)
+  const [showConsensus, setShowConsensus] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [hasPlayed, setHasPlayed] = useState(false)
+  const [hoveredAgent, setHoveredAgent] = useState<number | null>(null)
+  const sectionRef = useRef<HTMLDivElement>(null)
+  const hasTriggered = useRef(false)
 
   const f1 = fight.fighter1.name
   const f2 = fight.fighter2.name
+
+  // Sequential reveal animation — each agent "appears" one by one
+  const runAnalysis = useCallback(() => {
+    setIsAnalyzing(true)
+    setRevealedCount(0)
+    setShowConsensus(false)
+    setActiveAgent(-1)
+    setHasPlayed(true)
+
+    const totalAgents = fight.agents.length
+    fight.agents.forEach((_, idx) => {
+      setTimeout(() => {
+        setRevealedCount(idx + 1)
+        setActiveAgent(idx)
+      }, 600 + idx * 500)
+    })
+
+    // After all agents revealed, show consensus
+    setTimeout(() => {
+      setIsAnalyzing(false)
+      setShowConsensus(true)
+      // Start the cycling highlight after reveal completes
+      setActiveAgent(0)
+    }, 600 + totalAgents * 500 + 400)
+  }, [fight.agents])
+
+  // Trigger on scroll into view
+  useEffect(() => {
+    const el = sectionRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasTriggered.current) {
+          hasTriggered.current = true
+          runAnalysis()
+        }
+      },
+      { threshold: 0.3 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [runAnalysis])
+
+  // Cycle active agent AFTER initial reveal
+  useEffect(() => {
+    if (isAnalyzing || !hasPlayed) return
+    const interval = setInterval(() => {
+      setActiveAgent(prev => (prev + 1) % fight.agents.length)
+    }, 2500)
+    return () => clearInterval(interval)
+  }, [fight.agents.length, isAnalyzing, hasPlayed])
+
+  const handleReplay = () => {
+    hasTriggered.current = true
+    runAnalysis()
+  }
+
+  // Determine active display index (hovered takes priority)
+  const displayActive = hoveredAgent !== null ? hoveredAgent : activeAgent
 
   return (
     <section id="how-it-works" className="py-12 md:py-18 px-4 relative scroll-section">
@@ -91,11 +150,12 @@ function HowItWorksSection({ featuredFight, sharpMoney }: HowItWorksSectionProps
 
         <div className="grid lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
           {/* Agent Analysis Terminal */}
-          <Card className="terminal-card analysis-terminal">
+          <Card className="terminal-card analysis-terminal" ref={sectionRef}>
             <CardContent className="p-6">
+              {/* Fighter Visuals */}
               <div className="flex items-center justify-between mb-6 pb-6 border-b border-border/50">
                 <div className="flex flex-col items-center gap-2">
-                  <div className="h-16 w-16 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center text-xl font-bold text-primary">
+                  <div className={`h-16 w-16 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center text-xl font-bold text-primary transition-all duration-500 ${isAnalyzing ? 'animate-pulse' : ''}`}>
                     {fight.fighter1.initials}
                   </div>
                   <span className="text-sm font-semibold">{f1}</span>
@@ -104,53 +164,73 @@ function HowItWorksSection({ featuredFight, sharpMoney }: HowItWorksSectionProps
                 <div className="flex flex-col items-center gap-1">
                   <span className="text-2xl font-bold text-muted-foreground/50">VS</span>
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                    <span className="text-xs font-mono text-primary">ANALYZING</span>
+                    <div className={`h-2 w-2 rounded-full ${isAnalyzing ? 'bg-amber-400 animate-pulse' : 'bg-primary animate-pulse'}`} />
+                    <span className={`text-xs font-mono ${isAnalyzing ? 'text-amber-400' : 'text-primary'}`}>
+                      {isAnalyzing ? 'ANALYZING' : 'COMPLETE'}
+                    </span>
                   </div>
                 </div>
 
                 <div className="flex flex-col items-center gap-2">
-                  <div className="h-16 w-16 rounded-full bg-blue-500/10 border-2 border-blue-500/30 flex items-center justify-center text-xl font-bold text-blue-400">
+                  <div className={`h-16 w-16 rounded-full bg-blue-500/10 border-2 border-blue-500/30 flex items-center justify-center text-xl font-bold text-blue-400 transition-all duration-500 ${isAnalyzing ? 'animate-pulse' : ''}`}>
                     {fight.fighter2.initials}
                   </div>
                   <span className="text-sm font-semibold">{f2}</span>
                 </div>
               </div>
 
+              {/* Agent Rows — Revealed Sequentially */}
               <div className="space-y-1.5">
                 {fight.agents.map((agent, idx) => {
                   const Icon = AGENT_ICONS[idx % AGENT_ICONS.length]
-                  const isActive = idx === activeAgent
+                  const isRevealed = idx < revealedCount
+                  const isActive = displayActive === idx
                   const colorClass =
                     agent.prediction === f1 ? "text-primary" :
                     agent.prediction === f2 ? "text-blue-400" : "text-muted-foreground"
                   const barClass =
                     agent.prediction === f1 ? "bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" :
                     agent.prediction === f2 ? "bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]" : "bg-muted-foreground"
+
                   return (
                     <div
                       key={agent.name}
-                      className={`agent-row flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-300 ${
-                        isActive
-                          ? "bg-primary/10 border-primary/30"
-                          : "bg-background/30 border-transparent hover:bg-background/50"
+                      onMouseEnter={() => setHoveredAgent(idx)}
+                      onMouseLeave={() => setHoveredAgent(null)}
+                      onClick={() => setActiveAgent(idx)}
+                      className={`agent-row flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all duration-300 ${
+                        !isRevealed
+                          ? "opacity-0 translate-y-2"
+                          : isActive
+                            ? "bg-primary/10 border-primary/30 scale-[1.02]"
+                            : "bg-background/30 border-transparent hover:bg-background/50 opacity-100 translate-y-0"
                       }`}
+                      style={{
+                        transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
+                      }}
                     >
-                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
-                        isActive ? "bg-primary/20" : "bg-muted"
+                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                        isActive ? "bg-primary/20 scale-110" : "bg-muted"
                       }`}>
-                        <Icon className={`h-4 w-4 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                        <Icon className={`h-4 w-4 transition-colors duration-300 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-semibold text-foreground/90">{agent.name}</span>
-                          <span className={`text-sm font-bold ${colorClass}`}>{agent.prediction}</span>
+                          <span className={`text-sm font-bold transition-all duration-300 ${colorClass} ${isActive ? 'scale-110' : ''}`}>
+                            {isRevealed ? agent.prediction : '—'}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           <div className="flex-1 h-2 rounded-full bg-muted/60 overflow-hidden">
-                            <div className={`h-full rounded-full ${barClass}`} style={{ width: `${agent.confidence}%` }} />
+                            <div
+                              className={`h-full rounded-full transition-all duration-700 ease-out ${barClass}`}
+                              style={{ width: isRevealed ? `${agent.confidence}%` : '0%' }}
+                            />
                           </div>
-                          <span className="text-xs font-mono font-semibold text-foreground/70">{agent.confidence}%</span>
+                          <span className={`text-xs font-mono font-semibold text-foreground/70 tabular-nums transition-opacity duration-300 ${isRevealed ? 'opacity-100' : 'opacity-0'}`}>
+                            {agent.confidence}%
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -158,8 +238,8 @@ function HowItWorksSection({ featuredFight, sharpMoney }: HowItWorksSectionProps
                 })}
               </div>
 
-              {/* Consensus */}
-              <div className="mt-5 p-4 rounded-xl bg-primary/15 border border-primary/40 relative z-10 shadow-[0_0_30px_hsl(var(--primary)/0.25),inset_0_1px_0_hsl(var(--primary)/0.2)]">
+              {/* Consensus — Fades In After All Agents */}
+              <div className={`mt-5 p-4 rounded-xl bg-primary/15 border border-primary/40 relative z-10 shadow-[0_0_30px_hsl(var(--primary)/0.25),inset_0_1px_0_hsl(var(--primary)/0.2)] transition-all duration-700 ${showConsensus ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.1),transparent_70%)] rounded-xl" />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-2">
@@ -172,6 +252,28 @@ function HowItWorksSection({ featuredFight, sharpMoney }: HowItWorksSectionProps
                   </div>
                 </div>
               </div>
+
+              {/* Replay Button */}
+              {hasPlayed && !isAnalyzing && (
+                <button
+                  onClick={handleReplay}
+                  className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-border/30 bg-background/30 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 text-xs text-muted-foreground hover:text-primary group"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 transition-transform duration-500 group-hover:-rotate-180" />
+                  <span className="font-medium">Replay Analysis</span>
+                </button>
+              )}
+
+              {/* Pre-analysis state */}
+              {!hasPlayed && (
+                <button
+                  onClick={handleReplay}
+                  className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-primary/30 bg-primary/10 hover:bg-primary/15 transition-all duration-300 text-sm text-primary group"
+                >
+                  <Play className="h-4 w-4 fill-primary/50" />
+                  <span className="font-semibold">Run Analysis</span>
+                </button>
+              )}
             </CardContent>
           </Card>
 
@@ -253,14 +355,14 @@ function HowItWorksSection({ featuredFight, sharpMoney }: HowItWorksSectionProps
           </div>
 
           <div className="grid md:grid-cols-3 gap-10 relative">
-            <div className="hidden md:block absolute top-8 left-[20%] right-[20%] h-px bg-gradient-to-r from-transparent via-border/30 to-transparent" />
+            <div className="hidden md:block absolute top-8 left-[20%] right-[20%] h-px bg-linear-to-r from-transparent via-border/30 to-transparent" />
             {[
               { n: 1, title: "Open MAFS", desc: "Access AI edge detection dashboard" },
               { n: 2, title: "View AI-detected edges", desc: "See probability gaps across 27+ sportsbooks" },
               { n: 3, title: "Bet only when edge exists", desc: "Place bets with mathematical advantage" },
             ].map(step => (
               <div key={step.n} className="text-center group">
-                <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/15 flex items-center justify-center mx-auto mb-5 transition-all duration-500 group-hover:scale-110 group-hover:border-primary/35 relative">
+                <div className="h-16 w-16 rounded-xl bg-linear-to-br from-primary/20 to-primary/5 border border-primary/15 flex items-center justify-center mx-auto mb-5 transition-all duration-500 group-hover:scale-110 group-hover:border-primary/35 relative">
                   <span className="text-2xl font-bold text-primary">{step.n}</span>
                 </div>
                 <h4 className="font-semibold mb-2 tracking-tight transition-all duration-300 group-hover:text-primary text-lg">{step.title}</h4>

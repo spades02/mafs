@@ -4,6 +4,8 @@ import Link from "next/link"
 import { ArrowRight, LayoutDashboard, BarChart3, Users, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SimulationDemo } from "@/components/simulation-demo"
+import EdgeTicker from "@/components/pages/home/edge-ticker"
+import type { FeaturedFight, LandingEdge } from "@/app/actions/landing-page-actions"
 
 interface HeroSectionProps {
   isPro?: boolean
@@ -18,6 +20,8 @@ interface HeroSectionProps {
     roiPct: number
   }
   liveEdgeCount?: number
+  featuredFight?: FeaturedFight | null
+  topEdges?: LandingEdge[]
 }
 
 function HeroSection({
@@ -26,12 +30,17 @@ function HeroSection({
   stats,
   trackRecordSummary,
   liveEdgeCount = 0,
+  featuredFight,
+  topEdges,
 }: HeroSectionProps) {
   const simsText = stats?.simulationsRun
     ? `${(Math.floor(stats.simulationsRun / 1000) * 1000).toLocaleString()}+`
     : "847,000+"
 
   const summary = trackRecordSummary ?? { netProfitStr: "+$24.8K", winRatePct: 83, roiPct: 18 }
+
+  // Build ticker edges from topEdges prop
+  const tickerEdges = topEdges?.map(e => ({ fighterName: e.fighterName || e.matchupLabel, edgePct: e.edgePct })) || []
 
   const scrollToRecent = () => {
     if (typeof document !== 'undefined') {
@@ -71,25 +80,9 @@ function HeroSection({
             )}
           </p>
 
-          {/* Real Results credibility bar */}
-          <div className="flex flex-col items-center mb-8 animate-fade-up delay-300">
-            <p className="text-[10px] text-muted-foreground/60 uppercase tracking-[0.2em] font-medium mb-3">Real Results</p>
-            <div className="inline-flex items-center gap-6 px-6 py-3 rounded-xl bg-muted/30 border border-border/40 hover-lift">
-              <div className="text-center">
-                <p className="text-xl font-bold text-primary tabular-nums leading-none">{summary.netProfitStr}</p>
-                <p className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wide">Net Profit</p>
-              </div>
-              <div className="h-8 w-px bg-border/50" />
-              <div className="text-center">
-                <p className="text-xl font-bold tabular-nums leading-none">{summary.winRatePct}%</p>
-                <p className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wide">Hit Rate</p>
-              </div>
-              <div className="h-8 w-px bg-border/50" />
-              <div className="text-center">
-                <p className="text-xl font-bold text-primary tabular-nums leading-none">{summary.roiPct >= 0 ? '+' : ''}{summary.roiPct}%</p>
-                <p className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wide">ROI</p>
-              </div>
-            </div>
+          {/* Live Edges Bar */}
+          <div className="mb-8 -mx-6 animate-fade-up delay-300">
+            <EdgeTicker tickerEdges={tickerEdges} />
           </div>
 
           {/* CTAs */}
@@ -102,7 +95,7 @@ function HeroSection({
                     <span>Go to Dashboard</span>
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="text-[15px] px-8 py-6 h-auto min-h-[54px] font-medium rounded-xl border-border/60 hover:border-primary/40 hover:bg-primary/5">
+                <Button asChild variant="outline" size="lg" className="text-[15px] px-8 py-6 h-auto min-h-[54px] font-medium rounded-xl border-border/60 hover:border-primary/40 hover:bg-primary/5 hover:text-primary">
                   <Link href="/dashboard">
                     <BarChart3 className="h-4 w-4 mr-2" />
                     <span>View Your Edges</span>
@@ -154,7 +147,7 @@ function HeroSection({
           <div className="relative max-w-md mx-auto animate-fade-up delay-600">
             <div className="absolute -inset-6 bg-linear-to-r from-primary/6 via-primary/3 to-primary/6 blur-[50px] rounded-[32px] opacity-50" />
             <div className="relative hover-lift">
-              <SimulationDemo />
+              <SimulationDemo featuredFight={featuredFight} />
             </div>
           </div>
         </div>

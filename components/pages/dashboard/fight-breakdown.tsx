@@ -1,8 +1,10 @@
 "use client"
+import { useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Info, AlertTriangle, TrendingUp } from "lucide-react"
 import { FightBreakdown as FightBreakdownType } from "@/app/(app)/dashboard/d-types"
 import { LineMovementChart } from "./line-movement-chart"
+import { oddsToProb } from "@/lib/odds/utils"
 
 interface FightBreakdownProps {
     breakdown: FightBreakdownType
@@ -11,12 +13,27 @@ interface FightBreakdownProps {
 }
 
 export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownProps) {
+    const sectionRef = useRef<HTMLElement>(null)
+
+    useEffect(() => {
+        if (sectionRef.current) {
+            setTimeout(() => {
+                const elementPosition = sectionRef.current?.getBoundingClientRect().top
+                const offsetPosition = elementPosition ? elementPosition + window.pageYOffset - 100 : 0
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: "smooth"
+                })
+            }, 100)
+        }
+    }, [matchup])
+
     // Resolve fighter names: prefer breakdown fields, fall back to matchup string
     const resolvedF1Name = breakdown.fighter1Name || (matchup?.split(" vs ")?.[0]?.trim()) || ""
     const resolvedF2Name = breakdown.fighter2Name || (matchup?.split(" vs ")?.[1]?.trim()) || ""
 
     return (
-        <section className="mt-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
+        <section ref={sectionRef} className="mt-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
             <Card className="glass-card-intense glass-glow overflow-hidden border-white/5 bg-black/40">
                 <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-white/5">
                     <CardTitle className="text-lg font-medium text-white tracking-wide">
@@ -159,22 +176,52 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
                     </div>
 
                     {/* LINE MOVEMENT CHART */}
-                    {breakdown.oddsHistory && breakdown.oddsHistory.length >= 2 && (
-                        <div className="pt-2 px-2">
-                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-3 flex items-center gap-2">
-                                <TrendingUp className="w-3.5 h-3.5" /> Line Movement
-                            </p>
-                            <div className="p-4 rounded border border-white/5 bg-black/20">
-                                <LineMovementChart
-                                    data={breakdown.oddsHistory}
-                                    color={breakdown.mispricing?.includes("-") || breakdown.ev?.includes("+") ? "#10b981" : "#8b5cf6"}
-                                    height={40}
-                                    openingOdds={breakdown.oddsHistory[0].oddsAmerican}
-                                    currentOdds={typeof breakdown.marketLine === 'string' && breakdown.marketLine.includes('/') ? undefined : undefined} // Keep simple for breakdown UI
-                                />
+                    {breakdown.oddsHistory && breakdown.oddsHistory.length >= 2 && (() => {
+                        const firstOdds = breakdown.oddsHistory[0].oddsAmerican
+                        const lastOdds = breakdown.oddsHistory[breakdown.oddsHistory.length - 1].oddsAmerican
+                        const isMovingToward = Math.abs(lastOdds) < Math.abs(firstOdds) || lastOdds < firstOdds
+                        const isMovingAway = Math.abs(lastOdds) > Math.abs(firstOdds) || lastOdds > firstOdds
+
+                        // Approximate first edge calculation to match screenshot
+                        const currentMispricingStr = breakdown.mispricing || "0%"
+                        const currentEdgeVal = parseFloat(currentMispricingStr.replace(/[+%]/g, '')) || 0
+                        const currentImpliedProb = oddsToProb(lastOdds) * 100
+                        const firstImpliedProb = oddsToProb(firstOdds) * 100
+                        const probDelta = currentImpliedProb - firstImpliedProb
+                        const firstEdgeVal = (currentEdgeVal + probDelta).toFixed(1)
+
+                        return (
+                            <div className="pt-2 px-2">
+                                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-3 flex items-center gap-2">
+                                    <TrendingUp className="w-3.5 h-3.5" /> Line Movement
+                                </p>
+                                <div className="p-4 rounded border border-white/5 bg-black/20 flex flex-col md:flex-row md:items-center gap-6">
+                                    <div className="flex-1 max-w-[240px]">
+                                        <LineMovementChart
+                                            data={breakdown.oddsHistory}
+                                            color={currentEdgeVal >= 0 ? "#10b981" : "#8b5cf6"}
+                                            height={40}
+                                            openingOdds={firstOdds}
+                                            currentOdds={lastOdds}
+                                        />
+                                        <p className={`text-[10px] font-medium mt-3 flex items-center gap-1 ${isMovingToward ? "text-emerald-400/80" : isMovingAway ? "text-amber-400/80" : "text-muted-foreground/50"}`}>
+                                            {isMovingToward ? "Market Moving Toward Model" : isMovingAway ? "Market Moving Away" : "Market Stable"} <span className="text-[8px] uppercase font-bold tracking-widest ml-1">{isMovingToward ? "↘" : isMovingAway ? "↗" : "→"}</span>
+                                        </p>
+                                    </div>
+                                    <div className="flex-1 grid grid-cols-2 gap-4 text-sm font-mono">
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between text-muted-foreground/60"><span className="text-[11px]">First Observed:</span> <span className="text-white font-medium">{firstOdds > 0 ? `+${firstOdds}` : firstOdds}</span></div>
+                                            <div className="flex justify-between text-muted-foreground/60"><span className="text-[11px]">Current:</span> <span className="text-white font-bold">{lastOdds > 0 ? `+${lastOdds}` : lastOdds}</span></div>
+                                        </div>
+                                        <div className="space-y-1.5 border-l border-white/10 pl-4">
+                                            <div className="flex justify-between text-muted-foreground/60"><span className="text-[11px]">Edge at First:</span> <span className="text-emerald-400/70">{firstEdgeVal > 0 ? "+" : ""}{firstEdgeVal}%</span></div>
+                                            <div className="flex justify-between text-muted-foreground/60"><span className="text-[11px]">Edge Now:</span> <span className="text-emerald-400 font-bold">{currentEdgeVal > 0 ? "+" : ""}{currentEdgeVal.toFixed(1)}%</span></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    })()}
 
                     {/* FIGHTER PROFILES */}
                     <div className="grid md:grid-cols-2 gap-8 border-t border-white/5 pt-6">

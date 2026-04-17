@@ -56,7 +56,7 @@ export const FightEdgeSummaryGenerationSchema = z.object({
   // Explanations
   reason: z.string().describe("1 sentence summary"),
   detailedReason: DetailedReasonInputSchema,
-  executiveSummary: z.string().optional().describe("3-4 sentences deep dive summary"),
+  executiveSummary: z.string().optional().describe("1 punchy sentence AI insight (max 10-15 words)"),
 
   // Intelligence
   agentSignals: z.array(AgentSignalInputSchema).optional().describe("Signals from at least 3 distinct agents (e.g. Model, Market, Style)"),
@@ -66,10 +66,10 @@ export const FightEdgeSummaryGenerationSchema = z.object({
   edgeSource: z.string().optional().describe("What is the source of our edge? (e.g. 'Latency', 'Chin Durability', 'Cardio')"),
 
   // Multi-Market Evaluation
-  marketEvaluations: z.array(MarketEvaluationSchema).min(1).max(8).describe("Evaluate AT LEAST 2-8 betting markets for this fight. Include ML + any other applicable markets (ITD, GTD, DGTD, Over, Under, MOV, Round, Double Chance). The top-level bet_type/label should be the BEST one."),
+  marketEvaluations: z.array(MarketEvaluationSchema).optional().describe("Evaluate AT LEAST 2-8 betting markets for this fight. Include ML + any other applicable markets (ITD, GTD, DGTD, Over, Under, MOV, Round, Double Chance). The top-level bet_type/label should be the BEST one."),
 
   // New UI Elements
-  walkthroughSimulations: z.array(WalkthroughSimulationSchema).min(1).max(5).optional().describe("Provide up to 3 walkthrough simulations: 'Pressure/Pacing Control', 'Early Window Finish', and 'Damage/Durability Edge' with their probabilities."),
+  walkthroughSimulations: z.array(WalkthroughSimulationSchema).optional().describe("Provide up to 3 walkthrough simulations: 'Pressure/Pacing Control', 'Early Window Finish', and 'Damage/Durability Edge' with their probabilities."),
   advantageMetrix: AdvantageMetrixSchema.optional().describe("Evaluate these 4 specific advantage criteria for the recommended bet to power the Metrix UI. Set to true if the bet has an advantage in this category."),
 
   // Legacy/Compat fields (Optional or computed later)

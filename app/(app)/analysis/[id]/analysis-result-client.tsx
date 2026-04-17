@@ -151,8 +151,18 @@ export default function AnalysisResultClient({ eventName, eventDate, fights, bet
 
                     {/* Top Bets */}
                     <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-semibold text-white">Simulation Outcomes</h2>
+                        <div className="mb-8">
+                            <div className="flex items-center gap-3 mb-2">
+                                <h2 className="text-3xl font-bold text-white tracking-tight">MAFS AI Picks</h2>
+                                <div className="px-3 py-1 bg-emerald-500/[0.05] border border-emerald-500/20 rounded-full flex items-center">
+                                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">{topBets.length} HIGH-EDGE OPPORTUNIT{topBets.length === 1 ? 'Y' : 'IES'} DETECTED</span>
+                                </div>
+                            </div>
+                            <p className="text-muted-foreground/60 text-sm mb-3 font-medium">Highest-edge opportunities identified by the MAFS simulation engine.</p>
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
+                                <p className="text-[11px] text-emerald-400/80 font-medium">Simulation complete — updated just now</p>
+                            </div>
                         </div>
 
                         {topBets.length > 0 ? (

@@ -26,7 +26,7 @@ function LiveStatsBanner({ stats, trackRecordSummary }: LiveStatsBannerProps) {
   const accuracy = useCountUpOnView(accRef, trackRecordSummary?.winRatePct ?? 71, 2000, { suffix: "%" })
 
   return (
-    <section className="relative border-y border-primary/20 overflow-hidden bg-gradient-to-r from-primary/[0.03] via-primary/[0.08] to-primary/[0.03]">
+    <section className="relative border-y border-primary/20 overflow-hidden bg-linear-to-r from-primary/3 via-primary/8 to-primary/3">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.1),transparent_70%)]" />
       <div className="container mx-auto px-4 relative">
         <div className="grid grid-cols-2 md:grid-cols-4">

@@ -4,7 +4,7 @@ import ScanningBar from "@/components/pages/home/scanning-bar"
 import HeroSection from "@/components/pages/home/hero-section"
 import EdgeTicker from "@/components/pages/home/edge-ticker"
 import LiveStatsBanner from "@/components/pages/home/live-stats-banner"
-import EdgePreview from "@/components/pages/home/edge-preview"
+
 import HowItWorksSection from "@/components/pages/home/how-it-works-section"
 import TrackRecord from "@/components/pages/home/track-record"
 import FeaturesSection from "@/components/pages/home/features-section"
@@ -44,14 +44,15 @@ export default async function Page() {
           stats={landingData.stats}
           trackRecordSummary={landingData.trackRecordSummary}
           liveEdgeCount={landingData.liveEdgeCount}
+          featuredFight={landingData.featuredFight}
+          topEdges={landingData.topEdges}
         />
         <EdgeTicker tickerEdges={landingData.topEdges} />
         <LiveStatsBanner
           stats={landingData.stats}
           trackRecordSummary={landingData.trackRecordSummary}
         />
-        <RecentEdgeFeed recentEdges={landingData.topEdges.slice(0, 5)} />
-        <EdgePreview isPro={isPro} previewEdges={landingData.topEdges.slice(0, 4)} />
+        <RecentEdgeFeed recentEdges={landingData.topEdges.slice(0, 5)} isPro={isPro} />
         {!isAuthenticated && <WhyMostLoseSection />}
         <HowItWorksSection
           featuredFight={landingData.featuredFight}

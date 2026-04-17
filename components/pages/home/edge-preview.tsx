@@ -75,7 +75,7 @@ function EdgePreview({ isPro = false, previewEdges }: EdgePreviewProps) {
                   </div>
                 </CardContent>
                 {/* Lock overlay */}
-                <div className="absolute inset-0 bg-background/70 backdrop-blur-[4px] flex flex-col items-center justify-center p-6">
+                <div className="absolute inset-0 bg-background/70 backdrop-blur-xs flex flex-col items-center justify-center p-6">
                   <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mb-3">
                     <Lock className="h-6 w-6 text-primary" />
                   </div>

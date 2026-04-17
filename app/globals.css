@@ -585,10 +585,11 @@
 
   @keyframes smooth-ticker {
     0% { transform: translateX(0); }
-    100% { transform: translateX(-33.33%); }
+    100% { transform: translateX(-50%); }
   }
   .smooth-ticker {
-    animation: 60s linear infinite smooth-ticker;
+    animation: 50s linear infinite smooth-ticker;
+    width: max-content;
   }
   .smooth-ticker:hover {
     animation-play-state: paused;

@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { FightBreakdownType } from "@/types/fight-breakdowns";
+import { LineMovementChart } from "@/components/pages/dashboard/line-movement-chart";
+import { TrendingUp } from "lucide-react";
 
 type FightBreakdownProps = {
   currentFightData: FightBreakdownType;
@@ -67,7 +69,7 @@ function FightBreakdown({ currentFightData }: FightBreakdownProps) {
         </div>
 
         {/* Recommended Play */}
-        <div>
+        <div className="mb-6">
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Recommended Play
           </h3>
@@ -109,6 +111,29 @@ function FightBreakdown({ currentFightData }: FightBreakdownProps) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Line Movement */}
+        {currentFightData.oddsHistory && currentFightData.oddsHistory.length >= 2 && (
+          <div className="mb-6">
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" /> Line Movement
+            </h3>
+            <Card className="bg-muted/50">
+              <CardContent className="p-4">
+                <LineMovementChart
+                  data={currentFightData.oddsHistory}
+                  color={
+                    (currentFightData.betEv || 0) > 0 
+                      ? "#10b981" 
+                      : "#8b5cf6"
+                  }
+                  height={45}
+                  openingOdds={currentFightData.oddsHistory[0].oddsAmerican}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Style Matchup Notes */}
         <div>

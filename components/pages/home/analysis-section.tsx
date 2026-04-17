@@ -2,7 +2,7 @@
 import { useState } from "react";
 import EventRunner from "../../event-runner";
 import BestBets from "../../best-bets";
-import AllMarketEdges from "../../all-market-edges";
+import DailyEdgeFeed from "@/components/daily-edge-feed";
 import FightAnalysis from "./fight-analysis";
 import { FightEdgeSummaryWithFightId } from "@/types/fight-edge-summary";
 import { FightBreakdownType } from "@/types/fight-breakdowns";
@@ -59,7 +59,10 @@ function AnalysisSection() {
   }));
   
   const fightBreakdowns: Record<number, FightBreakdownType> = results.reduce((acc, r) => {
-    acc[r.fightId] = r.breakdown;
+    acc[r.fightId] = {
+      ...r.breakdown,
+      oddsHistory: r.edge?.oddsHistory || r.breakdown?.oddsHistory || [],
+    };
     return acc;
   }, {} as Record<number, FightBreakdownType>);
 
@@ -104,7 +107,7 @@ function AnalysisSection() {
             isComplete={isComplete}
           />
 
-          <AllMarketEdges 
+          <DailyEdgeFeed 
             fightData={fightData}
             isLoading={isLoading}
             isComplete={isComplete}

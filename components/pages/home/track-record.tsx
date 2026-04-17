@@ -28,13 +28,13 @@ function TrackRecord({
   const s = summary ?? { netProfitStr: "—", winRatePct: 0, roiPct: 0 }
 
   return (
-    <section className="py-20 md:py-28 px-4 bg-muted/20">
+    <section className="py-20 md:py-28 px-4 relative">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-4">Track Record</p>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-balance">Recent AI Edges</h2>
-          <p className="text-lg text-muted-foreground text-pretty">
-            Transparent results from our edge detection system. Every pick, every outcome.
+          <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-4">Performance</p>
+          <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">Real performance. Not theory.</h2>
+          <p className="text-base text-muted-foreground/70">
+            Every pick tracked to measure true edge performance.
           </p>
         </div>
 
@@ -49,26 +49,37 @@ function TrackRecord({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-16">
             {rows.map((r, i) => {
               const isWin = r.status === "WIN"
               const isLoss = r.status === "LOSS"
               const isPending = !isWin && !isLoss
+              
+              const titleName = (() => {
+                 const last = r.pickFighterName?.split(' ').slice(-1)[0] || ''
+                 const bet = r.bet || ''
+                 if (last && bet.toLowerCase().includes(last.toLowerCase())) return bet
+                 return last ? `${last} ${bet}` : bet
+              })()
+
               return (
                 <Card
                   key={i}
-                  className={`glass-card border-border/50 transition-all duration-300 ${
-                    isWin ? "result-card-win" : isLoss ? "result-card-loss" : ""
+                  className={`ultra-card transition-all duration-300 relative overflow-hidden flex flex-col items-center justify-center py-8 px-4 ${
+                    isWin ? "border-primary/20 bg-primary/5" : isLoss ? "border-destructive/20 bg-destructive/5" : "border-border/50"
                   }`}
                 >
-                  <CardContent className="p-4 text-center">
+                  {isWin && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.05),transparent_70%)] pointer-events-none" />}
+                  {isLoss && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(ellipse_at_top,hsl(var(--destructive)/0.05),transparent_70%)] pointer-events-none" />}
+                  
+                  <div className="relative z-10 w-full flex flex-col items-center">
                     <div
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold mb-2 ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold mb-4 uppercase tracking-widest ${
                         isWin
-                          ? "bg-primary/20 text-primary"
+                          ? "bg-primary/10 text-primary border border-primary/20"
                           : isLoss
-                          ? "bg-destructive/20 text-destructive"
-                          : "bg-amber-500/15 text-amber-400"
+                          ? "bg-destructive/10 text-destructive border border-destructive/20"
+                          : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                       }`}
                     >
                       {isWin ? (
@@ -80,26 +91,19 @@ function TrackRecord({
                       )}
                       {r.status}
                     </div>
-                    {r.matchupLabel && (
-                      <p className="text-[10px] text-primary/80 font-semibold uppercase tracking-wider mb-1 truncate">{r.matchupLabel}</p>
-                    )}
-                    <p className="text-sm font-semibold mb-1 leading-tight">
-                      {(() => {
-                        const last = r.pickFighterName?.split(' ').slice(-1)[0] || ''
-                        const bet = r.bet || ''
-                        if (last && bet.toLowerCase().includes(last.toLowerCase())) return bet
-                        return last ? `${last} · ${bet}` : bet
-                      })()}
+
+                    <p className="text-base md:text-lg font-bold text-foreground/90 mb-1 leading-tight text-center">
+                      {titleName}
                     </p>
-                    <p className="text-sm font-mono text-muted-foreground mb-2">{r.odds}</p>
+                    <p className="text-sm font-mono text-muted-foreground/60 mb-2">{r.odds}</p>
                     <p
-                      className={`text-sm font-bold font-mono profit-animate ${
+                      className={`text-lg md:text-xl font-bold font-mono tracking-tight profit-animate ${
                         isWin ? "text-primary" : isLoss ? "text-destructive" : "text-muted-foreground/70"
                       }`}
                     >
                       {r.profit}
                     </p>
-                  </CardContent>
+                  </div>
                 </Card>
               )
             })}
@@ -107,26 +111,26 @@ function TrackRecord({
         )}
 
         {hasSettled && (
-          <div className="flex items-center justify-center gap-8 p-6 rounded-xl bg-muted/30 border border-border/50 max-w-md mx-auto">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{s.netProfitStr}</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Net Profit</p>
+          <div className="flex items-center justify-between md:justify-center md:gap-24 px-4 max-w-2xl mx-auto">
+            <div className="text-center flex flex-col items-center">
+              <p className="text-3xl md:text-4xl font-bold text-primary tracking-tighter mb-2">{s.netProfitStr}</p>
+              <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.1em] font-medium">Net Profit</p>
             </div>
-            <div className="h-12 w-px bg-border" />
-            <div className="text-center">
-              <p className="text-2xl font-bold">{s.winRatePct}%</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Win Rate</p>
+            
+            <div className="text-center flex flex-col items-center">
+              <p className="text-3xl md:text-4xl font-bold tracking-tighter text-foreground/90 mb-2">{s.winRatePct}%</p>
+              <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.1em] font-medium">Win Rate</p>
             </div>
-            <div className="h-12 w-px bg-border" />
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{s.roiPct >= 0 ? '+' : ''}{s.roiPct}%</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">ROI</p>
+            
+            <div className="text-center flex flex-col items-center">
+              <p className="text-3xl md:text-4xl font-bold text-primary tracking-tighter mb-2">{s.roiPct >= 0 ? '+' : ''}{s.roiPct}%</p>
+              <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.1em] font-medium">ROI</p>
             </div>
           </div>
         )}
 
         {!hasSettled && rows.length > 0 && (
-          <p className="text-center text-xs text-muted-foreground/60 max-w-md mx-auto">
+          <p className="text-center text-xs text-muted-foreground/60 max-w-md mx-auto mt-8">
             Showing recent picks awaiting settlement. Performance summary will appear once fights conclude.
           </p>
         )}
