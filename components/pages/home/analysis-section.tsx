@@ -107,8 +107,8 @@ function AnalysisSection() {
             isComplete={isComplete}
           />
 
-          <DailyEdgeFeed 
-            fightData={fightData}
+          <DailyEdgeFeed
+            fightData={fightData as any}
             isLoading={isLoading}
             isComplete={isComplete}
           />
