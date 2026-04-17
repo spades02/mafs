@@ -188,7 +188,7 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
                         const currentImpliedProb = oddsToProb(lastOdds) * 100
                         const firstImpliedProb = oddsToProb(firstOdds) * 100
                         const probDelta = currentImpliedProb - firstImpliedProb
-                        const firstEdgeVal = (currentEdgeVal + probDelta).toFixed(1)
+                        const firstEdgeVal = parseFloat((currentEdgeVal + probDelta).toFixed(1))
 
                         return (
                             <div className="pt-2 px-2">
