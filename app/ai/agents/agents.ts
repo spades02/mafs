@@ -665,7 +665,7 @@ export default async function Agents(
       if (!row) continue;
       for (const [k, v] of Object.entries(row)) {
         if (FIGHT_LEVEL_KEYS.has(k)) continue;
-        if (v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v))) {
+        if (v !== null && v !== undefined && (v as unknown) !== "" && Number.isFinite(Number(v))) {
           marketsScanned++;
         }
       }
