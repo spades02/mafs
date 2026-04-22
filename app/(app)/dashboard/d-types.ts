@@ -54,6 +54,7 @@ export type SimulationBet = {
     }
     oddsHistory?: OddsHistoryPoint[]
     ev?: number | null
+    oddsContext?: "moneyline-fallback"
 }
 
 export type OddsHistoryPoint = {
@@ -138,7 +139,8 @@ export type FightBreakdown = {
     }
     oddsHistory?: OddsHistoryPoint[] // Injected from server component
     mafsIntelligence?: Array<{ type: string; text: string }>
-    simulationPaths?: Array<{ name: string; pct: number; desc: string }>
+    coreThesis?: string
+    supportingSignals?: Array<{ type: string; text: string }>
 }
 
 export type EventData = {

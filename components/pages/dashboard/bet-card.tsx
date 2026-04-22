@@ -1,10 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle2, AlertTriangle, ChevronUp, ChevronDown } from "lucide-react"
 import { ConfidenceRing } from "@/components/premium-metrics"
 import { SimulationBet } from "@/app/(app)/dashboard/d-types"
 import { LineMovementChart } from "./line-movement-chart"
+import { SaveBetButton } from "./save-bet-button"
 
 import { formatOdds } from "@/lib/odds/utils"
 
@@ -15,44 +17,51 @@ interface BetCardProps {
     onToggle: () => void
     betSeed: number
     oddsFormat?: string
+    eventId?: string | null
+    eventName?: string | null
+    initiallySaved?: boolean
 }
 
-export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat = "american" }: BetCardProps) {
+export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat = "american", eventId, eventName, initiallySaved = false }: BetCardProps) {
+    const [edgeBreakdownOpen, setEdgeBreakdownOpen] = useState(true)
     const hasRiskFlag = bet.agentSignals ? bet.agentSignals.some((s) => s.signal === "neutral" || s.signal === "fail") : false
     const passedSignals = bet.agentSignals ? bet.agentSignals.filter((s) => s.signal === "pass").length : 0
     const totalSignals = bet.agentSignals ? bet.agentSignals.length : 0
 
-    // Compute pricing metrics
-    const marketOdds = typeof bet.odds_american === 'string' && bet.odds_american !== "No odds available" ? parseInt(bet.odds_american.replace("+", "")) : (typeof bet.odds_american === 'number' ? bet.odds_american : -110)
-    const modelProb = bet.P_sim
+    // Compute pricing metrics (with NaN/Infinity guards)
+    const parsedMarketOdds = typeof bet.odds_american === 'string' && bet.odds_american !== "No odds available"
+        ? parseInt(bet.odds_american.replace("+", ""))
+        : (typeof bet.odds_american === 'number' ? bet.odds_american : NaN)
+    const hasValidOdds = typeof parsedMarketOdds === 'number' && isFinite(parsedMarketOdds) && parsedMarketOdds !== 0
+    const marketOdds = hasValidOdds ? parsedMarketOdds : -110
+    const modelProb = typeof bet.P_sim === 'number' && isFinite(bet.P_sim) ? Math.min(0.999, Math.max(0.001, bet.P_sim)) : 0.5
     const trueLineAmerican = modelProb >= 0.5
         ? -Math.round((modelProb / (1 - modelProb)) * 100)
         : Math.round(((1 - modelProb) / modelProb) * 100)
-    const marketImpliedProb = marketOdds > 0
+    const marketImpliedProbRaw = marketOdds > 0
         ? 100 / (marketOdds + 100)
         : (-marketOdds) / ((-marketOdds) + 100)
-    const decimalOdds = marketOdds > 0 ? 1 + (marketOdds / 100) : 1 + (100 / -marketOdds)
-    const evPerUnit = (modelProb * (decimalOdds - 1)) - ((1 - modelProb) * 1)
-    const mispricingProb = modelProb - marketImpliedProb
+    const marketImpliedProb = isFinite(marketImpliedProbRaw) ? marketImpliedProbRaw : 0.5
+    const decimalOddsRaw = marketOdds > 0 ? 1 + (marketOdds / 100) : 1 + (100 / -marketOdds)
+    const decimalOdds = isFinite(decimalOddsRaw) && decimalOddsRaw > 1 ? decimalOddsRaw : 1.9091
+    const evPerUnitRaw = (modelProb * (decimalOdds - 1)) - ((1 - modelProb) * 1)
+    const evPerUnit = isFinite(evPerUnitRaw) ? evPerUnitRaw : 0
+    const mispricingProbRaw = modelProb - marketImpliedProb
+    const mispricingProb = isFinite(mispricingProbRaw) ? mispricingProbRaw : 0
 
     // Kelly Criterion estimation
-    const kellyFraction = ((modelProb * (decimalOdds - 1)) - (1 - modelProb)) / (decimalOdds - 1)
+    const kellyFractionRaw = ((modelProb * (decimalOdds - 1)) - (1 - modelProb)) / (decimalOdds - 1)
+    const kellyFraction = isFinite(kellyFractionRaw) ? kellyFractionRaw : 0
     const varianceMultiplier = bet.varianceTag === "low" ? 0.5 : bet.varianceTag === "medium" ? 0.35 : 0.25
     const confidenceMultiplier = Math.min(1, (bet.confidencePct || 70) / 100)
     const adjustedKelly = kellyFraction * varianceMultiplier * confidenceMultiplier
     const kellyUnits = Math.max(0, Math.round(adjustedKelly * 20) / 10)
-    const kellyIsPass = kellyUnits <= 0 || evPerUnit <= 0
+    const kellyIsPass = !hasValidOdds || kellyUnits <= 0 || evPerUnit <= 0
     const kellyMethod = `${(varianceMultiplier * 100).toFixed(0)}% Kelly`
 
-    // Simulation Paths Data preparation
-    const simPaths = bet.walkthroughSimulations && bet.walkthroughSimulations.length > 0 
-        ? bet.walkthroughSimulations 
-        : [
-            { category: `${bet.fight?.split('vs')[0]?.trim() || "Fighter A"} KO/TKO`, probability: Math.round(modelProb * 100 * 0.45) },
-            { category: `${bet.fight?.split('vs')[0]?.trim() || "Fighter A"} Sub`, probability: Math.round(modelProb * 100 * 0.15) },
-            { category: `${bet.fight?.split('vs')[0]?.trim() || "Fighter A"} Dec`, probability: Math.round(modelProb * 100 * 0.40) },
-            { category: `Opponent Win`, probability: Math.round((1 - modelProb) * 100) }
-          ];
+    // Safe display values
+    const safeEdgePct = typeof bet.edge_pct === 'number' && isFinite(bet.edge_pct) ? bet.edge_pct : 0
+    const safeModelProbPct = Math.round(modelProb * 100)
 
     return (
         <Card
@@ -66,8 +75,11 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <h3 className="text-lg font-bold text-white mb-2 leading-tight">
-                                {bet.fight ? `${bet.fight} ${bet.bet_type === 'ML' ? bet.label : bet.bet_type}` : bet.label}
-                                {bet.fight && bet.bet_type !== 'ML' && bet.label !== bet.fight && !bet.label.includes(bet.fight.split('vs')[0].trim()) ? ` - ${bet.label}` : ""}
+                                {bet.fight
+                                    ? bet.bet_type === 'ML'
+                                        ? `${bet.fight} · ${bet.label}`
+                                        : `${bet.fight} — ${bet.label}`
+                                    : bet.label}
                             </h3>
                             <div className="flex items-center gap-3 text-xs">
                                 <span className="font-mono text-muted-foreground/80">{formatOdds(bet.odds_american, oddsFormat)}</span>
@@ -75,11 +87,19 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                                 <span className="uppercase tracking-wider text-muted-foreground/50 font-medium">MARKET: {(marketImpliedProb * 100).toFixed(0)}% IMPLIED</span>
                             </div>
                         </div>
-                        {index === 0 && (
-                            <span className="px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                Top Pick
-                            </span>
-                        )}
+                        <div className="flex items-center gap-2 shrink-0">
+                            {index === 0 && (
+                                <span className="px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    Top Pick
+                                </span>
+                            )}
+                            <SaveBetButton
+                                bet={bet}
+                                eventId={eventId}
+                                eventName={eventName}
+                                initiallySaved={initiallySaved}
+                            />
+                        </div>
                     </div>
 
                     {/* Probs & Edge Row */}
@@ -87,7 +107,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                         {/* Left: Prob */}
                         <div className="flex flex-col items-center gap-3">
                             <div className="relative">
-                                <ConfidenceRing value={Math.round(bet.P_sim * 100)} size={70} />
+                                <ConfidenceRing value={safeModelProbPct} size={70} />
                             </div>
                             <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60 font-medium">Model Probability</span>
                         </div>
@@ -96,62 +116,44 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                         <div className="flex-1 max-w-[240px]">
                             <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60 font-medium mb-1 block">Model Edge</span>
                             <div className="text-3xl font-bold tracking-tight text-emerald-400 mb-2">
-                                {bet.edge_pct > 0 ? "+" : ""}{bet.edge_pct.toFixed(1)}%
+                                {safeEdgePct > 0 ? "+" : ""}{safeEdgePct.toFixed(1)}%
                             </div>
                             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-2">
-                                <div className="h-full bg-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.5)]" style={{ width: `${Math.min(100, Math.max(0, bet.edge_pct * 10))}%` }} />
+                                <div className="h-full bg-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.5)]" style={{ width: `${Math.min(100, Math.max(0, safeEdgePct * 10))}%` }} />
                             </div>
-                            <span className={`text-[9px] uppercase tracking-widest font-bold ${bet.edge_pct >= 5 ? "text-emerald-400" : bet.edge_pct >= 2 ? "text-emerald-400/80" : "text-amber-400"}`}>
-                                {bet.edge_pct >= 7 ? "Massive Edge (>7%)" : bet.edge_pct >= 5 ? "Large Edge (5-7%)" : bet.edge_pct >= 2 ? "Small Edge (2-5%)" : "Marginal Edge (<2%)"}
+                            <span className={`text-[9px] uppercase tracking-widest font-bold ${safeEdgePct >= 5 ? "text-emerald-400" : safeEdgePct >= 2 ? "text-emerald-400/80" : "text-amber-400"}`}>
+                                {safeEdgePct >= 7 ? "Massive Edge (>7%)" : safeEdgePct >= 5 ? "Large Edge (5-7%)" : safeEdgePct >= 2 ? "Small Edge (2-5%)" : "Marginal Edge (<2%)"}
                             </span>
                         </div>
                     </div>
 
-                    {/* AI Insight & Simulation Paths Grid */}
-                    <div className="grid grid-cols-2 gap-4 mb-5">
-                        <div className="p-4 rounded-xl border border-white/5 bg-[#0F1117] flex flex-col justify-between">
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                    <span className="text-[9px] uppercase tracking-widest text-emerald-400/90 font-bold">AI Insight</span>
-                                </div>
-                                <p className="text-xs text-muted-foreground/80 leading-relaxed mb-4">
-                                    {bet.executiveSummary || bet.whySummary || "Significant structural advantage identified due to discrepancy between fighter win conditions and generic market pricing lines."}
-                                </p>
-                            </div>
-                            <div>
-                                <span className={`inline-flex px-2 py-1 rounded text-[9px] font-medium border ${
-                                    bet.confidencePct >= 75 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : 
-                                    bet.confidencePct >= 60 ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : 
-                                    "bg-white/5 text-muted-foreground border-white/10"
-                                }`}>
-                                    {bet.confidencePct >= 75 ? "High Confidence" : bet.confidencePct >= 60 ? "Medium Confidence" : "Low Confidence"}
-                                </span>
-                            </div>
+                    {/* AI Insight (full width — "Why this is a bet" moved to MAFS Intelligence) */}
+                    <div className="p-4 rounded-xl border border-white/5 bg-[#0F1117] mb-5">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            <span className="text-[9px] uppercase tracking-widest text-emerald-400/90 font-bold">AI Insight</span>
                         </div>
-
-                        <div className="p-4 rounded-xl border border-white/5 bg-[#0F1117]">
-                            <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-bold mb-4 block">Simulation Paths</span>
-                            <div className="space-y-3">
-                                {simPaths.map((sim: any, i: number) => (
-                                    <div key={i}>
-                                        <div className="flex justify-between items-center mb-1.5 text-[10px]">
-                                            <span className="text-muted-foreground/80 line-clamp-1 pr-2">{sim.category}</span>
-                                            <span className="text-muted-foreground font-mono">{sim.probability || sim.pct}%</span>
-                                        </div>
-                                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                            <div className="h-full bg-white/20 rounded-full transition-all duration-1000" style={{ width: `${sim.probability || sim.pct}%` }} />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        <p className="text-xs text-muted-foreground/80 leading-relaxed mb-3">
+                            {bet.executiveSummary || bet.whySummary || "Significant structural advantage identified due to discrepancy between fighter win conditions and generic market pricing lines."}
+                        </p>
+                        <span className={`inline-flex px-2 py-1 rounded text-[9px] font-medium border ${
+                            bet.confidencePct >= 75 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                            bet.confidencePct >= 60 ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                            "bg-white/5 text-muted-foreground border-white/10"
+                        }`}>
+                            {bet.confidencePct >= 75 ? "High Confidence" : bet.confidencePct >= 60 ? "Medium Confidence" : "Low Confidence"}
+                        </span>
                     </div>
 
                     {/* Line Movement Wide Block */}
-                    {bet.oddsHistory && bet.oddsHistory.length >= 2 && (() => {
-                        const firstOdds = bet.oddsHistory[0].oddsAmerican
-                        const lastOdds = bet.oddsHistory[bet.oddsHistory.length - 1].oddsAmerican
+                    {(() => {
+                        const validHistory = (bet.oddsHistory || []).filter(
+                            (p) => typeof p?.oddsAmerican === "number" && !isNaN(p.oddsAmerican),
+                        )
+                        if (validHistory.length < 2) return null
+
+                        const firstOdds = validHistory[0].oddsAmerican
+                        const lastOdds = validHistory[validHistory.length - 1].oddsAmerican
                         const isMovingToward = Math.abs(lastOdds) < Math.abs(firstOdds) || lastOdds < firstOdds
                         const isMovingAway = Math.abs(lastOdds) > Math.abs(firstOdds) || lastOdds > firstOdds
 
@@ -161,7 +163,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                                 <div className="flex items-center gap-4">
                                     <div className="flex-1 max-w-[200px]">
                                         <LineMovementChart
-                                            data={bet.oddsHistory}
+                                            data={validHistory}
                                             color={bet.edge_pct > 0 ? "#34d399" : "#f43f5e"}
                                             height={30}
                                             openingOdds={firstOdds}
@@ -230,9 +232,75 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                 {/* EXPANDABLE SECTION */}
                 {isExpanded && (
                     <div className="p-5 pb-6 bg-[#0A0C10] animate-in fade-in slide-in-from-top-2 duration-300">
+                        {/* FULL EDGE BREAKDOWN — Core Thesis + Supporting Signals */}
+                        {(() => {
+                            const coreThesis =
+                                bet.marketThesis ||
+                                bet.executiveSummary ||
+                                bet.detailedReason.marketInefficiency ||
+                                ""
+
+                            const supporting: string[] = []
+                            if (bet.detailedReason.keyDrivers?.length) {
+                                supporting.push(...bet.detailedReason.keyDrivers)
+                            }
+                            if (bet.patternMechanics?.length) {
+                                supporting.push(...bet.patternMechanics)
+                            }
+                            if (supporting.length === 0) {
+                                if (bet.patternInsight) supporting.push(bet.patternInsight)
+                                if (bet.edgeSource) supporting.push(`Edge source: ${bet.edgeSource}`)
+                                supporting.push(`Model probability ${(bet.P_sim * 100).toFixed(0)}% vs market implied ${(marketImpliedProb * 100).toFixed(0)}%`)
+                            }
+
+                            return (
+                                <div className="mb-6 rounded-xl border border-white/5 bg-[#0F1117] overflow-hidden">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEdgeBreakdownOpen((v) => !v)}
+                                        aria-expanded={edgeBreakdownOpen}
+                                        className="w-full flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors text-left"
+                                    >
+                                        <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60 font-bold">Full Edge Breakdown</span>
+                                        {edgeBreakdownOpen
+                                            ? <ChevronUp className="w-4 h-4 text-muted-foreground/50" />
+                                            : <ChevronDown className="w-4 h-4 text-muted-foreground/50" />}
+                                    </button>
+                                    {edgeBreakdownOpen && (
+                                        <div className="p-4 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                                            {coreThesis && (
+                                                <div className="p-4 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/15">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                                        <span className="text-[9px] uppercase tracking-widest text-emerald-400/90 font-bold">Core Thesis</span>
+                                                    </div>
+                                                    <p className="text-sm text-white/90 leading-relaxed">{coreThesis}</p>
+                                                </div>
+                                            )}
+
+                                            <div className="p-4 rounded-lg bg-black/20 border border-white/5">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                                    <span className="text-[9px] uppercase tracking-widest text-muted-foreground/70 font-bold">Supporting Signals</span>
+                                                </div>
+                                                <div className="space-y-2.5">
+                                                    {supporting.map((item, sIdx) => (
+                                                        <div key={sIdx} className="flex items-start gap-2.5">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                                                            <p className="text-[13px] text-foreground/80 leading-snug">{item}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        })()}
+
                         {/* Executive Summary */}
                         <p className="text-[13px] text-muted-foreground/70 leading-relaxed mb-6">
-                            {bet.detailedReason.marketInefficiency || 
+                            {bet.detailedReason.marketInefficiency ||
                                 bet.executiveSummary ||
                                 "Identified systemic discrepancy between fighter win conditions and generic market pricing."}
                         </p>

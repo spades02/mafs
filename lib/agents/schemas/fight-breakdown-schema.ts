@@ -44,18 +44,18 @@ export const FightBreakdownSchema = z.object({
     marketAnalysis: z.union([z.string(), z.array(z.string())]).optional(),
   }).optional(),
 
-  // MAFS Intelligence — structured reasoning bullets
-  mafsIntelligence: z.array(z.object({
-    type: z.string().describe("Category: 'Matchup Edge', 'Style Clash', 'Market Gap', 'Conditioning', etc."),
-    text: z.string().describe("1-2 sentence reasoning for this intelligence point"),
-  })).optional().describe("2-4 key intelligence insights about this fight"),
+  // MAFS Intelligence — Core Thesis + Supporting Signals
+  coreThesis: z.string().optional().describe("ONE crisp 1-2 sentence statement explaining the central reason this bet has value. Must reference the specific matchup or market dynamic, not generic phrasing."),
+  supportingSignals: z.array(z.object({
+    type: z.string().describe("Category: 'Matchup Edge', 'Style Clash', 'Market Gap', 'Conditioning', 'Pace Control', 'Grappling Gap', etc."),
+    text: z.string().describe("1-2 sentence reasoning that backs up the core thesis"),
+  })).optional().describe("3-5 concrete signals that reinforce the core thesis"),
 
-  // Simulation Path Breakdown — named outcome paths with probabilities
-  simulationPaths: z.array(z.object({
-    name: z.string().describe("Path name, e.g. 'Pressure KO', 'Late Decision', 'Submission Path'"),
-    pct: z.number().min(0).max(100).describe("Probability percentage"),
-    desc: z.string().describe("1 sentence explanation of this path"),
-  })).optional().describe("2-5 outcome path scenarios with probabilities"),
+  // Legacy (deprecated — kept for backwards compatibility with prior stored runs)
+  mafsIntelligence: z.array(z.object({
+    type: z.string(),
+    text: z.string(),
+  })).optional(),
 });
 
 export const FightBreakdownsSchema = z.object({

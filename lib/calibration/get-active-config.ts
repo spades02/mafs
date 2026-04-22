@@ -16,7 +16,7 @@ export type CalibrationConfig = {
 const DEFAULTS: CalibrationConfig = {
   minModelProb: 0.55,
   minEdgePct: 0.5,
-  minAgentConsensus: 0.7,
+  minAgentConsensus: 0.6,
   highVarConfFloor: 0.55,
   marketEdgeThresholds: {},
   confidenceScaling: { multiplier: 1.0, clampMin: 30, clampMax: 95 },

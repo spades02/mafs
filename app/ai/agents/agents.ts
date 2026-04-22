@@ -1,6 +1,6 @@
 // app/ai/agents/agents.ts
 
-import { generateObject } from "ai";
+import { generateObject, NoObjectGeneratedError } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 
 const openai = createOpenAI({
@@ -26,6 +26,43 @@ import { getActiveCalibrationConfig, CalibrationConfig } from "@/lib/calibration
 
 const MODEL = openai("gpt-4o");
 const CONCURRENT_BATCH_SIZE = 6;
+
+// Wraps generateObject so a schema-mismatch ("No object generated…") never kills
+// the pipeline. Retries once with a hardened JSON-only instruction; if that
+// still fails and a fallback is provided, returns it instead of throwing.
+async function safeGenerateObject<T>(
+  args: Parameters<typeof generateObject>[0],
+  opts: { fallback?: T; label?: string } = {}
+): Promise<{ object: T }> {
+  const isSchemaMismatch = (err: unknown) => {
+    const e = err as { name?: string; message?: string } | undefined;
+    return (
+      err instanceof NoObjectGeneratedError ||
+      e?.name === "AI_NoObjectGeneratedError" ||
+      /response did not match schema/i.test(e?.message ?? "")
+    );
+  };
+
+  try {
+    const res = await generateObject(args as Parameters<typeof generateObject>[0]);
+    return res as unknown as { object: T };
+  } catch (err) {
+    if (!isSchemaMismatch(err)) throw err;
+    try {
+      const hardened = {
+        ...(args as Record<string, unknown>),
+        prompt: `${(args as { prompt?: string }).prompt ?? ""}\n\nIMPORTANT: Return ONLY a single JSON object that strictly matches the provided schema. No prose, no markdown fences, no extra fields, no trailing commentary.`,
+      };
+      const res = await generateObject(hardened as Parameters<typeof generateObject>[0]);
+      return res as unknown as { object: T };
+    } catch (retryErr) {
+      const msg = (retryErr as { message?: string })?.message ?? String(retryErr);
+      console.warn(`[safeGenerateObject] schema mismatch persisted${opts.label ? ` (${opts.label})` : ""}: ${msg}`);
+      if (opts.fallback !== undefined) return { object: opts.fallback };
+      throw retryErr;
+    }
+  }
+}
 
 // ---------------- TYPES ----------------
 
@@ -68,7 +105,15 @@ export type ErrorUpdate = {
   message: string;
 };
 
-type StreamCallback = (update: FightResult | StatusUpdate | ErrorUpdate) => void;
+export type ScanSummary = {
+  type: "scan_summary";
+  marketsScanned: number;
+  fightsAnalyzed: number;
+};
+
+type StreamCallback = (
+  update: FightResult | StatusUpdate | ErrorUpdate | ScanSummary
+) => void;
 
 // ---------------- HELPERS ----------------
 
@@ -137,8 +182,21 @@ export async function analyzeFight(
     return v > 0 ? `+${v}` : `${v}`;
   }
 
-  // Fight-level props (same regardless of fighter)
-  const fightProps = oddsA ?? oddsB;
+  // Fight-level props (same regardless of fighter). Merge per-field so empty
+  // columns on one side fall back to the other row's populated value.
+  const fightProps = oddsA || oddsB ? {
+    itdYes: oddsA?.itdYes ?? oddsB?.itdYes,
+    itdNo: oddsA?.itdNo ?? oddsB?.itdNo,
+    over1_5: oddsA?.over1_5 ?? oddsB?.over1_5,
+    under1_5: oddsA?.under1_5 ?? oddsB?.under1_5,
+    over2_5: oddsA?.over2_5 ?? oddsB?.over2_5,
+    under2_5: oddsA?.under2_5 ?? oddsB?.under2_5,
+    over3_5: oddsA?.over3_5 ?? oddsB?.over3_5,
+    under3_5: oddsA?.under3_5 ?? oddsB?.under3_5,
+    fightGoesToDecision: oddsA?.fightGoesToDecision ?? oddsB?.fightGoesToDecision,
+    fightNotGoToDecision: oddsA?.fightNotGoToDecision ?? oddsB?.fightNotGoToDecision,
+    draw: oddsA?.draw ?? oddsB?.draw,
+  } : null;
   const marketOddsBlock = fight.fullOdds
     ? `
 FULL MARKET ODDS (use these to identify the best edge across all markets):
@@ -173,7 +231,7 @@ Round Finishes - ${f2Name}: R1 ${fmtOdd(oddsB?.round1Finish)} | R2 ${fmtOdd(odds
   const f2Stats = formatFighterStats(fighter2);
 
   // -------- AGENT 1: EDGE CALCULATION --------
-  const { object: edgeObj } = await generateObject({
+  const { object: edgeObj } = await safeGenerateObject<import("zod").infer<typeof FightEdgeSummaryGenerationSchema>>({
     model: MODEL,
     schema: FightEdgeSummaryGenerationSchema,
     system: MAFS_PROMPT,
@@ -267,21 +325,24 @@ IMPORTANT:
     }
     if (marketOdd === 0) marketOdd = betSideOdds?.moneyline ?? 0;
   } else if (bt === "ITD") {
-    marketOdd = (oddsA ?? oddsB)?.itdYes ?? 0;
+    // Fight-level props are identical between fighter rows — the scraper often
+    // only populates one side, so fall back per-field instead of taking oddsA
+    // wholesale (which may have empty columns).
+    marketOdd = oddsA?.itdYes ?? oddsB?.itdYes ?? 0;
   } else if (bt === "GTD") {
-    marketOdd = (oddsA ?? oddsB)?.fightGoesToDecision ?? 0;
+    marketOdd = oddsA?.fightGoesToDecision ?? oddsB?.fightGoesToDecision ?? 0;
   } else if (bt === "DGTD") {
-    marketOdd = (oddsA ?? oddsB)?.fightNotGoToDecision ?? 0;
+    marketOdd = oddsA?.fightNotGoToDecision ?? oddsB?.fightNotGoToDecision ?? 0;
   } else if (bt === "Over") {
     const label = edgeObj.label.toLowerCase();
-    if (label.includes("3.5")) marketOdd = (oddsA ?? oddsB)?.over3_5 ?? 0;
-    else if (label.includes("1.5")) marketOdd = (oddsA ?? oddsB)?.over1_5 ?? 0;
-    else marketOdd = (oddsA ?? oddsB)?.over2_5 ?? 0;
+    if (label.includes("3.5")) marketOdd = oddsA?.over3_5 ?? oddsB?.over3_5 ?? 0;
+    else if (label.includes("1.5")) marketOdd = oddsA?.over1_5 ?? oddsB?.over1_5 ?? 0;
+    else marketOdd = oddsA?.over2_5 ?? oddsB?.over2_5 ?? 0;
   } else if (bt === "Under") {
     const label = edgeObj.label.toLowerCase();
-    if (label.includes("3.5")) marketOdd = (oddsA ?? oddsB)?.under3_5 ?? 0;
-    else if (label.includes("1.5")) marketOdd = (oddsA ?? oddsB)?.under1_5 ?? 0;
-    else marketOdd = (oddsA ?? oddsB)?.under2_5 ?? 0;
+    if (label.includes("3.5")) marketOdd = oddsA?.under3_5 ?? oddsB?.under3_5 ?? 0;
+    else if (label.includes("1.5")) marketOdd = oddsA?.under1_5 ?? oddsB?.under1_5 ?? 0;
+    else marketOdd = oddsA?.under2_5 ?? oddsB?.under2_5 ?? 0;
   } else if (bt === "MOV") {
     const label = edgeObj.label.toLowerCase();
     if (label.includes("ko") || label.includes("tko")) marketOdd = betSideOdds?.koTko ?? 0;
@@ -297,7 +358,34 @@ IMPORTANT:
     if (fight.moneylines && matchedIndex !== -1) marketOdd = fight.moneylines[matchedIndex];
   }
 
-  // Calculate P_imp
+  // Coerce marketOdd to a finite number. DB stores missing prop odds as empty
+  // strings; `??` lets those through and they poison oddsToProb with NaN.
+  const marketOddNum = Number(marketOdd);
+  marketOdd = Number.isFinite(marketOddNum) ? marketOddNum : 0;
+
+  // Track whether the displayed odds actually correspond to the recommended market.
+  // If the prop column is empty (e.g. GTD untracked) or this is a "No Bet" pick,
+  // fall back to the moneyline so the user sees real market context instead of
+  // a misleading "No odds available". The pImp / edge math still uses 0.5 in that
+  // case (we can't compute real edge without the actual market line).
+  let oddsAreForRecommendedMarket = marketOdd !== 0;
+  let displayOdd = marketOdd;
+  if (displayOdd === 0 && fight.moneylines) {
+    if (matchedIndex !== -1) {
+      displayOdd = Number(fight.moneylines[matchedIndex]) || 0;
+    } else {
+      // "No Bet" / unmatched: show the favorite's ML (the lower / more negative number)
+      const ml0 = Number(fight.moneylines[0]) || 0;
+      const ml1 = Number(fight.moneylines[1]) || 0;
+      if (ml0 !== 0 && ml1 !== 0) {
+        displayOdd = ml0 < ml1 ? ml0 : ml1;
+      } else {
+        displayOdd = ml0 || ml1;
+      }
+    }
+  }
+
+  // Calculate P_imp — use real marketOdd when available, else neutral 0.5
   const pImp = marketOdd !== 0 ? oddsToProb(marketOdd) : 0.5;
   const pSim = edgeObj.truthProbability;
 
@@ -351,7 +439,7 @@ IMPORTANT:
     ...edgeObj,
     id: fight.id,
     fighterId: matchedIndex !== -1 ? fight.fighterIds[matchedIndex] : undefined,
-    odds_american: marketOdd > 0 ? `+${marketOdd}` : `${marketOdd}`,
+    odds_american: displayOdd > 0 ? `+${displayOdd}` : `${displayOdd}`,
     P_sim: pSim,
     P_imp: pImp,
     edge_pct: edgePct,
@@ -361,8 +449,15 @@ IMPORTANT:
     oddsHistory: oddsHistory.length > 0 ? oddsHistory : undefined,
   };
 
-  // Override odds string if 0
-  if (marketOdd === 0) finalEdge.odds_american = "No odds available";
+  // Override odds string only if BOTH the market odd and the ML fallback are missing.
+  if (displayOdd === 0) finalEdge.odds_american = "No odds available";
+  // Mark when odds shown are ML fallback rather than the recommended market — UI
+  // can read this via a status hint so it stops claiming "no odds available" when
+  // the ML is actually right there.
+  if (!oddsAreForRecommendedMarket && displayOdd !== 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (finalEdge as any).oddsContext = "moneyline-fallback";
+  }
 
   // ---- Safety net: ALWAYS ensure sensible confidencePct and varianceTag ----
   // The model frequently returns confidencePct=0 and varianceTag="high" regardless of actual data.
@@ -440,7 +535,7 @@ IMPORTANT:
 
 
   // -------- AGENT 2: BREAKDOWN WRITER --------
-  const { object: bdObj } = await generateObject({
+  const { object: bdObj } = await safeGenerateObject<import("zod").infer<typeof FightBreakdownsSchema>>({
     model: MODEL,
     schema: FightBreakdownsSchema,
     system: MAFS_PROMPT,
@@ -471,9 +566,12 @@ Generate a detailed "FightBreakdown" including:
 
 Keep it punchy, professional, and analytical.
 `,
+  }, {
+    label: `breakdown:${fight.matchup}`,
+    fallback: { breakdowns: [{}] },
   });
 
-  const rawBreakdown: any = bdObj.breakdowns[0];
+  const rawBreakdown: any = bdObj.breakdowns[0] ?? {};
 
   // Flatten fightAnalysis if present (Model hallucination handler)
   const baseBreakdown = rawBreakdown.fightAnalysis
@@ -547,6 +645,45 @@ export default async function Agents(
       }
     }
   }
+
+  // Tally total markets/odds scraped from fightodds.com so the UI can show real
+  // system scale ("X markets scanned") rather than just the fight count. Each
+  // non-null FighterOdds field is one tradable market line.
+  // Fight-level props (GTD, DGTD, ITD, Over/Under, draw) are duplicated across
+  // both rows; counted once per fight to avoid double-counting.
+  const FIGHT_LEVEL_KEYS = new Set([
+    "itdYes", "itdNo",
+    "over1_5", "under1_5", "over2_5", "under2_5", "over3_5", "under3_5",
+    "fightGoesToDecision", "fightNotGoToDecision", "draw",
+  ]);
+  let marketsScanned = 0;
+  for (const fight of event.fights) {
+    const a = fight.fullOdds?.a;
+    const b = fight.fullOdds?.b;
+    // Fighter-specific markets from each side
+    for (const row of [a, b]) {
+      if (!row) continue;
+      for (const [k, v] of Object.entries(row)) {
+        if (FIGHT_LEVEL_KEYS.has(k)) continue;
+        if (v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v))) {
+          marketsScanned++;
+        }
+      }
+    }
+    // Fight-level markets — count once, preferring whichever side has the value
+    for (const k of FIGHT_LEVEL_KEYS) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const v = (a as any)?.[k] ?? (b as any)?.[k];
+      if (v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v))) {
+        marketsScanned++;
+      }
+    }
+  }
+  onStreamUpdate?.({
+    type: "scan_summary",
+    marketsScanned,
+    fightsAnalyzed: event.fights.length,
+  });
 
   const results: FightResult[] = [];
   const fightsToAnalyze = event.fights;

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 
 interface TickerEdge {
   fighterName: string
@@ -12,32 +12,31 @@ type TickerItem =
   | { type: "movement"; fighter: string; label: string }
   | { type: "sharp"; fighter: string; label: string }
 
-const POLL_INTERVAL = 30_000 // 30 seconds
+// Polling interval for fresh edges. Long enough that the marquee isn't
+// constantly re-rendering, which interrupts the CSS animation cycle.
+const POLL_INTERVAL = 5 * 60_000 // 5 minutes
 
 function EdgeTicker({ tickerEdges }: { tickerEdges?: TickerEdge[] }) {
-  const [pulse, setPulse] = useState(false)
   const [liveEdges, setLiveEdges] = useState<TickerEdge[]>(tickerEdges || [])
+  const lastFingerprintRef = useRef<string>("")
 
-  // Pulse animation every 8 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPulse(true)
-      setTimeout(() => setPulse(false), 1000)
-    }, 8000)
-    return () => clearInterval(interval)
-  }, [])
-
-  // Poll for live edges
+  // Poll for live edges. Skip the state update when the payload hasn't changed,
+  // so React doesn't re-render the marquee parent and reset the CSS animation.
   const fetchLiveEdges = useCallback(async () => {
     try {
       const res = await fetch('/api/edges/live', { cache: 'no-store' })
       if (!res.ok) return
       const data = await res.json()
       if (data.edges?.length > 0) {
-        setLiveEdges(data.edges.map((e: { fighterName: string; edgePct: number }) => ({
+        const next: TickerEdge[] = data.edges.map((e: { fighterName: string; edgePct: number }) => ({
           fighterName: e.fighterName,
           edgePct: e.edgePct,
-        })))
+        }))
+        const fp = next.map((e) => `${e.fighterName}:${e.edgePct}`).join("|")
+        if (fp !== lastFingerprintRef.current) {
+          lastFingerprintRef.current = fp
+          setLiveEdges(next)
+        }
       }
     } catch {
       // Silently fail — keep showing current data
@@ -54,25 +53,26 @@ function EdgeTicker({ tickerEdges }: { tickerEdges?: TickerEdge[] }) {
 
   const currentEdges = liveEdges.length > 0 ? liveEdges : tickerEdges || []
 
-  const items: TickerItem[] = currentEdges.length > 0
-    ? currentEdges.slice(0, 10).map(e => ({
-        type: "edge" as const,
-        fighter: e.fighterName,
-        edge: `+${e.edgePct}%`,
-      }))
-    : [] // Don't show anything if no live data
+  // Memoize so a parent re-render doesn't rebuild the array identity and
+  // cause React to re-key the marquee children (which would visually reset it).
+  const displayItems = useMemo<TickerItem[]>(() => {
+    if (currentEdges.length === 0) return []
+    const items: TickerItem[] = currentEdges.slice(0, 10).map((e) => ({
+      type: "edge" as const,
+      fighter: e.fighterName,
+      edge: `+${e.edgePct}%`,
+    }))
+    let out = [...items]
+    while (out.length < 20) {
+      out = [...out, ...items]
+    }
+    return out
+  }, [currentEdges])
 
-  // If there's no data at all, hide the ticker
-  if (items.length === 0) return null
+  if (displayItems.length === 0) return null
 
-  // Ensure we have enough items to fill a wide screen for the marquee effect
-  let displayItems = [...items]
-  while (displayItems.length < 15) {
-    displayItems = [...displayItems, ...items]
-  }
-
-  const renderItem = (item: TickerItem, idx: number) => (
-    <div key={idx} className="flex shrink-0 items-center gap-3 px-5 py-2.5 rounded-xl bg-background/20 backdrop-blur-sm border border-border/15 hover:border-primary/15 transition-all duration-300">
+  const renderItem = (item: TickerItem, key: number | string) => (
+    <div key={key} className="flex shrink-0 items-center gap-3 px-5 py-2.5 rounded-xl bg-background/20 backdrop-blur-sm border border-border/15 hover:border-primary/15 transition-all duration-300">
       {item.type === "edge" && (
         <>
           <span className="ticker-tag ticker-tag-edge">EDGE</span>
@@ -101,22 +101,14 @@ function EdgeTicker({ tickerEdges }: { tickerEdges?: TickerEdge[] }) {
 
   return (
     <section className="relative py-4 overflow-hidden border-y border-primary/10 bg-linear-to-r from-background via-primary/3 to-background">
-      <div className={`flex w-max smooth-ticker whitespace-nowrap ${pulse ? 'ticker-pulse' : ''}`}>
+      <div className="flex w-max smooth-ticker whitespace-nowrap">
         <div className="flex gap-4 sm:gap-8 px-2 sm:px-4">
           {displayItems.map((item, idx) => renderItem(item, idx))}
         </div>
         <div className="flex gap-4 sm:gap-8 px-2 sm:px-4" aria-hidden="true">
-          {displayItems.map((item, idx) => renderItem(item, idx))}
+          {displayItems.map((item, idx) => renderItem(item, `dup-${idx}`))}
         </div>
       </div>
-      <style jsx>{`
-        .ticker-pulse { animation: tickerPulse 1s ease-out; }
-        @keyframes tickerPulse {
-          0% { filter: brightness(1); }
-          50% { filter: brightness(1.4); }
-          100% { filter: brightness(1); }
-        }
-      `}</style>
     </section>
   )
 }

@@ -17,6 +17,7 @@ import { BetCard } from "@/components/pages/dashboard/bet-card"
 import { FightTable } from "@/components/pages/dashboard/fight-table"
 import { FightBreakdown } from "@/components/pages/dashboard/fight-breakdown"
 import { getEventFights } from "./actions"
+import { getSavedBetIds } from "@/app/(app)/saved/actions"
 import { Fight, SimulationBet, FightBreakdown as FightBreakdownModel } from "./d-types"
 import { formatOdds } from "@/lib/odds/utils"
 import { BetCardSkeleton } from "@/components/skeletons/bet-card-skeleton"
@@ -35,7 +36,7 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ initialEvents, userOddsFormat = "american", thresholds }: DashboardClientProps) {
   const MIN_MAF_PROB = thresholds?.MIN_MAF_PROB ?? 0.55
-  const MIN_AGENT_CONSENSUS_PASS_RATE = thresholds?.MIN_AGENT_CONSENSUS_PASS_RATE ?? 0.7
+  const MIN_AGENT_CONSENSUS_PASS_RATE = thresholds?.MIN_AGENT_CONSENSUS_PASS_RATE ?? 0.6
   const MIN_EDGE_PCT = thresholds?.MIN_EDGE_PCT ?? 0.5
   const BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW = thresholds?.BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW ?? 0.55
   const router = useRouter()
@@ -50,6 +51,9 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   const [simulatedBreakdowns, setSimulatedBreakdowns] = useState<Record<string, FightBreakdownModel>>({})
   const [activeFights, setActiveFights] = useState<Fight[]>([])
   const [statusMessage, setStatusMessage] = useState("")
+  // Markets scanned is derived from allBets.length below; this ref is kept only
+  // for any legacy "scan_summary" event the server may still emit.
+  const [serverMarketsScanned, setServerMarketsScanned] = useState(0)
 
   const [betSeed, setBetSeed] = useState(0)
   const [isResimulating, setIsResimulating] = useState(false)
@@ -58,6 +62,17 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   const [showFilteredBets, setShowFilteredBets] = useState(false)
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [betFilters, setBetFilters] = useState<BetFiltersState>(DEFAULT_FILTERS)
+  const [savedBetIds, setSavedBetIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    let cancelled = false
+    getSavedBetIds()
+      .then((ids) => {
+        if (!cancelled) setSavedBetIds(new Set(ids))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     if (scanComplete) {
@@ -76,6 +91,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
     setShowResults(true)
     setSimulatedBets([])
     setSimulatedBreakdowns({})
+    setServerMarketsScanned(0)
     setStatusMessage("Initializing simulation...")
 
     try {
@@ -146,8 +162,17 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
 
                 const fightIdStr = data.fightId.toString()
 
-                // Add Bet
-                setSimulatedBets(prev => [...prev, data.edge])
+                // Add Bet — sanitize numerics (server NaN serializes to null in JSON)
+                const safeNum = (v: any, fallback = 0) => (typeof v === 'number' && isFinite(v) ? v : fallback)
+                const sanitizedEdge = {
+                  ...data.edge,
+                  edge_pct: safeNum(data.edge?.edge_pct, 0),
+                  P_sim: safeNum(data.edge?.P_sim, 0),
+                  P_imp: safeNum(data.edge?.P_imp, 0),
+                  confidencePct: safeNum(data.edge?.confidencePct, 0),
+                  stability_score: safeNum(data.edge?.stability_score, 0),
+                }
+                setSimulatedBets(prev => [...prev, sanitizedEdge])
 
                 // Add Breakdown (ensure key is string) — merge oddsHistory from edge
                 setSimulatedBreakdowns(prev => ({
@@ -185,6 +210,8 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                 }
               } else if (data.type === "status") {
                 setStatusMessage(data.message)
+              } else if (data.type === "scan_summary") {
+                setServerMarketsScanned(typeof data.marketsScanned === "number" ? data.marketsScanned : 0)
               } else if (data.type === "complete") {
                 // When complete, ensure any remaining "Analysing..." fights show "N/A"
                 setActiveFights(prev => prev.map(f =>
@@ -266,11 +293,20 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
       const rejectReasons: string[] = []
       // Optional safety check if fields are missing in early bits
       const agentSignals = bet.agentSignals || []
-      const passCount = agentSignals.filter((s) => s.signal === "pass").length
-      const agentPassRate = agentSignals.length > 0 ? passCount / agentSignals.length : 0
+      // Count "neutral" as half-pass: neutral means "no concern", not "fail".
+      // Treating it as 0 makes the gate unrealistically harsh (2 pass + 1 neutral
+      // would score 66%, while the model considered that a green light).
+      const weightedPassSum = agentSignals.reduce(
+        (sum, s) => sum + (s.signal === "pass" ? 1 : s.signal === "neutral" ? 0.5 : 0),
+        0,
+      )
+      const agentPassRate = agentSignals.length > 0 ? weightedPassSum / agentSignals.length : 0
 
       // Explicit Model Rejection (Signal from Agent)
-      if (bet.confidencePct === 0) {
+      // A genuine "no edge found" signal needs BOTH zero confidence AND zero edge —
+      // confidencePct alone often hits 0 on conservative model output even when
+      // edge_pct is materially positive (the engine derives confidence later).
+      if (bet.confidencePct === 0 && Math.abs(bet.edge_pct) < MIN_EDGE_PCT) {
         rejectReasons.push("Model determined no value/edge found")
       }
 
@@ -280,7 +316,13 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
       if (bet.edge_pct < MIN_EDGE_PCT) {
         rejectReasons.push(`Edge ${bet.edge_pct.toFixed(1)}% below ${MIN_EDGE_PCT}% minimum`)
       }
-      if (agentPassRate < MIN_AGENT_CONSENSUS_PASS_RATE) {
+      // Agent consensus: skip the gate when edge is large enough that we trust
+      // the math over agent voting noise. Two passes + one neutral scores 0.83
+      // (passes), but two neutrals + one pass scores 0.67 — the same fight gets
+      // classified differently depending on neutral count, which the model emits
+      // inconsistently. Only enforce when edge is marginal.
+      const HIGH_EDGE_OVERRIDE = 5 // %
+      if (bet.edge_pct < HIGH_EDGE_OVERRIDE && agentPassRate < MIN_AGENT_CONSENSUS_PASS_RATE) {
         rejectReasons.push(
           `Agent consensus ${(agentPassRate * 100).toFixed(0)}% below ${MIN_AGENT_CONSENSUS_PASS_RATE * 100}% threshold`,
         )
@@ -291,23 +333,29 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
         )
       }
 
-      // Explicitly filter "No Bet" or "Pass" outcomes
-      if (
+      // Filter "No Bet" / "Pass" outcomes — but only when there's no material edge.
+      // The engine already promotes No-Bet picks to ML when marketEvaluations.ML
+      // shows >=3% edge, so any No-Bet that survived to here AND has real edge
+      // is something we want to surface, not hide.
+      const isNoBetLabel =
         bet.label === "No Bet" ||
         bet.label === "Pass" ||
         bet.bet_type === "No Bet" ||
         bet.label.toLowerCase().includes("no bet")
-      ) {
+      if (isNoBetLabel && bet.edge_pct < MIN_EDGE_PCT) {
         rejectReasons.push("Model recommends passing on this fight")
       }
 
-      // Explicitly filter fights with no real odds
-      if (
+      // Explicitly filter fights where NO odds at all are tracked (neither the
+      // recommended prop market nor the moneyline fallback). If only the specific
+      // prop column is missing but ML is shown as fallback, don't nag — the user
+      // can see the ML in the card.
+      const hasNoOddsAtAll =
         bet.odds_american === "No odds available" ||
         bet.odds_american === "N/A" ||
         bet.odds_american === "0"
-      ) {
-        rejectReasons.push("No market odds available for this fight")
+      if (hasNoOddsAtAll) {
+        rejectReasons.push("No market odds tracked for this fight")
       }
 
       return {
@@ -331,7 +379,9 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
     b.odds_american !== "N/A" &&
     b.odds_american !== "0"
 
-  // Sort both lists by edge_pct descending to ensure best options are shown
+  // Restore 3e4049b display behavior: show both qualified AND filtered bets that
+  // have real odds and aren't "No Bet" — the strict gates reject too many bets to
+  // only surface qualified ones, so filtered bets with real odds also appear here.
   const sortedQualifiedBets = allBets
     .filter((b) => b.status === "qualified" && hasRealOdds(b) && b.bet_type !== "No Bet")
     .sort((a, b) => b.edge_pct - a.edge_pct)
@@ -340,16 +390,16 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
     .filter((b) => b.status === "filtered")
     .sort((a, b) => b.edge_pct - a.edge_pct)
 
-  // Show ALL fights with real odds: qualified first, then filtered (excluding "No Bet" / "Pass" without odds)
   const allTopBets = [
     ...sortedQualifiedBets,
-    ...sortedFilteredBets.filter(b =>
-      hasRealOdds(b) &&
-      b.label !== "No Bet" &&
-      b.label !== "Pass" &&
-      b.bet_type !== "No Bet" &&
-      !b.label.toLowerCase().includes("no bet")
-    )
+    ...sortedFilteredBets.filter(
+      (b) =>
+        hasRealOdds(b) &&
+        b.label !== "No Bet" &&
+        b.label !== "Pass" &&
+        b.bet_type !== "No Bet" &&
+        !b.label.toLowerCase().includes("no bet"),
+    ),
   ]
 
   // Apply user filters
@@ -400,9 +450,6 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   const topBetIds = new Set(topBets.map(b => b.id))
   const filteredBets = allBets.filter(b => !topBetIds.has(b.id))
 
-  // Keep strict stats calculation based on ONLY truly qualified bets to reflect true quality
-  const qualifiedBets = sortedQualifiedBets
-
   const avgConfidence =
     topBets.length > 0 ? topBets.reduce((sum, b) => sum + b.confidencePct, 0) / topBets.length : 0
   const avgEdge =
@@ -442,20 +489,20 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
       <main className="container mx-auto px-4 py-8 relative z-10 max-w-7xl">
         {/* Compact Hero */}
         <div className="text-center pt-2 pb-8 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="flex items-center justify-center gap-4 mb-3">
+          <div className="flex items-center justify-center gap-3 sm:gap-4 mb-3 flex-wrap">
             <div className="live-indicator">
               <div className="live-dot" />
               <span className="text-xs font-medium text-green-400 uppercase tracking-wider">Live</span>
             </div>
-            <span className="text-xs text-muted-foreground/50">|</span>
-            <p className="text-xs uppercase tracking-[0.2em] text-primary/70 font-medium">
+            <span className="text-xs text-muted-foreground/50 hidden sm:inline">|</span>
+            <p className="text-[10px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.2em] text-primary/70 font-medium">
               MMA Analytics Platform
             </p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight hero-title mb-3 text-white">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight hero-title mb-3 text-white px-2">
             Multi-Agent Fight Simulator
           </h1>
-          <p className="text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed px-4">
             AI-powered analysis using multi-agent simulation to model outcomes and identify statistical patterns.
           </p>
         </div>
@@ -477,16 +524,6 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
         {/* Results Section */}
         {showResults && (
           <div className="space-y-12">
-
-            {!isScanning && simulatedBets.length > 0 && (
-              <SimulationStats
-                qualifiedBets={topBets}
-                avgConfidence={avgConfidence}
-                avgEdge={avgEdge}
-                riskLevel={riskLevel}
-                simulationKey={betSeed}
-              />
-            )}
 
             {/* Top Simulated Outcomes Section - Intelligence Engine UI */}
             <section className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
@@ -540,17 +577,23 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                 </div>
               ) : topBets.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {topBets.map((bet, idx) => (
-                    <BetCard
-                      key={`${betSeed}-${bet.id}`}
-                      bet={bet}
-                      index={idx}
-                      isExpanded={expandedBetIdx === idx}
-                      onToggle={() => setExpandedBetIdx(expandedBetIdx === idx ? null : idx)}
-                      betSeed={betSeed}
-                      oddsFormat={userOddsFormat}
-                    />
-                  ))}
+                  {topBets.map((bet, idx) => {
+                    const currentEvent = initialEvents.find(e => e.eventId === selectedEvent)
+                    return (
+                      <BetCard
+                        key={`${betSeed}-${bet.id}`}
+                        bet={bet}
+                        index={idx}
+                        isExpanded={expandedBetIdx === idx}
+                        onToggle={() => setExpandedBetIdx(expandedBetIdx === idx ? null : idx)}
+                        betSeed={betSeed}
+                        oddsFormat={userOddsFormat}
+                        eventId={selectedEvent}
+                        eventName={currentEvent?.name}
+                        initiallySaved={savedBetIds.has(bet.id)}
+                      />
+                    )
+                  })}
                 </div>
               ) : isScanning ? (
                 <div className="flex flex-col items-center justify-center p-12 border border-white/5 rounded-lg bg-black/20">
@@ -573,6 +616,17 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
               )}
             </section>
 
+            {!isScanning && simulatedBets.length > 0 && (
+              <SimulationStats
+                qualifiedBets={topBets}
+                avgConfidence={avgConfidence}
+                avgEdge={avgEdge}
+                riskLevel={riskLevel}
+                simulationKey={betSeed}
+                marketsScanned={serverMarketsScanned > 0 ? serverMarketsScanned : allBets.length}
+              />
+            )}
+
             {filteredBets.length > 0 && (
               <section className="mt-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
                 <button
@@ -581,7 +635,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                 >
                   <span className="flex items-center gap-2 text-muted-foreground group-hover:text-white transition-colors">
                     <AlertTriangle className="w-4 h-4 text-amber-500" />
-                    Filtered by Simulation ({filteredBets.length})
+                    Markets Analyzed but No Bets Found ({filteredBets.length})
                   </span>
                   {showFilteredBets ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -590,7 +644,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                   )}
                 </button>
                 <p className="text-xs text-muted-foreground/60 mt-2 ml-1">
-                  These bets failed safety checks. Blocking them protects your bankroll.
+                  These markets were analyzed by the engine but didn't meet edge, probability, or consensus thresholds — no bets were surfaced.
                 </p>
 
                 {showFilteredBets && (
@@ -612,13 +666,24 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                       return (
                         <Card key={bet.id} className="bg-black/30 border-white/5">
                           <CardContent className="p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <p className="font-medium text-white text-base">{bet.label}</p>
-                                <p className="text-xs text-muted-foreground/60 font-mono mt-0.5">{formatOdds(bet.odds_american, userOddsFormat)}</p>
+                            <div className="flex items-start justify-between mb-2 gap-3">
+                              <div className="min-w-0 flex-1">
+                                {bet.fight && (
+                                  <p className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-white/80 mb-1.5 truncate">
+                                    {bet.fight}
+                                  </p>
+                                )}
+                                <p className="font-medium text-white/70 text-sm">{bet.label}</p>
+                                <p className="text-xs text-muted-foreground/60 font-mono mt-0.5">
+                                  {formatOdds(bet.odds_american, userOddsFormat)}
+                                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                  {(bet as any).oddsContext === "moneyline-fallback" && (
+                                    <span className="ml-2 text-[10px] uppercase tracking-wider text-muted-foreground/50">(ML)</span>
+                                  )}
+                                </p>
                               </div>
-                              <span className="px-2 py-1 rounded text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                                Not recommended
+                              <span className="px-2 py-1 rounded text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+                                No edge found
                               </span>
                             </div>
 

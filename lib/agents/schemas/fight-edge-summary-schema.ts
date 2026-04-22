@@ -45,12 +45,15 @@ export const FightEdgeSummaryGenerationSchema = z.object({
   label: z.string().describe("e.g. 'Pereira ITD', 'Volk ML'"),
 
   // Probabilities
-  truthProbability: z.number().min(0).max(1).describe("My estimated win probability (0-1)"),
+  // Wide bounds intentionally — OpenAI structured-output JSON Schema can't carry
+  // z.transform, so we accept loose values here and clamp them post-parse in
+  // agents.ts. Model has been seen returning stability on 0-10 and confidencePct
+  // on 0-1, which would otherwise crash schema validation and lose the fight.
+  truthProbability: z.number().describe("My estimated win probability (0-1)"),
 
-  // Scores
-  stability_score: z.number().min(0).max(1).describe("How stable/reliable is this simulation result?"),
-  confidence_label: z.enum(["Low", "Medium", "High"]).optional(),
-  confidencePct: z.number().min(0).max(100).describe("Confidence percentage (0-100)"),
+  stability_score: z.number().describe("How stable/reliable is this simulation result? (0-1)"),
+  confidence_label: z.string().optional(),
+  confidencePct: z.number().describe("Confidence percentage (0-100)"),
   varianceTag: z.enum(["low", "medium", "high"]).describe("Level of chaos/randomness expected"),
 
   // Explanations

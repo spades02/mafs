@@ -15,6 +15,13 @@
       "when": 1764659504349,
       "tag": "0001_clear_unicorn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777248000000,
+      "tag": "0002_saved_plays",
+      "breakpoints": true
     }
   ]
 }

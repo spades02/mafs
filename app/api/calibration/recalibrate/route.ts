@@ -12,7 +12,7 @@ import { getActiveCalibrationConfig } from "@/lib/calibration/get-active-config"
 import { generateNewConfig } from "@/lib/calibration/recalibrate";
 import { computeAgentSignalAccuracy } from "@/lib/calibration/compute-metrics";
 
-const MIN_SAMPLE_SIZE = 30;
+const MIN_SAMPLE_SIZE = 100;
 
 export async function POST(req: Request) {
   const authHeader = req.headers.get("authorization");

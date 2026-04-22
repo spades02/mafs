@@ -29,7 +29,7 @@ interface AnalysisResultClientProps {
 
 export default function AnalysisResultClient({ eventName, eventDate, fights, bets, breakdowns, userOddsFormat = "american", thresholds }: AnalysisResultClientProps) {
     const MIN_MAF_PROB = thresholds?.MIN_MAF_PROB ?? 0.55
-    const MIN_AGENT_CONSENSUS_PASS_RATE = thresholds?.MIN_AGENT_CONSENSUS_PASS_RATE ?? 0.7
+    const MIN_AGENT_CONSENSUS_PASS_RATE = thresholds?.MIN_AGENT_CONSENSUS_PASS_RATE ?? 0.6
     const MIN_EDGE_PCT = thresholds?.MIN_EDGE_PCT ?? 0.5
     const BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW = thresholds?.BLOCK_HIGH_VARIANCE_IF_CONFIDENCE_BELOW ?? 0.55
     const router = useRouter()
@@ -41,8 +41,11 @@ export default function AnalysisResultClient({ eventName, eventDate, fights, bet
         return bets.map((bet) => {
             const rejectReasons: string[] = []
             const agentSignals = bet.agentSignals || []
-            const passCount = agentSignals.filter((s) => s.signal === "pass").length
-            const agentPassRate = agentSignals.length > 0 ? passCount / agentSignals.length : 0
+            const weightedPassSum = agentSignals.reduce(
+                (sum, s) => sum + (s.signal === "pass" ? 1 : s.signal === "neutral" ? 0.5 : 0),
+                0,
+            )
+            const agentPassRate = agentSignals.length > 0 ? weightedPassSum / agentSignals.length : 0
 
             if (bet.P_sim < MIN_MAF_PROB) {
                 rejectReasons.push(`Win probability ${(bet.P_sim * 100).toFixed(0)}% below ${MIN_MAF_PROB * 100}% threshold`)

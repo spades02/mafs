@@ -13,9 +13,10 @@ interface SimulationStatsProps {
     avgEdge: number
     riskLevel: "Low" | "Medium" | "High"
     simulationKey?: number
+    marketsScanned?: number
 }
 
-export function SimulationStats({ qualifiedBets, avgConfidence, avgEdge, riskLevel, simulationKey = 0 }: SimulationStatsProps) {
+export function SimulationStats({ qualifiedBets, avgConfidence, avgEdge, riskLevel, simulationKey = 0, marketsScanned = 0 }: SimulationStatsProps) {
     const [isRevealed, setIsRevealed] = useState(false)
     const [showCards, setShowCards] = useState(false)
 
@@ -34,37 +35,47 @@ export function SimulationStats({ qualifiedBets, avgConfidence, avgEdge, riskLev
     }, [simulationKey])
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-            {/* Feature badges + Disclaimer row */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                    {[
-                        { icon: Sparkles, label: "10K+ Sims", delay: 0 },
-                        { icon: Target, label: "Patterns", delay: 80 },
-                        { icon: Zap, label: "Edge", delay: 160 },
-                    ].map(({ icon: Icon, label, delay }) => (
-                        <div
-                            key={label}
-                            className={cn(
-                                "glass-button px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-all duration-500",
-                                isRevealed
-                                    ? "opacity-100 translate-y-0 scale-100"
-                                    : "opacity-0 translate-y-3 scale-90"
-                            )}
-                            style={{ transitionDelay: `${delay}ms` }}
-                        >
-                            <Icon className="w-3 h-3 text-primary" />
-                            <span className="text-[10px] font-medium text-white">{label}</span>
-                        </div>
-                    ))}
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+            {/* Analysis Mode Banner — now a top-level status strip */}
+            <div className={cn(
+                "flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] px-4 py-3 transition-all duration-500",
+                isRevealed ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+            )}>
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <Shield className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-sm font-medium text-primary">Analysis Mode: Active</span>
+                    <Lock className="w-3.5 h-3.5 text-primary/60 shrink-0" />
+                    <span className="hidden sm:inline text-xs text-muted-foreground/70 truncate">
+                        · MAFS filters low-confidence scenarios. Only statistically notable outcomes displayed.
+                    </span>
                 </div>
-                <div className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/5 transition-all duration-500",
-                    isRevealed ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
-                )} style={{ transitionDelay: "250ms" }}>
+                <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border border-amber-400/20 bg-amber-400/5 shrink-0">
                     <AlertTriangle className="w-3 h-3 text-amber-400" />
                     <span className="text-[10px] text-amber-400/80">Educational Only</span>
                 </div>
+            </div>
+
+            {/* Feature badges row */}
+            <div className="flex items-center gap-2 flex-wrap">
+                {[
+                    { icon: Sparkles, label: "10K+ Sims", delay: 0 },
+                    { icon: Target, label: "Patterns", delay: 80 },
+                    { icon: Zap, label: "Edge", delay: 160 },
+                ].map(({ icon: Icon, label, delay }) => (
+                    <div
+                        key={label}
+                        className={cn(
+                            "glass-button px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-all duration-500",
+                            isRevealed
+                                ? "opacity-100 translate-y-0 scale-100"
+                                : "opacity-0 translate-y-3 scale-90"
+                        )}
+                        style={{ transitionDelay: `${delay}ms` }}
+                    >
+                        <Icon className="w-3 h-3 text-primary" />
+                        <span className="text-[10px] font-medium text-white">{label}</span>
+                    </div>
+                ))}
             </div>
 
             <Card className={cn(
@@ -81,30 +92,18 @@ export function SimulationStats({ qualifiedBets, avgConfidence, avgEdge, riskLev
                 </div>
 
                 <CardContent className="p-6">
-                    <div className={cn(
-                        "flex items-center gap-3 mb-2 transition-all duration-500",
-                        isRevealed ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
-                    )} style={{ transitionDelay: "200ms" }}>
-                        <Shield className="w-5 h-5 text-primary" />
-                        <span className="text-sm font-medium text-primary">Analysis Mode: Active</span>
-                        <Lock className="w-4 h-4 text-primary/60" />
-                    </div>
-                    <p className={cn(
-                        "text-xs text-muted-foreground mb-6 transition-all duration-500",
-                        isRevealed ? "opacity-100" : "opacity-0"
-                    )} style={{ transitionDelay: "350ms" }}>
-                        MAFS filters low-confidence scenarios. Only statistically notable outcomes are displayed.
+                    <p className="sm:hidden text-xs text-muted-foreground mb-4">
+                        MAFS filters low-confidence scenarios. Only statistically notable outcomes displayed.
                     </p>
-
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        {/* Stat 1: Markets Scanned */}
+                        {/* Stat 1: High-Value Edges */}
                         <div className={cn(
                             "stat-card-premium transition-all duration-600",
                             showCards ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-8 scale-95"
                         )} style={{ transitionDelay: "0ms" }}>
-                            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Markets Scanned</p>
+                            <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">High-Value Edges</p>
                             {showCards && <AnimatedStat key={`qs-${simulationKey}`} value={qualifiedBets.length} label="" />}
-                            <p className="text-xs text-muted-foreground/60 mt-3">{qualifiedBets.filter(b => b.status === 'qualified' || !b.status).length} high-value detected</p>
+                            <p className="text-xs text-muted-foreground/60 mt-3">{marketsScanned.toLocaleString()} markets scanned</p>
                         </div>
 
                         {/* Stat 2: Model Confidence */}

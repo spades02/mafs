@@ -24,15 +24,15 @@ export function EventSelector({
 }: EventSelectorProps) {
     const currentEvent = events.find(e => e.eventId === selectedEventId)
 
-    // We don't have location/fights in the basic DB event schema yet
-    // Placeholder logic for future expansion
     const formattedDate = currentEvent?.dateTime ? new Date(currentEvent.dateTime).toLocaleDateString(undefined, {
         year: 'numeric', month: 'long', day: 'numeric'
     }) : "Date TBD"
 
+    const displayLocation = currentEvent?.venue
+
     return (
         <div className="event-selector-card glass-panel max-w-2xl mx-auto mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex flex-col gap-6 p-6">
+            <div className="flex flex-col gap-5 sm:gap-6 p-4 sm:p-6">
                 <div>
                     <label className="text-xs uppercase tracking-wider text-muted-foreground mb-3 block">Select Event</label>
                     <Select value={selectedEventId} onValueChange={onSelectEvent}>
@@ -49,18 +49,20 @@ export function EventSelector({
                     </Select>
                 </div>
 
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm text-muted-foreground">
-                            {currentEvent?.venue || "Location TBD"}
-                        </p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="min-w-0 text-center sm:text-left">
+                        {displayLocation && (
+                            <p className="text-sm text-muted-foreground truncate">
+                                {displayLocation}
+                            </p>
+                        )}
                         {currentEvent?.fightCount ? <span className="text-xs text-muted-foreground/60">{currentEvent.fightCount} Fights on card</span> : null}
                     </div>
 
                     <Button
                         onClick={onRunSimulation}
                         disabled={isScanning || !selectedEventId}
-                        className={`premium-button min-w-[220px] h-14 text-base font-semibold ${scanComplete ? "scan-complete" : ""}`}
+                        className={`premium-button w-full sm:w-auto sm:min-w-[220px] h-14 text-base font-semibold ${scanComplete ? "scan-complete" : ""}`}
                     >
                         {isScanning ? (
                             <span className="flex items-center gap-3">

@@ -32,6 +32,69 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
     const resolvedF1Name = breakdown.fighter1Name || (matchup?.split(" vs ")?.[0]?.trim()) || ""
     const resolvedF2Name = breakdown.fighter2Name || (matchup?.split(" vs ")?.[1]?.trim()) || ""
 
+    // Strip any "Fighter Name: " or "Name " prefix from a line-part so the name
+    // doesn't render twice when the row template already prepends it. Handles
+    // signed (+133, -138) and unsigned (133) American odds.
+    const stripNamePrefix = (s: string) => {
+      if (!s) return s
+      // Prefer a signed match; fall back to bare digits after a colon or whitespace.
+      const signed = s.match(/[+-]\d[\d.]*/)
+      if (signed) return signed[0]
+      // After a colon: take the trailing numeric token and prepend "+" since
+      // unsigned American odds are positive by convention.
+      const colon = s.match(/:\s*([\d.]+)\s*$/)
+      if (colon) return `+${colon[1]}`
+      // Last-ditch: trailing bare number anywhere.
+      const bare = s.match(/(?:^|\s)(\d[\d.]*)\s*$/)
+      if (bare) return `+${bare[1]}`
+      return s.trim()
+    }
+
+    // Parse "+133" / "-105" / "133" → number for edge math. After a name+colon,
+    // a bare number is treated as a positive American odd by convention.
+    const parseAmerican = (s: string): number | null => {
+      if (!s) return null
+      const signed = s.match(/[+-]\d+/)
+      if (signed) {
+        const n = Number(signed[0])
+        return Number.isFinite(n) && n !== 0 ? n : null
+      }
+      const colon = s.match(/:\s*(\d+)/)
+      if (colon) {
+        const n = Number(colon[1])
+        return Number.isFinite(n) && n !== 0 ? n : null
+      }
+      return null
+    }
+
+    // Convert American odds → implied probability (0-1)
+    const impliedProb = (american: number): number => {
+      return american > 0
+        ? 100 / (american + 100)
+        : Math.abs(american) / (Math.abs(american) + 100)
+    }
+
+    // Compute model bias by comparing MAFS true-line probability vs market-line
+    // probability per fighter. Whichever side has the higher (mafs - market) delta
+    // is the side the model is biased toward.
+    const computeModelBias = (): "f1" | "f2" | null => {
+      const tl = breakdown.trueLine || ""
+      const ml = breakdown.marketLine || ""
+      if (!tl.includes("/") || !ml.includes("/")) return null
+      const [tl1Raw, tl2Raw] = tl.split(" / ").map(stripNamePrefix)
+      const [ml1Raw, ml2Raw] = ml.split(" / ").map(stripNamePrefix)
+      const tl1 = parseAmerican(tl1Raw)
+      const tl2 = parseAmerican(tl2Raw)
+      const ml1 = parseAmerican(ml1Raw)
+      const ml2 = parseAmerican(ml2Raw)
+      if (tl1 === null || tl2 === null || ml1 === null || ml2 === null) return null
+      const edge1 = impliedProb(tl1) - impliedProb(ml1)
+      const edge2 = impliedProb(tl2) - impliedProb(ml2)
+      if (Math.abs(edge1 - edge2) < 0.005) return null
+      return edge1 > edge2 ? "f1" : "f2"
+    }
+    const modelBias = computeModelBias()
+
     return (
         <section ref={sectionRef} className="mt-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
             <Card className="glass-card-intense glass-glow overflow-hidden border-white/5 bg-black/40">
@@ -69,9 +132,17 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
                                     )
                                 }
 
-                                const f2LastName = f2Name.split(" ").pop()?.toLowerCase() || ""
-                                const outcome = breakdown.modelLeaningOutcome?.toLowerCase() || ""
-                                const favorsF2 = f2LastName && outcome.includes(f2LastName)
+                                // Prefer the math-derived bias (MAFS prob - market prob) over
+                                // string-matching modelLeaningOutcome, so the summary stays aligned
+                                // with the True Line / Market Line shown directly below it.
+                                let favorsF2: boolean
+                                if (modelBias === "f2") favorsF2 = true
+                                else if (modelBias === "f1") favorsF2 = false
+                                else {
+                                  const f2LastName = f2Name.split(" ").pop()?.toLowerCase() || ""
+                                  const outcome = breakdown.modelLeaningOutcome?.toLowerCase() || ""
+                                  favorsF2 = !!(f2LastName && outcome.includes(f2LastName))
+                                }
 
                                 if (favorsF2) {
                                     return (
@@ -108,7 +179,7 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
                                 // Check if trueLine is in odds format: contains "/" and has +/- numbers
                                 const isOddsFormat = tl.includes("/") && /[+-]\d/.test(tl);
                                 if (isOddsFormat) {
-                                    const parts = tl.split(" / ");
+                                    const parts = tl.split(" / ").map(stripNamePrefix);
                                     return (
                                         <div className="space-y-1.5">
                                             <div className="flex justify-between items-baseline">
@@ -136,7 +207,7 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
                                 // Check if marketLine is in odds format: contains "/" and has +/- numbers
                                 const isOddsFormat = ml.includes("/") && /[+-]\d/.test(ml);
                                 if (isOddsFormat) {
-                                    const parts = ml.split(" / ");
+                                    const parts = ml.split(" / ").map(stripNamePrefix);
                                     return (
                                         <div className="space-y-1.5">
                                             <div className="flex justify-between items-baseline">
@@ -176,9 +247,13 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
                     </div>
 
                     {/* LINE MOVEMENT CHART */}
-                    {breakdown.oddsHistory && breakdown.oddsHistory.length >= 2 && (() => {
-                        const firstOdds = breakdown.oddsHistory[0].oddsAmerican
-                        const lastOdds = breakdown.oddsHistory[breakdown.oddsHistory.length - 1].oddsAmerican
+                    {(() => {
+                        const validHistory = (breakdown.oddsHistory || []).filter(
+                            (p) => typeof p?.oddsAmerican === "number" && !isNaN(p.oddsAmerican),
+                        )
+                        if (validHistory.length < 2) return null
+                        const firstOdds = validHistory[0].oddsAmerican
+                        const lastOdds = validHistory[validHistory.length - 1].oddsAmerican
                         const isMovingToward = Math.abs(lastOdds) < Math.abs(firstOdds) || lastOdds < firstOdds
                         const isMovingAway = Math.abs(lastOdds) > Math.abs(firstOdds) || lastOdds > firstOdds
 
@@ -198,7 +273,7 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
                                 <div className="p-4 rounded border border-white/5 bg-black/20 flex flex-col md:flex-row md:items-center gap-6">
                                     <div className="flex-1 max-w-[240px]">
                                         <LineMovementChart
-                                            data={breakdown.oddsHistory}
+                                            data={validHistory}
                                             color={currentEdgeVal >= 0 ? "#10b981" : "#8b5cf6"}
                                             height={40}
                                             openingOdds={firstOdds}
@@ -253,47 +328,76 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
                         </div>
                     </div>
 
-                    {/* MAFS INTELLIGENCE */}
-                    {breakdown.mafsIntelligence && breakdown.mafsIntelligence.length > 0 && (
-                        <div className="pt-6 border-t border-white/5">
-                            <p className="text-[10px] uppercase tracking-widest text-emerald-400 font-semibold mb-3">MAFS Intelligence</p>
-                            <div className="space-y-2.5">
-                                {breakdown.mafsIntelligence.map((item, idx) => (
-                                    <div key={idx} className="flex items-start gap-2">
-                                        <span className="text-[10px] font-medium text-primary/70 uppercase tracking-wide min-w-[100px] mt-0.5">{item.type}</span>
-                                        <span className="text-sm text-foreground/80 leading-snug">{item.text}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    {/* MAFS INTELLIGENCE — Core Thesis + Why This Is A Bet + Supporting Signals */}
+                    {(() => {
+                        const signals = breakdown.supportingSignals && breakdown.supportingSignals.length > 0
+                            ? breakdown.supportingSignals
+                            : breakdown.mafsIntelligence
+                        const hasSignals = signals && signals.length > 0
+                        const hasThesis = !!breakdown.coreThesis
 
-                    {/* SIMULATION PATH BREAKDOWN */}
-                    {breakdown.simulationPaths && breakdown.simulationPaths.length > 0 && (
-                        <div className="pt-6 border-t border-white/5">
-                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-3">Simulation Path Breakdown</p>
-                            <div className="space-y-3">
-                                {breakdown.simulationPaths.map((path, idx) => (
-                                    <div key={idx}>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-sm font-medium text-foreground/90">{path.name}</span>
-                                            <span className="text-sm text-muted-foreground/40">—</span>
-                                            <span className="text-sm font-mono font-semibold text-primary">{path.pct}%</span>
+                        // "Why this is a bet" — the main edge story. Try marketAnalysis first
+                        // (the engine's market-psychology paragraph), then varianceReason /
+                        // primaryRisk-flipped, then a synthesized sentence from any of
+                        // modelLeaningOutcome / mispricing / ev that we have.
+                        const marketAnalysisText = (Array.isArray(breakdown.marketAnalysis)
+                            ? breakdown.marketAnalysis.join(" ")
+                            : (breakdown.marketAnalysis || "")).trim()
+                        const mispricingClean = (breakdown.mispricing || "").trim()
+                        const evClean = (breakdown.ev || "").trim()
+                        const outcomeClean = (breakdown.modelLeaningOutcome || breakdown.bet || "").trim()
+                        const varianceReasonClean = (breakdown.varianceReason || "").trim()
+                        const buildDerivedWhy = () => {
+                            const parts: string[] = []
+                            if (outcomeClean) parts.push(`Model leans ${outcomeClean}`)
+                            if (mispricingClean) parts.push(`${mispricingClean} mispricing vs implied market`)
+                            if (evClean) parts.push(`${evClean} expected return per unit`)
+                            if (parts.length === 0) return ""
+                            return parts.join(" — ").replace(/\s+—\s+/g, " — ") + "."
+                        }
+                        // Always render Why This Is A Bet — fall back to a generic line so
+                        // every bet card's breakdown carries the section even when the engine
+                        // didn't populate richer fields.
+                        const whyText =
+                            marketAnalysisText ||
+                            buildDerivedWhy() ||
+                            varianceReasonClean ||
+                            "Model identified a pricing inefficiency between MAFS true line and the current market line. See True Line vs Market Line above for the implied probability gap."
+                        const hasWhy = true
+                        return (
+                            <div className="pt-6 border-t border-white/5">
+                                <p className="text-[10px] uppercase tracking-widest text-emerald-400 font-semibold mb-3">MAFS Intelligence</p>
+
+                                {hasThesis && (
+                                    <div className="mb-5 p-4 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/15">
+                                        <p className="text-[9px] uppercase tracking-widest text-emerald-400/80 font-bold mb-2">Core Thesis</p>
+                                        <p className="text-sm text-white/90 leading-relaxed">{breakdown.coreThesis}</p>
+                                    </div>
+                                )}
+
+                                {hasWhy && (
+                                    <div className="mb-5 p-4 rounded-lg bg-emerald-500/[0.03] border border-emerald-500/10">
+                                        <p className="text-[9px] uppercase tracking-widest text-emerald-400/80 font-bold mb-2">Why This Is A Bet</p>
+                                        <p className="text-sm text-white/85 leading-relaxed">{whyText}</p>
+                                    </div>
+                                )}
+
+                                {hasSignals && (
+                                    <div>
+                                        <p className="text-[9px] uppercase tracking-widest text-muted-foreground/70 font-bold mb-3">Supporting Signals</p>
+                                        <div className="space-y-2.5">
+                                            {signals!.map((item, idx) => (
+                                                <div key={idx} className="flex items-start gap-2">
+                                                    <span className="text-[10px] font-medium text-primary/70 uppercase tracking-wide min-w-[100px] mt-0.5">{item.type}</span>
+                                                    <span className="text-sm text-foreground/80 leading-snug">{item.text}</span>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <p className="text-xs text-muted-foreground/70 leading-relaxed pl-0.5">{path.desc}</p>
                                     </div>
-                                ))}
+                                )}
                             </div>
-                        </div>
-                    )}
-
-                    {/* MARKET PSYCHOLOGY */}
-                    <div className="space-y-3 pt-6 border-t border-white/5">
-                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Market Psychology</p>
-                        <p className="text-sm text-muted-foreground italic leading-relaxed border-l-2 border-emerald-500/20 pl-4 py-1">
-                            "{Array.isArray(breakdown.marketAnalysis) ? breakdown.marketAnalysis.join(" ") : breakdown.marketAnalysis}"
-                        </p>
-                    </div>
+                        )
+                    })()}
 
                     {/* MODEL METADATA BAR */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 p-5 bg-white/2 rounded-xl border border-white/5">

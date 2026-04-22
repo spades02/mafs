@@ -44,23 +44,34 @@ export function generateNewConfig(
   );
 
   // --- 1. Confidence Scaling ---
-  // If model is over-confident, reduce the multiplier
+  // Only adjust the multiplier when the data is reliable enough that we trust
+  // the signal: each bin needs >= MIN_BIN_SAMPLE bets, and we need >= MIN_BINS
+  // qualifying bins. Otherwise a handful of low-confidence misses can drag the
+  // multiplier toward the floor and stay there (recovery is slow because of
+  // the 70%-current weighting).
+  const MIN_BIN_SAMPLE = 10;
+  const MIN_BINS = 4;
   let newMultiplier = current.confidenceScaling.multiplier;
-  if (bins.length >= 3) {
-    const totalWeightedRatio = bins.reduce((s, b) => {
-      if (b.predicted > 0) {
-        return s + (b.actual / b.predicted) * b.count;
-      }
-      return s;
-    }, 0);
-    const totalCount = bins.reduce((s, b) => s + b.count, 0);
-    if (totalCount > 0) {
-      const avgRatio = totalWeightedRatio / totalCount;
-      // Blend: 70% current + 30% observed ratio (conservative update)
-      newMultiplier = current.confidenceScaling.multiplier * 0.7 + avgRatio * 0.3;
-      newMultiplier = clamp(newMultiplier, 0.7, 1.3);
-      notes.push(`Confidence multiplier: ${newMultiplier.toFixed(3)}`);
-    }
+  const reliableBins = bins.filter((b) => b.count >= MIN_BIN_SAMPLE && b.predicted > 0);
+  if (reliableBins.length >= MIN_BINS) {
+    const totalWeightedRatio = reliableBins.reduce(
+      (s, b) => s + (b.actual / b.predicted) * b.count,
+      0
+    );
+    const totalCount = reliableBins.reduce((s, b) => s + b.count, 0);
+    const avgRatio = totalWeightedRatio / totalCount;
+    // Blend: 80% current + 20% observed ratio (more conservative than before).
+    // Floor raised to 0.85 so the multiplier can't crush model output by >15%
+    // — the model itself handles its own confidence; this is just a fine-tune.
+    newMultiplier = current.confidenceScaling.multiplier * 0.8 + avgRatio * 0.2;
+    newMultiplier = clamp(newMultiplier, 0.85, 1.15);
+    notes.push(
+      `Confidence multiplier: ${newMultiplier.toFixed(3)} (from ${reliableBins.length} reliable bins, ${totalCount} bets, avgRatio=${avgRatio.toFixed(3)})`
+    );
+  } else {
+    notes.push(
+      `Confidence multiplier unchanged: only ${reliableBins.length}/${MIN_BINS} reliable bins (need ${MIN_BIN_SAMPLE}+ bets each)`
+    );
   }
 
   // --- 2. Market Edge Thresholds ---

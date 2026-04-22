@@ -10,3 +10,4 @@ export * from "./prediction-outcomes-schema";
 export * from "./calibration-config-schema";
 export * from "./agent-signal-performance-schema";
 export * from "./mma-odds-data-schema";
+export * from "./saved-plays-schema";

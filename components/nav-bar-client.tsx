@@ -5,7 +5,7 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { ReactNode, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Menu, X, Home, LayoutDashboard, CreditCard, Settings, Info, DollarSign, RotateCcw } from "lucide-react"
+import { Menu, X, Home, LayoutDashboard, CreditCard, Settings, Info, DollarSign, RotateCcw, Bookmark, TrendingUp, User } from "lucide-react"
 import { Button } from "./ui/button"
 import {
   Dialog,
@@ -20,6 +20,8 @@ import Logo from "./shared/logo"
 // Navigation items for authenticated users
 const authenticatedNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "The Edge", href: "/edge", icon: TrendingUp },
+  { name: "Saved", href: "/saved", icon: Bookmark },
   { name: "Billing", href: "/billing", icon: CreditCard },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
@@ -29,6 +31,22 @@ const guestNavItems = [
   { name: "Home", href: "/", icon: Home },
   { name: "Pricing", href: "/pricing", icon: DollarSign },
   { name: "How it works", href: "/how-it-works", icon: Info },
+]
+
+// Mobile bottom-bar items shown for authenticated users
+const authenticatedMobileItems = [
+  { name: "Home", href: "/dashboard", icon: Home, dot: false },
+  { name: "Edge", href: "/edge", icon: TrendingUp, dot: true },
+  { name: "Saved", href: "/saved", icon: Bookmark, dot: false },
+  { name: "Profile", href: "/settings", icon: User, dot: false },
+]
+
+// Mobile bottom-bar items shown for guests
+const guestMobileItems = [
+  { name: "Home", href: "/", icon: Home, dot: false },
+  { name: "Pricing", href: "/pricing", icon: DollarSign, dot: false },
+  { name: "How it works", href: "/how-it-works", icon: Info, dot: false },
+  { name: "Profile", href: "/login", icon: User, dot: false },
 ]
 
 interface NavBarClientProps {
@@ -45,7 +63,11 @@ export function NavBarClient({ isAuthenticated, isPro, children, analysisCount }
 
   // Choose nav items based on authentication status
   const navItems = isAuthenticated ? authenticatedNavItems : guestNavItems
+  const mobileItems = isAuthenticated ? authenticatedMobileItems : guestMobileItems
   const pathname = usePathname()
+
+  // Logo routes to dashboard when logged in, landing page otherwise
+  const logoHref = isAuthenticated ? "/dashboard" : "/"
 
   const handleLinkClick = (e: React.MouseEvent, href: string) => {
     e.preventDefault()
@@ -68,9 +90,9 @@ export function NavBarClient({ isAuthenticated, isPro, children, analysisCount }
         <div className="flex h-16 items-center justify-between align-middle">
           {/* Logo */}
           <Link
-            href="/"
+            href={logoHref}
             className="flex items-center gap-2"
-            onClick={(e) => handleLinkClick(e, "/")}
+            onClick={(e) => handleLinkClick(e, logoHref)}
           >
             <span className="text-2xl font-semibold flex items-center gap-2">
               <div className="mt-4">
@@ -124,6 +146,47 @@ export function NavBarClient({ isAuthenticated, isPro, children, analysisCount }
               <Menu className="h-5 w-5" />
             </Button>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Sticky Nav */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/70 bg-card/95 backdrop-blur supports-backdrop-filter-bg-card/80 pb-[env(safe-area-inset-bottom)]">
+        <div className="grid grid-cols-5 h-16">
+          {mobileItems.map((item) => {
+            const Icon = item.icon
+            const active = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={(e) => handleLinkClick(e, item.href)}
+                className={cn(
+                  "relative flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors",
+                  active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {active && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-10 rounded-full bg-primary shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+                )}
+                <div className="relative">
+                  <Icon className="h-5 w-5" />
+                  {item.dot && (
+                    <span className="absolute -top-0.5 -right-1 h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                  )}
+                </div>
+                <span className="leading-none">{item.name}</span>
+              </Link>
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className="relative flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+            <span className="leading-none">More</span>
+          </button>
         </div>
       </div>
 

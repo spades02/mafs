@@ -43,27 +43,37 @@ function lastName(name: string) {
   return name.trim().split(/\s+/).pop() || name;
 }
 
+// The DB stores odds as text. Empty strings ("") leak through `?? null` because
+// `??` only catches null/undefined. Downstream code then treats the empty string
+// as a populated value and either coerces it to 0 or skips sibling-row fallbacks.
+// Normalize every field to a finite number or null here.
+function toOdd(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n !== 0 ? n : null;
+}
+
 function rowToFighterOdds(row: typeof mmaOddsData.$inferSelect): FighterOdds {
   return {
-    moneyline: row.moneylineOdds ?? null,
-    koTko: row.methodKoTkoOdds ?? null,
-    submission: row.methodSubmissionOdds ?? null,
-    decision: row.methodDecisionOdds ?? null,
-    itdYes: row.insideDistanceYesOdds ?? null,
-    itdNo: row.insideDistanceNoOdds ?? null,
-    over1_5: row.over1_5Odds ?? null,
-    under1_5: row.under1_5Odds ?? null,
-    over2_5: row.over2_5Odds ?? null,
-    under2_5: row.under2_5Odds ?? null,
-    over3_5: row.over3_5Odds ?? null,
-    under3_5: row.under3_5Odds ?? null,
-    round1Finish: row.round1FinishOdds ?? null,
-    round2Finish: row.round2FinishOdds ?? null,
-    round3Finish: row.round3FinishOdds ?? null,
-    winByDecision: row.fighterWinByDecisionOdds ?? null,
-    fightGoesToDecision: row.fightGoesToDecisionOdds ?? null,
-    fightNotGoToDecision: row.fightNotGoToDecisionOdds ?? null,
-    draw: row.drawOdds ?? null,
+    moneyline: toOdd(row.moneylineOdds),
+    koTko: toOdd(row.methodKoTkoOdds),
+    submission: toOdd(row.methodSubmissionOdds),
+    decision: toOdd(row.methodDecisionOdds),
+    itdYes: toOdd(row.insideDistanceYesOdds),
+    itdNo: toOdd(row.insideDistanceNoOdds),
+    over1_5: toOdd(row.over1_5Odds),
+    under1_5: toOdd(row.under1_5Odds),
+    over2_5: toOdd(row.over2_5Odds),
+    under2_5: toOdd(row.under2_5Odds),
+    over3_5: toOdd(row.over3_5Odds),
+    under3_5: toOdd(row.under3_5Odds),
+    round1Finish: toOdd(row.round1FinishOdds),
+    round2Finish: toOdd(row.round2FinishOdds),
+    round3Finish: toOdd(row.round3FinishOdds),
+    winByDecision: toOdd(row.fighterWinByDecisionOdds),
+    fightGoesToDecision: toOdd(row.fightGoesToDecisionOdds),
+    fightNotGoToDecision: toOdd(row.fightNotGoToDecisionOdds),
+    draw: toOdd(row.drawOdds),
   };
 }
 

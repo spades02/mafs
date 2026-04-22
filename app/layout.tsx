@@ -45,7 +45,7 @@ export default async function RootLayout({
         {/* {!session && <GuestNavbar/>}
         {session && <NavBar/>} */}
         <DirtyStateProvider>
-          <main>
+          <main className="pb-14 md:pb-0">
             <NavBar />
             <NextTopLoader
               color="#2299DD"

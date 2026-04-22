@@ -6,7 +6,7 @@ export const calibrationConfigs = pgTable("calibration_configs", {
   isActive: boolean("is_active").notNull().default(false),
   minModelProb: real("min_model_prob").notNull().default(0.55),
   minEdgePct: real("min_edge_pct").notNull().default(0.5),
-  minAgentConsensus: real("min_agent_consensus").notNull().default(0.7),
+  minAgentConsensus: real("min_agent_consensus").notNull().default(0.6),
   highVarConfFloor: real("high_var_conf_floor").notNull().default(0.55),
   marketEdgeThresholds: jsonb("market_edge_thresholds")
     .$type<Record<string, number>>()

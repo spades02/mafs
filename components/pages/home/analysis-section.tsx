@@ -2,7 +2,6 @@
 import { useState } from "react";
 import EventRunner from "../../event-runner";
 import BestBets from "../../best-bets";
-import DailyEdgeFeed from "@/components/daily-edge-feed";
 import FightAnalysis from "./fight-analysis";
 import { FightEdgeSummaryWithFightId } from "@/types/fight-edge-summary";
 import { FightBreakdownType } from "@/types/fight-breakdowns";
@@ -100,15 +99,9 @@ function AnalysisSection() {
             isComplete={isComplete}
           />
 
-          <FightAnalysis 
-            fightData={fightData} 
+          <FightAnalysis
+            fightData={fightData}
             fightBreakdowns={fightBreakdowns}
-            isLoading={isLoading}
-            isComplete={isComplete}
-          />
-
-          <DailyEdgeFeed
-            fightData={fightData as any}
             isLoading={isLoading}
             isComplete={isComplete}
           />

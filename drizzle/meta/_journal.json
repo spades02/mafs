@@ -50,6 +50,20 @@
       "when": 1775468924138,
       "tag": "0006_flippant_barracuda",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776000000000,
+      "tag": "0007_saved_plays",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776100000000,
+      "tag": "0008_saved_plays_favorite",
+      "breakpoints": true
     }
   ]
 }
