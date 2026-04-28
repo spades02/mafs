@@ -96,12 +96,12 @@ export function SavedPlayCard({ play }: SavedPlayCardProps) {
   const outcome = (play.outcome || "").toLowerCase() as "win" | "loss" | "push" | ""
   const outcomeBadge =
     outcome === "win"
-      ? { label: "Won", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30", icon: "✓" }
+      ? { label: "Won", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" }
       : outcome === "loss"
-      ? { label: "Lost", className: "bg-rose-500/10 text-rose-400 border-rose-500/30", icon: "✗" }
+      ? { label: "Lost", className: "bg-rose-500/10 text-rose-400 border-rose-500/30", dot: "bg-rose-400" }
       : outcome === "push"
-      ? { label: "Push", className: "bg-white/5 text-muted-foreground border-white/10", icon: "·" }
-      : { label: "Pending", className: "bg-amber-500/5 text-amber-400/80 border-amber-500/20", icon: "⏳" }
+      ? { label: "Push", className: "bg-white/5 text-muted-foreground border-white/10", dot: "bg-muted-foreground" }
+      : { label: "Pending", className: "bg-amber-500/5 text-amber-400/80 border-amber-500/20", dot: "bg-amber-400/70" }
 
   return (
     <Card
@@ -110,17 +110,7 @@ export function SavedPlayCard({ play }: SavedPlayCardProps) {
         isRemoving && "opacity-0 scale-95 pointer-events-none",
       )}
     >
-      <span
-        className={cn(
-          "absolute top-3 right-3 z-10 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold border pointer-events-none",
-          outcomeBadge.className,
-        )}
-        aria-label={`Result: ${outcomeBadge.label}`}
-      >
-        <span className="mr-1">{outcomeBadge.icon}</span>
-        {outcomeBadge.label}
-      </span>
-      <CardContent className="p-5 pt-9">
+      <CardContent className="p-5">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0 flex-1">
@@ -221,9 +211,9 @@ export function SavedPlayCard({ play }: SavedPlayCardProps) {
           <p className="text-xs text-white/80 leading-relaxed">{aiInsight}</p>
         </div>
 
-        {/* Tags + timestamp */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        {/* Tags + status + timestamp */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
             <span
               className={cn(
                 "px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold border",
@@ -237,8 +227,18 @@ export function SavedPlayCard({ play }: SavedPlayCardProps) {
             <span className={cn("px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold border", varianceClass)}>
               {varianceLabel}
             </span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold border",
+                outcomeBadge.className,
+              )}
+              aria-label={`Result: ${outcomeBadge.label}`}
+            >
+              <span aria-hidden="true" className={cn("w-1 h-1 rounded-full", outcomeBadge.dot)} />
+              {outcomeBadge.label}
+            </span>
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground/50">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground/50 shrink-0">
             <Clock className="w-3 h-3" />
             <span>{formatRelative(new Date(play.savedAt))}</span>
           </div>

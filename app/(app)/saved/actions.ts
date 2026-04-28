@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db"
-import { savedPlay, fights, fighters, fightSettlements } from "@/db/schema"
+import { savedPlay, fights, fighters, fightSettlements, events } from "@/db/schema"
 import { auth } from "@/app/lib/auth/auth"
 import { headers } from "next/headers"
 import { and, desc, eq, isNull, inArray } from "drizzle-orm"
@@ -100,11 +100,23 @@ export async function setFavorite(betId: string, isFavorite: boolean) {
 
 type Outcome = "win" | "loss" | "push" | null
 
-function gradeMethod(method: string | null): "decision" | "finish" | "unknown" {
+type MethodKind = "decision" | "ko" | "sub" | "dq" | "draw" | "unknown"
+
+function classifyMethod(method: string | null): MethodKind {
   const m = (method || "").toLowerCase()
   if (!m) return "unknown"
+  if (m.includes("draw")) return "draw"
+  if (m.includes("dq") || m.includes("disqual")) return "dq"
+  if (m.includes("sub")) return "sub"
+  if (m.includes("ko") || m.includes("tko") || m.includes("stoppage") || m.includes("retire")) return "ko"
   if (m.includes("decision")) return "decision"
-  if (m.includes("ko") || m.includes("tko") || m.includes("sub") || m.includes("dq") || m.includes("retire") || m.includes("stoppage")) return "finish"
+  return "unknown"
+}
+
+function gradeMethod(method: string | null): "decision" | "finish" | "unknown" {
+  const k = classifyMethod(method)
+  if (k === "decision") return "decision"
+  if (k === "ko" || k === "sub" || k === "dq") return "finish"
   return "unknown"
 }
 
@@ -153,32 +165,61 @@ function gradePlay(
     return round <= threshold ? "win" : "loss"
   }
 
-  // Moneyline — match the picked fighter's name in the label against the
-  // fight's two fighters, then compare to winnerId.
+  // Resolve which fighter (if any) the label refers to — shared by ML, Round,
+  // and Double Chance grading.
+  const label = (play.label || "").toLowerCase()
+  const matchesFighter = (f: typeof fighters.$inferSelect | null) => {
+    if (!f) return false
+    const first = (f.firstName || "").toLowerCase()
+    const last = (f.lastName || "").toLowerCase()
+    const nick = (f.nickname || "").toLowerCase()
+    return (
+      (last && label.includes(last)) ||
+      (first && label.includes(first)) ||
+      (nick && label.includes(nick))
+    )
+  }
+  const aMatch = matchesFighter(fighterA)
+  const bMatch = matchesFighter(fighterB)
+  const pickedFighterId =
+    aMatch === bMatch ? null : aMatch ? fight.fighterAId : fight.fighterBId
+
+  // Moneyline — picked fighter must be the winner.
   if (bt === "ML") {
     if (!winnerId) return null
-    const label = (play.label || "").toLowerCase()
-    const matches = (f: typeof fighters.$inferSelect | null) => {
-      if (!f) return false
-      const first = (f.firstName || "").toLowerCase()
-      const last = (f.lastName || "").toLowerCase()
-      const nick = (f.nickname || "").toLowerCase()
-      return (
-        (last && label.includes(last)) ||
-        (first && label.includes(first)) ||
-        (nick && label.includes(nick))
-      )
-    }
-    const aMatch = matches(fighterA)
-    const bMatch = matches(fighterB)
-    if (aMatch === bMatch) return null // ambiguous (both or neither)
-    const pickedId = aMatch ? fight.fighterAId : fight.fighterBId
-    if (!pickedId) return null
-    return pickedId === winnerId ? "win" : "loss"
+    if (!pickedFighterId) return null
+    return pickedFighterId === winnerId ? "win" : "loss"
   }
 
-  // MOV / Round / Double Chance / Spread / Prop — too varied to grade reliably
-  // without more structured fields. Leave ungraded so the badge shows Pending.
+  // Round bets (e.g. "McVey R1") — picked fighter must finish in that round.
+  if (bt === "ROUND") {
+    if (!winnerId || round == null) return null
+    if (!pickedFighterId) return null
+    const rMatch = label.match(/\br(\d+)\b/) || label.match(/round\s*(\d+)/)
+    const targetRound = rMatch ? parseInt(rMatch[1], 10) : NaN
+    if (!Number.isFinite(targetRound)) return null
+    if (pickedFighterId !== winnerId) return "loss"
+    const kind = classifyMethod(method)
+    if (kind === "decision" || kind === "draw") return "loss"
+    return round === targetRound ? "win" : "loss"
+  }
+
+  // Double Chance (e.g. "Buchecha by Sub or Decision") — picked fighter must
+  // win, and the method must be one of the two named in the label.
+  if (bt === "DOUBLE CHANCE" || bt === "DCH") {
+    if (!winnerId || !method) return null
+    if (!pickedFighterId) return null
+    if (pickedFighterId !== winnerId) return "loss"
+    const wanted = new Set<MethodKind>()
+    if (/\bsub/.test(label)) wanted.add("sub")
+    if (/\bko\b|\btko\b|\bknockout\b/.test(label)) wanted.add("ko")
+    if (/\bdec/.test(label)) wanted.add("decision")
+    if (wanted.size === 0) return null
+    return wanted.has(classifyMethod(method)) ? "win" : "loss"
+  }
+
+  // MOV / Spread / Prop — too varied to grade reliably without more structured
+  // fields. Leave ungraded so the badge shows Pending.
   return null
 }
 
@@ -195,6 +236,19 @@ export async function gradeUserSavedPlays(userId: string): Promise<number> {
   const fightRows = await db.select().from(fights).where(inArray(fights.id, fightIds))
   if (fightRows.length === 0) return 0
   const fightById = new Map(fightRows.map((f) => [f.id, f]))
+
+  // Event dates — used to refuse grading fights whose event hasn't happened
+  // yet. Some upstream syncs write `winner_id` for future fights (e.g. UFC 328
+  // had Joshua Van marked as winner before the May 8 fight), and we don't want
+  // the grader to trust that.
+  const eventIds = Array.from(
+    new Set(fightRows.map((f) => f.eventId).filter((x): x is string => !!x)),
+  )
+  const eventRows = eventIds.length
+    ? await db.select().from(events).where(inArray(events.eventId, eventIds))
+    : []
+  const eventDateById = new Map(eventRows.map((e) => [e.eventId, e.dateTime]))
+  const now = Date.now()
 
   const fighterIds = Array.from(
     new Set(
@@ -224,6 +278,14 @@ export async function gradeUserSavedPlays(userId: string): Promise<number> {
     const settlement = settlementByFightId.get(play.betId) ?? null
     if (!fight.winnerId && !fight.method && !settlement?.winnerId && !settlement?.method && settlement?.wentDistance == null) {
       console.log(`[grade] skip ${play.label} — fight ${play.betId} has no winner/method yet (no settlement either)`)
+      continue
+    }
+    // Event-date guard: if we know the event hasn't happened yet, refuse to
+    // grade. A settlement row is treated as authoritative (it only exists
+    // after the fight is over) so it overrides the date check.
+    const eventDate = fight.eventId ? eventDateById.get(fight.eventId) ?? null : null
+    if (!settlement && eventDate && eventDate.getTime() > now) {
+      console.log(`[grade] skip ${play.label} — event ${fight.eventId} is in the future (${eventDate.toISOString()})`)
       continue
     }
     const fa = fight.fighterAId ? fighterById.get(fight.fighterAId) ?? null : null
