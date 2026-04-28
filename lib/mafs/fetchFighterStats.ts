@@ -1,6 +1,7 @@
 // lib/mafs/fetchFighterStats.ts
 import { db } from "@/db/db";
 import { fighters } from "@/db/schema/fighters-schema";
+import { fights } from "@/db/schema/fights-schema";
 import { eq, and, sql, ilike } from "drizzle-orm";
 
 export interface MafsFighterInput {
@@ -17,6 +18,9 @@ export interface MafsFighterInput {
   knockoutPct: number;
   tkoPct: number;
   decisionPct: number;
+  submissionPct: number;
+  finishedWins: number;
+  totalGradedWins: number;
   wins: number;
   losses: number;
   titleWins: number;
@@ -91,6 +95,27 @@ async function fetchFighterProfile(fighterId: string, name?: string): Promise<Ma
     }
 
     if (fighterRecord) {
+      // Compute method-of-victory rates from this fighter's win history.
+      // method strings vary ("KO/TKO", "TKO - Punches", "Submission",
+      // "Decision - Unanimous", …) so match by lowercase substring.
+      const winRows = await db
+        .select({ method: fights.method })
+        .from(fights)
+        .where(eq(fights.winnerId, fighterRecord.id));
+
+      let koWins = 0, subWins = 0, decWins = 0;
+      for (const r of winRows) {
+        const m = (r.method || "").toLowerCase();
+        if (!m) continue;
+        if (m.includes("ko") || m.includes("tko") || m.includes("knockout")) koWins++;
+        else if (m.includes("sub")) subWins++;
+        else if (m.includes("dec")) decWins++;
+      }
+      const totalGraded = koWins + subWins + decWins;
+      const koPct = totalGraded > 0 ? koWins / totalGraded : 0;
+      const subPct = totalGraded > 0 ? subWins / totalGraded : 0;
+      const decPct = totalGraded > 0 ? decWins / totalGraded : 0;
+
       // Safely access properties, defaulting to 0 if column is missing from schema
       return {
         id: fighterRecord.id,
@@ -103,9 +128,12 @@ async function fetchFighterProfile(fighterId: string, name?: string): Promise<Ma
         strikingAccuracy: (fighterRecord as any).strAcc || 0,
         takedownAverage: (fighterRecord as any).tdAvg || 0,
         submissionAverage: (fighterRecord as any).subAvg || 0,
-        knockoutPct: 0,
-        tkoPct: 0,
-        decisionPct: 0,
+        knockoutPct: koPct,
+        tkoPct: koPct,
+        decisionPct: decPct,
+        submissionPct: subPct,
+        finishedWins: koWins + subWins,
+        totalGradedWins: totalGraded,
         wins: (fighterRecord as any).wins || 0,
         losses: (fighterRecord as any).losses || 0,
         titleWins: 0,
@@ -134,6 +162,9 @@ async function fetchFighterProfile(fighterId: string, name?: string): Promise<Ma
     knockoutPct: 0,
     tkoPct: 0,
     decisionPct: 0,
+    submissionPct: 0,
+    finishedWins: 0,
+    totalGradedWins: 0,
     wins: 0,
     losses: 0,
     titleWins: 0,

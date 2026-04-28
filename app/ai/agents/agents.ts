@@ -228,13 +228,60 @@ Round Finishes - ${f2Name}: R1 ${fmtOdd(oddsB?.round1Finish)} | R2 ${fmtOdd(odds
     if (f.strikingAccuracy) stats.strikingAccuracy = `${(f.strikingAccuracy * 100).toFixed(0)}%`;
     if (f.takedownAverage) stats.takedownAvgPer15Min = f.takedownAverage;
     if (f.submissionAverage) stats.submissionAvgPer15Min = f.submissionAverage;
-    if (f.knockoutPct) stats.koRate = `${(f.knockoutPct * 100).toFixed(0)}%`;
+    if (f.knockoutPct) stats.koWinRate = `${(f.knockoutPct * 100).toFixed(0)}%`;
+    if (f.submissionPct) stats.subWinRate = `${(f.submissionPct * 100).toFixed(0)}%`;
+    if (f.decisionPct) stats.decisionWinRate = `${(f.decisionPct * 100).toFixed(0)}%`;
+    if (f.totalGradedWins) stats.totalGradedWins = f.totalGradedWins;
     if (f.stance) stats.stance = f.stance;
     return JSON.stringify(stats);
   };
 
   const f1Stats = formatFighterStats(fighter1);
   const f2Stats = formatFighterStats(fighter2);
+
+  // Derive a short stylistic-identity hint from raw stats so Agent 2 doesn't
+  // hallucinate fighter identities (e.g. labelling a high-volume KO striker as
+  // a "submission specialist"). Hint covers the dimensions the breakdown writer
+  // most often invents: striking volume, KO threat, submission threat, wrestling.
+  const deriveStyleHint = (f: any): string => {
+    if (!f) return "no data — do NOT invent stylistic identity";
+    const tags: string[] = [];
+    const slpm = Number(f.strikingPerMinute) || 0;
+    const subAvg = Number(f.submissionAverage) || 0;
+    const tdAvg = Number(f.takedownAverage) || 0;
+    const koPct = Number(f.knockoutPct) || 0;
+    const subPct = Number(f.submissionPct) || 0;
+    const totalGraded = Number(f.totalGradedWins) || 0;
+
+    // Striking volume
+    if (slpm >= 5) tags.push("high-volume striker");
+    else if (slpm >= 3) tags.push("active striker");
+    else if (slpm > 0 && slpm < 2) tags.push("low-output striker");
+
+    // KO threat — only when sample is meaningful (≥3 graded wins)
+    if (totalGraded >= 3) {
+      if (koPct >= 0.6) tags.push(`elite KO finisher (${Math.round(koPct * 100)}% of wins by KO/TKO)`);
+      else if (koPct >= 0.4) tags.push(`legitimate KO threat (${Math.round(koPct * 100)}% of wins by KO/TKO)`);
+      else if (koPct < 0.2) tags.push(`NOT a KO finisher (${Math.round(koPct * 100)}% of wins by KO/TKO)`);
+    }
+
+    // Submission threat — combine career-wins method with per-15-min sub attempts
+    if (totalGraded >= 3) {
+      if (subPct >= 0.4 && subAvg >= 1.0) tags.push(`real submission threat (${Math.round(subPct * 100)}% of wins by sub, ${subAvg.toFixed(1)} sub-attempts/15m)`);
+      else if (subPct < 0.15 && subAvg < 0.5) tags.push(`NOT a submission threat (${Math.round(subPct * 100)}% of wins by sub, ${subAvg.toFixed(1)} sub-attempts/15m)`);
+    } else {
+      if (subAvg >= 1.0) tags.push("submission attempts in record");
+      else if (subAvg < 0.3) tags.push("NOT a submission threat (sub-avg ~0)");
+    }
+
+    // Wrestling
+    if (tdAvg >= 2.5) tags.push("wrestling-heavy");
+    else if (tdAvg < 0.5) tags.push("not a wrestler");
+
+    return tags.length ? tags.join(", ") : "limited stat signal";
+  };
+  const f1StyleHint = deriveStyleHint(fighter1);
+  const f2StyleHint = deriveStyleHint(fighter2);
 
   // -------- AGENT 1: EDGE CALCULATION --------
   const { object: edgeObj } = await safeGenerateObject<import("zod").infer<typeof FightEdgeSummaryGenerationSchema>>({
@@ -627,6 +674,25 @@ CONFIDENCE_PCT: ${finalEdge.confidencePct}
 MY WIN PROB: ${(pSim * 100).toFixed(1)}%
 MARKET IMPLIED: ${(pImp * 100).toFixed(1)}%
 EDGE: ${edgePct}%
+
+FIGHTER STATS (source of truth — derive identity from these, not from prior knowledge):
+- ${f1Name}: ${f1Stats}
+  STYLE TAGS: ${f1StyleHint}
+- ${f2Name}: ${f2Stats}
+  STYLE TAGS: ${f2StyleHint}
+
+FIGHTER IDENTITY ALIGNMENT (HARD RULE — violations will be flagged):
+  - "fighter1Profile" / "fighter2Profile" MUST match the STYLE TAGS above.
+    Do NOT invent identities the stats contradict — if a fighter is tagged
+    "NOT a submission threat", you may NOT call them a "submission specialist",
+    "grappler", or "ground specialist". If tagged "high-volume striker / KO threat",
+    lead with striking/KO identity, never submissions.
+  - "outcomeDistribution" finish methods per fighter MUST align with STYLE TAGS.
+    A fighter tagged "NOT a submission threat" cannot have "Submission" listed
+    as a path in their column — use KO/TKO or Decision instead. A fighter with
+    no KO threat and no sub threat should lean Decision-heavy.
+  - "simulationPaths" names ("Pressure KO", "Submission Path", etc.) must reflect
+    the actual fighter who has that capability per STYLE TAGS.
 
 NARRATIVE ALIGNMENT (MUST OBEY):
   - Every sentence in the breakdown must support BET_TYPE = ${finalEdge.bet_type}.
