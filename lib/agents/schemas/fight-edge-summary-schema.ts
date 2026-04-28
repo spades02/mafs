@@ -59,7 +59,7 @@ export const FightEdgeSummaryGenerationSchema = z.object({
   // Explanations
   reason: z.string().describe("1 sentence summary"),
   detailedReason: DetailedReasonInputSchema,
-  executiveSummary: z.string().optional().describe("1 punchy sentence AI insight (max 10-15 words)"),
+  executiveSummary: z.string().optional().describe("1 punchy sentence AI insight (max 10-15 words). MUST be specific to THIS matchup (cite a name, stat, or stylistic clash) and MUST support the recommended bet_type. Do not use generic phrases that could apply to any fight."),
 
   // Intelligence
   agentSignals: z.array(AgentSignalInputSchema).optional().describe("Signals from at least 3 distinct agents (e.g. Model, Market, Style)"),

@@ -34,6 +34,16 @@ interface DashboardClientProps {
   }
 }
 
+function formatRelativeCompletion(date: Date): string {
+  const sec = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000))
+  if (sec < 5) return "just now"
+  if (sec < 60) return `${sec}s ago`
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hr = Math.floor(min / 60)
+  return `${hr}h ago`
+}
+
 export default function DashboardClient({ initialEvents, userOddsFormat = "american", thresholds }: DashboardClientProps) {
   const MIN_MAF_PROB = thresholds?.MIN_MAF_PROB ?? 0.55
   const MIN_AGENT_CONSENSUS_PASS_RATE = thresholds?.MIN_AGENT_CONSENSUS_PASS_RATE ?? 0.6
@@ -45,6 +55,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
   const [selectedFight, setSelectedFight] = useState<string | null>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [scanComplete, setScanComplete] = useState(false)
+  const [lastCompletedAt, setLastCompletedAt] = useState<Date | null>(null)
 
   // Results State
   const [simulatedBets, setSimulatedBets] = useState<SimulationBet[]>([])
@@ -218,6 +229,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                   f.odds === "Analysing..." ? { ...f, odds: "N/A" } : f
                 ))
                 setScanComplete(true)
+                setLastCompletedAt(new Date())
               }
             } catch (e) {
               console.error("Error parsing stream chunk", e)
@@ -537,10 +549,19 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                             </div>
                         </div>
                         <p className="text-muted-foreground/60 text-sm mb-3 font-medium">Highest-edge opportunities identified by the MAFS simulation engine.</p>
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-                            <p className="text-[11px] text-emerald-400/80 font-medium">Simulation complete — updated just now</p>
-                        </div>
+                        {!isScanning && lastCompletedAt && topBets.length > 0 ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
+                                <p className="text-[11px] text-emerald-400/80 font-medium">
+                                    Simulation complete — {formatRelativeCompletion(lastCompletedAt)}
+                                </p>
+                            </div>
+                        ) : isScanning ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                <p className="text-[11px] text-amber-400/80 font-medium">{statusMessage || "Simulation in progress…"}</p>
+                            </div>
+                        ) : null}
                     </div>
                     <Button
                         variant="outline"
@@ -591,6 +612,7 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
                         eventId={selectedEvent}
                         eventName={currentEvent?.name}
                         initiallySaved={savedBetIds.has(bet.id)}
+                        lastCompletedAt={lastCompletedAt}
                       />
                     )
                   })}

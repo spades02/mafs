@@ -5,6 +5,9 @@ import type { Stripe } from "stripe";
 import { headers } from "next/headers";
 import { auth } from "@/app/lib/auth/auth";
 import { stripe } from "@/lib/stripe";
+import { db } from "@/db";
+import { user as userSchema } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 const CURRENCY = "usd"
 export async function createCheckoutSession(
@@ -68,16 +71,42 @@ export async function createCustomerPortalSession(): Promise<{ url: string | nul
     headers: nextHeaders
   });
 
-  if (!session?.user?.stripeCustomerId) {
-    return { url: null, error: "No Stripe customer ID found" };
+  if (!session?.user) {
+    return { url: null, error: "unauthorized" };
   }
 
-  const origin = nextHeaders.get("origin") as string;
+  // Lazily create + persist a Stripe customer if the user doesn't have one yet.
+  // Without this, users whose customer record was never linked silently fail
+  // every time they click "Open Customer Portal" / "Update Payment Details".
+  let stripeCustomerId = session.user.stripeCustomerId;
+  if (!stripeCustomerId) {
+    try {
+      const customer = await stripe.customers.create({
+        email: session.user.email,
+        name: session.user.name ?? undefined,
+        metadata: { userId: session.user.id },
+      });
+      stripeCustomerId = customer.id;
+      await db
+        .update(userSchema)
+        .set({ stripeCustomerId })
+        .where(eq(userSchema.id, session.user.id));
+    } catch (err) {
+      console.error("[stripe] failed to create customer for user", session.user.id, err);
+      return { url: null, error: "stripe_customer_create_failed" };
+    }
+  }
 
-  const portalSession = await stripe.billingPortal.sessions.create({
-    customer: session.user.stripeCustomerId,
-    return_url: `${origin}/billing`,
-  });
+  const origin = (nextHeaders.get("origin") as string) ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
 
-  return { url: portalSession.url };
+  try {
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: stripeCustomerId,
+      return_url: `${origin}/billing`,
+    });
+    return { url: portalSession.url };
+  } catch (err) {
+    console.error("[stripe] failed to create portal session", err);
+    return { url: null, error: "portal_session_failed" };
+  }
 }

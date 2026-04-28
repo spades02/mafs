@@ -21,6 +21,12 @@ import { americanToDecimal, oddsToProb } from "@/lib/odds/utils";
 import { getFightOddsHistory } from "@/app/(app)/dashboard/actions";
 import { buildMafsEventInput } from "@/lib/mafs/fetchFighterStats";
 import { getActiveCalibrationConfig, CalibrationConfig } from "@/lib/calibration/get-active-config";
+import {
+  insightContradictsBetType,
+  isLegacyTemplate,
+  stripHedgingForHighConfidence,
+  deduplicateSummary,
+} from "@/lib/agents/validate-insight";
 
 // ---------------- CONFIG ----------------
 
@@ -300,7 +306,29 @@ TASK:
 IMPORTANT:
 - Be strict. Do not force a bet on 50/50 fights with bad odds.
 - Prioritize the market with the HIGHEST EDGE, not the most obvious one.
-- Keep 'executiveSummary' EXTREMELY short (max 10-15 words), like "Both fighters have shown durability - not a quick finish."
+- Keep 'executiveSummary' EXTREMELY short (max 10-15 words). MUST cite something
+  SPECIFIC to this fight (a fighter's name, a concrete stat, or a stylistic
+  clash). NEVER produce generic templated lines that could apply to any fight.
+
+EXECUTIVE SUMMARY ALIGNMENT (HARD RULE):
+The 'executiveSummary' MUST support the bet_type you chose. Do not contradict it.
+  - ITD / DGTD / MOV(KO|Sub) / Round → mention finish indicators (KO power, sub
+    threat, low durability, fast finishes, gas tank). NEVER mention durability
+    or "going the distance" for these bets.
+  - GTD → mention durability, decision history, pace. NEVER mention "quick
+    finish" or "early KO" for these bets.
+  - Over X.5 → mention pace / output / total-rounds tendency.
+  - Under X.5 → mention finish rate / power / pace asymmetry.
+  - ML → mention the skill or stylistic edge for the SPECIFIC picked side.
+  - No Bet → explain why no value, do NOT describe fighter strengths.
+
+LANGUAGE STRENGTH RULES (use the confidencePct YOU set):
+  ≥80 → "very likely", "expect", "dominant"
+  ≥70 → "clear tendency", "strong", "expected"
+  ≥60 → "likely", "favored", "strong chance"
+  <60 → measured / neutral language
+At confidencePct ≥60, BANNED words: "could", "might", "possibly", "may",
+"perhaps", "potentially". Use decisive verbs instead.
 `,
   });
 
@@ -385,6 +413,40 @@ IMPORTANT:
     }
   }
 
+  // Fetch Odds History BEFORE computing pImp/EV — when historical odds disagree
+  // with mma_odds_data, history is the source of truth (it's the live bookmaker
+  // price; mma_odds_data is a snapshot that can rot). For ML bets we trust
+  // history's last point and override marketOdd/displayOdd accordingly.
+  let oddsHistory: any[] = [];
+  const targetFighterId = matchedIndex !== -1 ? fight.fighterIds[matchedIndex] : undefined;
+  const useMLHistory = bt === "ML" || bt === "No Bet" || !oddsAreForRecommendedMarket;
+  if (useMLHistory) {
+    oddsHistory = await getFightOddsHistory(fight.id, targetFighterId);
+  }
+
+  // If we have real ML history and it materially disagrees with mma_odds_data,
+  // trust history. mma_odds_data sometimes carries stale or non-ML values
+  // (e.g. saw -650 for a fight whose actual ML moved -82 → -112).
+  if (useMLHistory && oddsHistory.length >= 1 && marketOdd !== 0) {
+    const lastOdd = Number(oddsHistory[oddsHistory.length - 1]?.oddsAmerican);
+    if (Number.isFinite(lastOdd)) {
+      const histImplied = oddsToProb(lastOdd);
+      const dataImplied = oddsToProb(marketOdd);
+      if (Math.abs(histImplied - dataImplied) > 0.05) {
+        console.warn(`[MAFS WARN] ${fight.matchup} | mma_odds_data ML=${marketOdd} disagrees with history.last=${lastOdd}; trusting history.`);
+        marketOdd = lastOdd;
+        displayOdd = lastOdd;
+        oddsAreForRecommendedMarket = true;
+        // Patch fight.moneylines so downstream marketLine text reflects the
+        // corrected ML for the picked side. Other side's ML stays as-is —
+        // it's not load-bearing for our edge calc.
+        if (matchedIndex !== -1 && fight.moneylines) {
+          fight.moneylines[matchedIndex] = lastOdd;
+        }
+      }
+    }
+  }
+
   // Calculate P_imp — use real marketOdd when available, else neutral 0.5
   const pImp = marketOdd !== 0 ? oddsToProb(marketOdd) : 0.5;
   const pSim = edgeObj.truthProbability;
@@ -398,26 +460,20 @@ IMPORTANT:
     const decimalOdds = americanToDecimal(marketOdd);
     ev = parseFloat(((pSim * decimalOdds - 1) * 100).toFixed(1));
   }
+  console.log(`[MAFS DEBUG] ${fight.matchup} | EV inputs: pSim=${pSim.toFixed(3)} pImp=${pImp.toFixed(3)} edge=${edgePct}% marketOdd=${marketOdd} displayOdd=${displayOdd} ev=${ev}%`);
 
-  // Fetch Odds History for Line Movement Chart
-  let oddsHistory: any[] = [];
-  const targetFighterId = matchedIndex !== -1 ? fight.fighterIds[matchedIndex] : undefined;
-  
-  // Only query DB for ML bets; prop odds aren't tracked historically in this DB yet
-  if (bt === "ML" || bt === "No Bet") {
-    oddsHistory = await getFightOddsHistory(fight.id, targetFighterId);
-  }
-
-  // Fallback: Generate synthetic sharp movement history for aesthetic UI consistency
+  // Fallback: Generate synthetic sharp movement history for aesthetic UI consistency.
+  // Anchor it to displayOdd (what the card shows) so the chart endpoint and the
+  // displayed Market Line never disagree.
   if (!oddsHistory || oddsHistory.length < 2) {
-    const finalOdd = marketOdd !== 0 ? marketOdd : -110;
+    const finalOdd = displayOdd !== 0 ? displayOdd : -110;
     // Base a random but realistic entry point roughly 10-30 points off the current line
     const driftDirection = Math.random() > 0.5 ? 1 : -1;
     let runningOdd = finalOdd + (driftDirection * (Math.floor(Math.random() * 25) + 15));
-    
+
     const now = new Date();
     oddsHistory = [];
-    
+
     for (let i = 0; i < 5; i++) {
         oddsHistory.push({
             timestamp: new Date(now.getTime() - (5 - i) * 12 * 60 * 60 * 1000).toISOString(),
@@ -426,8 +482,8 @@ IMPORTANT:
         // Slowly converge to final
         runningOdd += (finalOdd - runningOdd) * (Math.random() * 0.4 + 0.2);
     }
-    
-    // Ensure final point perfectly matches current
+
+    // Ensure final point perfectly matches current displayed market line
     oddsHistory.push({
         timestamp: now.toISOString(),
         oddsAmerican: finalOdd
@@ -533,6 +589,28 @@ IMPORTANT:
 
   console.log(`[MAFS DEBUG] ${fight.matchup} | FINAL: confidencePct=${finalEdge.confidencePct}, varianceTag=${finalEdge.varianceTag}, edge=${edgePct}%`);
 
+  // ---- Sanitize narrative copy ----
+  // 1. Strip hedging words ("could", "might", …) when confidence ≥ 70.
+  // 2. Detect contradictory bet-type / insight pairs and warn (the dedup pass
+  //    in Agents() will append a fight-specific tail; for hard contradictions
+  //    we still surface the original — Agent 1 already had the alignment rules
+  //    in its prompt, contradictions here are rare and a per-fight regen would
+  //    double the LLM cost).
+  // 3. Detect the legacy "shown durability — not a quick finish" template and
+  //    blank it so the dedup pass replaces it with the bet-label fallback.
+  if (finalEdge.executiveSummary) {
+    const original = finalEdge.executiveSummary;
+    let cleaned = stripHedgingForHighConfidence(original, finalEdge.confidencePct ?? 0);
+    if (isLegacyTemplate(cleaned)) {
+      console.warn(`[MAFS WARN] ${fight.matchup} | executiveSummary matched legacy template; clearing.`);
+      cleaned = "";
+    }
+    if (insightContradictsBetType(finalEdge.bet_type, cleaned)) {
+      console.warn(`[MAFS WARN] ${fight.matchup} | executiveSummary contradicts bet_type=${finalEdge.bet_type}: "${cleaned}"`);
+    }
+    finalEdge.executiveSummary = cleaned;
+  }
+
 
   // -------- AGENT 2: BREAKDOWN WRITER --------
   const { object: bdObj } = await safeGenerateObject<import("zod").infer<typeof FightBreakdownsSchema>>({
@@ -544,9 +622,26 @@ IMPORTANT:
 EVENT: ${eventName}
 FIGHT: ${fight.matchup}
 PICK: ${finalEdge.label}
+BET_TYPE: ${finalEdge.bet_type}
+CONFIDENCE_PCT: ${finalEdge.confidencePct}
 MY WIN PROB: ${(pSim * 100).toFixed(1)}%
 MARKET IMPLIED: ${(pImp * 100).toFixed(1)}%
 EDGE: ${edgePct}%
+
+NARRATIVE ALIGNMENT (MUST OBEY):
+  - Every sentence in the breakdown must support BET_TYPE = ${finalEdge.bet_type}.
+  - For ITD / DGTD / MOV / Round: emphasize finish indicators only.
+  - For GTD: emphasize durability / decision indicators only.
+  - For Over/Under: emphasize pace / output / total-rounds tendency.
+  - For ML: emphasize the picked side's edge specifically.
+  - Do NOT produce reasoning that would equally justify the OPPOSITE bet.
+
+LANGUAGE STRENGTH (must match CONFIDENCE_PCT = ${finalEdge.confidencePct}):
+  ≥80 → "very likely", "expect", "dominant"
+  ≥70 → "clear tendency", "strong"
+  ≥60 → "likely", "favored"
+  <60 → measured / neutral language
+At CONFIDENCE_PCT ≥60, BANNED words: "could", "might", "possibly", "may", "perhaps", "potentially".
 
 Generate a detailed "FightBreakdown" including:
 - "trueLine": Your FAIR MONEYLINE ODDS for BOTH FIGHTERS in the format "Fighter1Odds / Fighter2Odds" (e.g. "-150 / +130"). This must ALWAYS be numeric moneyline odds with +/- signs separated by " / ". NEVER put bet labels, descriptions, or prop names here — only odds.
@@ -578,9 +673,24 @@ Keep it punchy, professional, and analytical.
     ? { ...rawBreakdown, ...rawBreakdown.fightAnalysis }
     : rawBreakdown;
 
-  // Manual transform to ensure string compatibility if model returns array
+  // Manual transform to ensure string compatibility if model returns array.
+  // Also OVERRIDE the math-derived fields (marketLine, mispricing, ev) with
+  // server-computed values — the LLM hallucinates these strings (e.g. inventing
+  // odds like -650/+165 or printing EV as 0%) and the breakdown panel must
+  // stay consistent with the bet card.
+  const fmt = (v: number) => (v > 0 ? `+${v}` : `${v}`);
+  const serverMarketLine =
+    fight.moneylines && fight.moneylines.length === 2
+      ? `${f1Name}: ${fmt(Number(fight.moneylines[0]))} / ${f2Name}: ${fmt(Number(fight.moneylines[1]))}`
+      : (baseBreakdown.marketLine || "No odds available");
+  const serverMispricing = `${edgePct >= 0 ? "+" : ""}${edgePct}%`;
+  const serverEv = marketOdd !== 0 ? `${ev >= 0 ? "+" : ""}${ev}%` : "—";
+
   const processedBreakdown: any = {
     ...baseBreakdown,
+    marketLine: serverMarketLine,
+    mispricing: serverMispricing,
+    ev: serverEv,
     marketAnalysis: Array.isArray(baseBreakdown.marketAnalysis)
       ? baseBreakdown.marketAnalysis.join(" ")
       : baseBreakdown.marketAnalysis,
@@ -688,6 +798,9 @@ export default async function Agents(
   const results: FightResult[] = [];
   const fightsToAnalyze = event.fights;
   let completed = 0;
+  // Track all executive-summary strings emitted in this run; second appearances
+  // get a fight-specific tail appended so the user never sees the same line twice.
+  const usedExecutiveSummaries = new Set<string>();
 
   for (let i = 0; i < fightsToAnalyze.length; i += CONCURRENT_BATCH_SIZE) {
     const batch = fightsToAnalyze.slice(i, i + CONCURRENT_BATCH_SIZE);
@@ -706,6 +819,19 @@ export default async function Agents(
           event.Name,
           mafsEventInput.fighters,
           calibrationConfig
+        );
+
+        // Cross-fight dedup pass: if executiveSummary was emitted by a prior
+        // fight in this run, append a fight-specific tail so the user never
+        // sees the same insight twice. If empty (e.g. legacy template was
+        // cleared by the per-fight sanitizer), substitute a bet-specific line.
+        if (!edge.executiveSummary) {
+          edge.executiveSummary = `Edge angle: ${edge.label}.`;
+        }
+        edge.executiveSummary = deduplicateSummary(
+          edge.executiveSummary,
+          usedExecutiveSummaries,
+          edge.label,
         );
 
         const payload: FightResult = {

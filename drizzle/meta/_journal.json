@@ -64,6 +64,13 @@
       "when": 1776100000000,
       "tag": "0008_saved_plays_favorite",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776200000000,
+      "tag": "0009_saved_plays_outcome",
+      "breakpoints": true
     }
   ]
 }

@@ -49,7 +49,7 @@ export function NavAvatarClient({ avatarUrl, name, email, isPro }: NavAvatarClie
               </span>
             )}
           </div>
-          <span className="hidden sm:inline text-sm font-medium text-gray-200">
+          <span className="hidden sm:inline max-w-[140px] truncate text-sm font-medium text-gray-200">
             {name}
           </span>
           {isPro && (
@@ -61,15 +61,17 @@ export function NavAvatarClient({ avatarUrl, name, email, isPro }: NavAvatarClie
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" sideOffset={8} className="w-64">
         <div className="flex items-center gap-2 p-3 border-b border-border/50 bg-muted/20">
-          <ProfileAvatar
-            avatarUrl={avatarUrl}
-            name={name}
-            email={email}
-            size={36}
-          />
-          <div className="flex flex-col min-w-0">
+          <div className="shrink-0">
+            <ProfileAvatar
+              avatarUrl={avatarUrl}
+              name={name}
+              email={email}
+              size={36}
+            />
+          </div>
+          <div className="flex flex-col min-w-0 flex-1">
             <p className="text-sm font-semibold text-foreground truncate">{name}</p>
             <p className="text-xs text-muted-foreground truncate">{email}</p>
           </div>

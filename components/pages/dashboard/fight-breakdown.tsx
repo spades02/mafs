@@ -144,25 +144,24 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
                                   favorsF2 = !!(f2LastName && outcome.includes(f2LastName))
                                 }
 
-                                if (favorsF2) {
-                                    return (
-                                        <>
-                                            <span className="text-emerald-100 font-medium">
-                                                Model bias favors <span className="text-emerald-400">{f2Name}</span>.
-                                            </span>{" "}
-                                            {breakdown.fighter2Notes}{breakdown.fighter2Notes ? "." : ""} {f1Name}{f1Name ? "'s path requires " : ""}
-                                            {f1Name ? (breakdown.fighter1Notes?.toLowerCase() || "a specific strategy") : ""}{f1Name ? "." : ""}
-                                        </>
-                                    )
-                                }
-
+                                // Render only specific, non-boilerplate text. Drop the
+                                // generic "X's path requires a specific strategy" fallback
+                                // that was repeating identically across fights.
+                                const favoredName = favorsF2 ? f2Name : f1Name
+                                const favoredNotes = favorsF2 ? breakdown.fighter2Notes : breakdown.fighter1Notes
+                                const otherName = favorsF2 ? f1Name : f2Name
+                                const otherNotes = favorsF2 ? breakdown.fighter1Notes : breakdown.fighter2Notes
+                                const cleanNotes = (s?: string) =>
+                                    s ? s.replace(/\.\s*$/, "") + "." : ""
                                 return (
                                     <>
                                         <span className="text-emerald-100 font-medium">
-                                            Model bias favors <span className="text-emerald-400">{f1Name}</span>.
-                                        </span>{" "}
-                                        {breakdown.fighter1Notes}{breakdown.fighter1Notes ? "." : ""} {f2Name}{f2Name ? "'s path requires " : ""}
-                                        {f2Name ? (breakdown.fighter2Notes?.toLowerCase() || "a specific strategy") : ""}{f2Name ? "." : ""}
+                                            Model bias favors <span className="text-emerald-400">{favoredName}</span>.
+                                        </span>
+                                        {favoredNotes ? <> {cleanNotes(favoredNotes)}</> : null}
+                                        {otherName && otherNotes ? (
+                                            <> {otherName}&apos;s path requires {cleanNotes(otherNotes.toLowerCase())}</>
+                                        ) : null}
                                     </>
                                 )
                             })()}
@@ -254,8 +253,13 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
                         if (validHistory.length < 2) return null
                         const firstOdds = validHistory[0].oddsAmerican
                         const lastOdds = validHistory[validHistory.length - 1].oddsAmerican
-                        const isMovingToward = Math.abs(lastOdds) < Math.abs(firstOdds) || lastOdds < firstOdds
-                        const isMovingAway = Math.abs(lastOdds) > Math.abs(firstOdds) || lastOdds > firstOdds
+                        // Direction by implied-probability delta (handles +/- crossings):
+                        //   -150 → -170 = market backing this side (toward), delta>0
+                        //   -170 → -150 = market fading (away), delta<0
+                        const impliedDelta = oddsToProb(lastOdds) - oddsToProb(firstOdds)
+                        const STABLE_THRESHOLD = 0.005
+                        const isMovingToward = impliedDelta >  STABLE_THRESHOLD
+                        const isMovingAway   = impliedDelta < -STABLE_THRESHOLD
 
                         // Approximate first edge calculation to match screenshot
                         const currentMispricingStr = breakdown.mispricing || "0%"

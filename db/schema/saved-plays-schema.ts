@@ -25,6 +25,11 @@ export const savedPlay = pgTable(
 
     isFavorite: boolean("is_favorite").default(false).notNull(),
 
+    // Grading: populated once the underlying fight resolves.
+    outcome: text("outcome"),               // 'win' | 'loss' | 'push' | null (pending)
+    gradedAt: timestamp("graded_at"),
+    fightSettlementId: text("fight_settlement_id"),
+
     savedAt: timestamp("saved_at").defaultNow().notNull(),
   },
   (t) => ({

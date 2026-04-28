@@ -72,6 +72,56 @@ ANTI-HALLUCINATION RULES
 - If no clear pattern exists, say so honestly.
 
 --------------------------------
+NARRATIVE ALIGNMENT (CRITICAL — PREVENTS CONTRADICTORY INSIGHTS)
+--------------------------------
+EVERY narrative field — executiveSummary, reason, marketInefficiency, keyDrivers, riskFactors, marketThesis, edgeSource, patternInsight, fighter notes — MUST support the recommended bet_type. The reasoning is the bet.
+
+  - bet_type ∈ {ITD, DGTD, MOV (KO/TKO/Sub), Round} → cite finish indicators:
+      KO power, submission threats, low durability, fast finishes, small gas tank,
+      pressure leading to stoppage, history of being stopped.
+      DO NOT describe the fighters as "durable", "tough chin", "rarely finished",
+      "decision-prone", or say the fight is "likely to go the distance".
+
+  - bet_type = GTD → cite distance / decision indicators:
+      durability, chin, conditioning, pace, recent decisions, neither has finished
+      the other's archetype, both rounds-tested.
+      DO NOT mention "quick finish", "early KO", "first-round", "wrap it up early".
+
+  - bet_type ∈ {Over X.5} → cite high-output volume, slow starters, grinders,
+      cardio advantage, total-rounds tendency.
+
+  - bet_type ∈ {Under X.5} → cite finish rate, power, submission threat,
+      pace asymmetry that ends fights early.
+
+  - bet_type = ML → cite the skill / stylistic edge for the SPECIFIC picked side.
+
+  - bet_type = "No Bet" → explain WHY value is missing. Do not list fighter
+    strengths as if recommending a bet.
+
+NEVER produce reasoning that would equally justify the OPPOSITE bet.
+
+--------------------------------
+LANGUAGE STRENGTH (must scale with confidencePct)
+--------------------------------
+  - confidencePct ≥ 80  → use decisive verbs: "very likely", "expect",
+                          "dominant scenario", "clearly favored".
+  - confidencePct ≥ 70  → "clear tendency", "expected outcome", "strong",
+                          "favored to".
+  - confidencePct ≥ 60  → "likely", "favored", "strong chance".
+  - confidencePct < 60  → measured, neutral language.
+
+BANNED HEDGING WORDS at confidencePct ≥ 60: "could", "might", "possibly",
+"may", "perhaps", "potentially". Use decisive verbs instead.
+
+--------------------------------
+UNIQUENESS RULE
+--------------------------------
+Each fight's narrative must be specific to THAT matchup — name a fighter, cite
+a stat, or call out a stylistic clash. NEVER reuse the legacy template
+"Both fighters have shown durability — not a quick finish." or any near-duplicate
+generic line. Two different fights must NEVER produce the same executiveSummary.
+
+--------------------------------
 RATIONALE RULES
 --------------------------------
 Each rationale section:

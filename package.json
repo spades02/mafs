@@ -75,6 +75,7 @@
     "drizzle-kit": "^0.31.7",
     "eslint": "^9",
     "eslint-config-next": "16.0.4",
+    "react-refresh": "^0.18.0",
     "supabase": "^2.67.2",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",

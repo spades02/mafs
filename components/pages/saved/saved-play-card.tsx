@@ -93,14 +93,34 @@ export function SavedPlayCard({ play }: SavedPlayCardProps) {
   const oddsDisplay = play.oddsAmerican ? formatOdds(play.oddsAmerican, "american") : "—"
   const marketImpliedPct = pImp > 0 ? `${(pImp * 100).toFixed(0)}%` : null
 
+  const outcome = (play.outcome || "").toLowerCase() as "win" | "loss" | "push" | ""
+  const outcomeBadge =
+    outcome === "win"
+      ? { label: "Won", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30", icon: "✓" }
+      : outcome === "loss"
+      ? { label: "Lost", className: "bg-rose-500/10 text-rose-400 border-rose-500/30", icon: "✗" }
+      : outcome === "push"
+      ? { label: "Push", className: "bg-white/5 text-muted-foreground border-white/10", icon: "·" }
+      : { label: "Pending", className: "bg-amber-500/5 text-amber-400/80 border-amber-500/20", icon: "⏳" }
+
   return (
     <Card
       className={cn(
-        "border border-white/5 bg-[#0A0C10] overflow-hidden hover:border-primary/20 transition-all duration-200 ease-out",
+        "border border-white/5 bg-[#0A0C10] overflow-hidden hover:border-primary/20 transition-all duration-200 ease-out relative",
         isRemoving && "opacity-0 scale-95 pointer-events-none",
       )}
     >
-      <CardContent className="p-5">
+      <span
+        className={cn(
+          "absolute top-3 right-3 z-10 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold border pointer-events-none",
+          outcomeBadge.className,
+        )}
+        aria-label={`Result: ${outcomeBadge.label}`}
+      >
+        <span className="mr-1">{outcomeBadge.icon}</span>
+        {outcomeBadge.label}
+      </span>
+      <CardContent className="p-5 pt-9">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0 flex-1">

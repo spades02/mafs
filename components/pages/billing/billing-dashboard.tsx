@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createCustomerPortalSession } from "@/app/actions/stripe";
+import { toast } from "sonner";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../ui/card";
 import { Progress } from "../../ui/progress";
@@ -45,14 +46,23 @@ export default function BillingDashboard({ user }: BillingDashboardProps) {
     setLoading(true);
     try {
       const { url, error } = await createCustomerPortalSession();
+      if (url) {
+        window.location.href = url;
+        return;
+      }
       if (error) {
         console.error(error);
-        // You might want to show a toast notification here
-      } else if (url) {
-        window.location.href = url;
+        toast.error(
+          error === "unauthorized"
+            ? "Please sign in to manage your subscription."
+            : "Couldn't open the billing portal. Please try again or contact support.",
+        );
+      } else {
+        toast.error("Couldn't open the billing portal. Please try again.");
       }
     } catch (err) {
       console.error(err);
+      toast.error("Couldn't reach Stripe. Check your connection and try again.");
     } finally {
       setLoading(false);
     }

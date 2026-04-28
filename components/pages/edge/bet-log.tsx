@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import { formatOdds } from "@/lib/odds/utils"
-import type { EdgePick } from "@/app/(app)/edge/types"
+import type { EdgePick } from "@/app/(app)/_edge.disabled/types"
 
 type FilterKey = "all" | "winning" | "losing" | "recent"
 

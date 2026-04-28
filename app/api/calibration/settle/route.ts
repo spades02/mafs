@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { fights, fightSettlements, predictionLogs, mmaOddsData } from "@/db/schema";
+import { fights, fightSettlements, predictionLogs, mmaOddsData, savedPlay } from "@/db/schema";
 import { fighters } from "@/db/schema/fighters-schema";
 import { eq, isNull, ilike, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -17,20 +17,28 @@ export async function POST(req: Request) {
   }
 
   try {
-    // 1. Get unsettled fight IDs from prediction_logs
+    // 1. Get unsettled fight IDs from prediction_logs AND saved plays.
+    // Saved plays don't go through prediction_logs but still need grading.
     const unsettledLogs = await db
       .selectDistinct({ fightId: predictionLogs.fightId, eventId: predictionLogs.eventId })
       .from(predictionLogs)
       .leftJoin(fightSettlements, eq(predictionLogs.fightId, fightSettlements.fightId))
       .where(isNull(fightSettlements.id));
 
-    if (unsettledLogs.length === 0) {
-      return NextResponse.json({ success: true, settled: 0, message: "No unsettled predictions" });
+    const unsettledSavedPlays = await db
+      .selectDistinct({ fightId: savedPlay.betId, eventId: savedPlay.eventId })
+      .from(savedPlay)
+      .leftJoin(fightSettlements, eq(savedPlay.betId, fightSettlements.fightId))
+      .where(isNull(fightSettlements.id));
+
+    if (unsettledLogs.length === 0 && unsettledSavedPlays.length === 0) {
+      return NextResponse.json({ success: true, settled: 0, message: "No unsettled predictions or saved plays" });
     }
 
-    const unsettledFightIds = new Set(
-      unsettledLogs.map((r) => r.fightId).filter(Boolean) as string[]
-    );
+    const unsettledFightIds = new Set<string>([
+      ...(unsettledLogs.map((r) => r.fightId).filter(Boolean) as string[]),
+      ...(unsettledSavedPlays.map((r) => r.fightId).filter(Boolean) as string[]),
+    ]);
 
     // 2. Fetch completed events from ufcstats.com
     const eventsRes = await fetch(
@@ -160,7 +168,9 @@ export async function POST(req: Request) {
           }
         }
 
-        const logEntry = unsettledLogs.find((l) => l.fightId === fightId);
+        const logEntry =
+          unsettledLogs.find((l) => l.fightId === fightId) ??
+          unsettledSavedPlays.find((l) => l.fightId === fightId);
 
         await db.insert(fightSettlements).values({
           id: nanoid(),

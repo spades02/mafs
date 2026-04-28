@@ -8,7 +8,7 @@ import { SimulationBet } from "@/app/(app)/dashboard/d-types"
 import { LineMovementChart } from "./line-movement-chart"
 import { SaveBetButton } from "./save-bet-button"
 
-import { formatOdds } from "@/lib/odds/utils"
+import { formatOdds, oddsToProb } from "@/lib/odds/utils"
 
 interface BetCardProps {
     bet: SimulationBet
@@ -20,37 +20,66 @@ interface BetCardProps {
     eventId?: string | null
     eventName?: string | null
     initiallySaved?: boolean
+    lastCompletedAt?: Date | null
 }
 
-export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat = "american", eventId, eventName, initiallySaved = false }: BetCardProps) {
+function formatSecondsSince(date: Date): string {
+    const sec = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000))
+    if (sec < 60) return `${sec}s ago`
+    const min = Math.floor(sec / 60)
+    if (min < 60) return `${min}m ago`
+    const hr = Math.floor(min / 60)
+    return `${hr}h ago`
+}
+
+export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat = "american", eventId, eventName, initiallySaved = false, lastCompletedAt }: BetCardProps) {
     const [edgeBreakdownOpen, setEdgeBreakdownOpen] = useState(true)
     const hasRiskFlag = bet.agentSignals ? bet.agentSignals.some((s) => s.signal === "neutral" || s.signal === "fail") : false
     const passedSignals = bet.agentSignals ? bet.agentSignals.filter((s) => s.signal === "pass").length : 0
     const totalSignals = bet.agentSignals ? bet.agentSignals.length : 0
 
-    // Compute pricing metrics (with NaN/Infinity guards)
+    // Compute pricing metrics (with NaN/Infinity guards). When odds are missing
+    // we deliberately do NOT fall back to -110 — that produced a false 0% EV
+    // while mispricing computed against a different (real) line. Render "—"
+    // for missing odds so the user sees the data is unavailable.
     const parsedMarketOdds = typeof bet.odds_american === 'string' && bet.odds_american !== "No odds available"
         ? parseInt(bet.odds_american.replace("+", ""))
         : (typeof bet.odds_american === 'number' ? bet.odds_american : NaN)
     const hasValidOdds = typeof parsedMarketOdds === 'number' && isFinite(parsedMarketOdds) && parsedMarketOdds !== 0
-    const marketOdds = hasValidOdds ? parsedMarketOdds : -110
+    if (!hasValidOdds && bet.odds_american !== "No odds available" && bet.odds_american !== "N/A" && bet.odds_american !== "0") {
+        console.warn(`[BetCard] could not parse odds_american:`, bet.odds_american)
+    }
+    const marketOdds = hasValidOdds ? parsedMarketOdds : NaN
     const modelProb = typeof bet.P_sim === 'number' && isFinite(bet.P_sim) ? Math.min(0.999, Math.max(0.001, bet.P_sim)) : 0.5
     const trueLineAmerican = modelProb >= 0.5
         ? -Math.round((modelProb / (1 - modelProb)) * 100)
         : Math.round(((1 - modelProb) / modelProb) * 100)
-    const marketImpliedProbRaw = marketOdds > 0
-        ? 100 / (marketOdds + 100)
-        : (-marketOdds) / ((-marketOdds) + 100)
-    const marketImpliedProb = isFinite(marketImpliedProbRaw) ? marketImpliedProbRaw : 0.5
-    const decimalOddsRaw = marketOdds > 0 ? 1 + (marketOdds / 100) : 1 + (100 / -marketOdds)
-    const decimalOdds = isFinite(decimalOddsRaw) && decimalOddsRaw > 1 ? decimalOddsRaw : 1.9091
-    const evPerUnitRaw = (modelProb * (decimalOdds - 1)) - ((1 - modelProb) * 1)
-    const evPerUnit = isFinite(evPerUnitRaw) ? evPerUnitRaw : 0
-    const mispricingProbRaw = modelProb - marketImpliedProb
-    const mispricingProb = isFinite(mispricingProbRaw) ? mispricingProbRaw : 0
+    const marketImpliedProb = hasValidOdds
+        ? (marketOdds > 0 ? 100 / (marketOdds + 100) : (-marketOdds) / ((-marketOdds) + 100))
+        : NaN
+    const decimalOdds = hasValidOdds
+        ? (marketOdds > 0 ? 1 + (marketOdds / 100) : 1 + (100 / -marketOdds))
+        : NaN
+    // Prefer server-computed EV / edge to avoid client/server divergence when
+    // bet.odds_american is the moneyline-fallback but bet.ev was computed from
+    // the prop market odds. Server is the source of truth.
+    const serverEvPct = typeof bet.ev === 'number' && isFinite(bet.ev) ? bet.ev : null
+    const serverEdgePct = typeof bet.edge_pct === 'number' && isFinite(bet.edge_pct) ? bet.edge_pct : null
+    const localEvPct = hasValidOdds && isFinite(decimalOdds)
+        ? ((modelProb * (decimalOdds - 1)) - (1 - modelProb)) * 100
+        : NaN
+    const evPctDisplay = serverEvPct !== null ? serverEvPct : (isFinite(localEvPct) ? localEvPct : NaN)
+    // Mispricing in spec = Model Prob − Market Implied (as %), which is exactly edge_pct.
+    const mispricingPctDisplay = serverEdgePct !== null
+        ? serverEdgePct
+        : (hasValidOdds && isFinite(marketImpliedProb) ? (modelProb - marketImpliedProb) * 100 : NaN)
+    // Legacy decimal version of EV used by Kelly sizing below.
+    const evPerUnit = isFinite(evPctDisplay) ? evPctDisplay / 100 : 0
 
-    // Kelly Criterion estimation
-    const kellyFractionRaw = ((modelProb * (decimalOdds - 1)) - (1 - modelProb)) / (decimalOdds - 1)
+    // Kelly Criterion estimation (NaN-safe — decimalOdds may be NaN when odds missing)
+    const kellyFractionRaw = hasValidOdds && isFinite(decimalOdds) && decimalOdds > 1
+        ? ((modelProb * (decimalOdds - 1)) - (1 - modelProb)) / (decimalOdds - 1)
+        : 0
     const kellyFraction = isFinite(kellyFractionRaw) ? kellyFractionRaw : 0
     const varianceMultiplier = bet.varianceTag === "low" ? 0.5 : bet.varianceTag === "medium" ? 0.35 : 0.25
     const confidenceMultiplier = Math.min(1, (bet.confidencePct || 70) / 100)
@@ -84,7 +113,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                             <div className="flex items-center gap-3 text-xs">
                                 <span className="font-mono text-muted-foreground/80">{formatOdds(bet.odds_american, oddsFormat)}</span>
                                 <span className="text-muted-foreground/40">•</span>
-                                <span className="uppercase tracking-wider text-muted-foreground/50 font-medium">MARKET: {(marketImpliedProb * 100).toFixed(0)}% IMPLIED</span>
+                                <span className="uppercase tracking-wider text-muted-foreground/50 font-medium">MARKET: {isFinite(marketImpliedProb) ? `${(marketImpliedProb * 100).toFixed(0)}%` : "—"} IMPLIED</span>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -154,8 +183,16 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
 
                         const firstOdds = validHistory[0].oddsAmerican
                         const lastOdds = validHistory[validHistory.length - 1].oddsAmerican
-                        const isMovingToward = Math.abs(lastOdds) < Math.abs(firstOdds) || lastOdds < firstOdds
-                        const isMovingAway = Math.abs(lastOdds) > Math.abs(firstOdds) || lastOdds > firstOdds
+                        // Compare via implied probability so direction stays correct
+                        // across negative ↔ positive crossings:
+                        //   -150 → -170: implied 60% → 63%, delta>0 → toward (line tightening)
+                        //   -170 → -150: implied 63% → 60%, delta<0 → away (line widening)
+                        //   +150 → +130: implied 40% → 43%, delta>0 → toward
+                        //   +130 → +150: implied 43% → 40%, delta<0 → away
+                        const impliedDelta = oddsToProb(lastOdds) - oddsToProb(firstOdds)
+                        const STABLE_THRESHOLD = 0.005
+                        const isMovingToward = impliedDelta >  STABLE_THRESHOLD
+                        const isMovingAway   = impliedDelta < -STABLE_THRESHOLD
 
                         return (
                             <div className="p-4 rounded-xl border border-white/5 bg-[#0F1117] mb-5">
@@ -330,7 +367,9 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                                 {/* EV */}
                                 <div className="flex flex-col">
                                     <span className="text-[8px] uppercase tracking-widest text-emerald-400/50 font-bold mb-1">Expected Value</span>
-                                    <span className="text-sm font-bold text-emerald-400">{evPerUnit >= 0 ? "+" : ""}{(evPerUnit * 100).toFixed(1)}%</span>
+                                    <span className="text-sm font-bold text-emerald-400">
+                                        {isFinite(evPctDisplay) ? `${evPctDisplay >= 0 ? "+" : ""}${evPctDisplay.toFixed(1)}%` : "—"}
+                                    </span>
                                 </div>
                                 {/* Stake */}
                                 <div className="flex flex-col">
@@ -377,14 +416,6 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                             </div>
                         </div>
 
-                        {/* EDGE SOURCE */}
-                        <div className="mb-6">
-                            <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-bold mb-2 block">Edge Source</span>
-                            <p className="text-xs text-muted-foreground/80 leading-relaxed font-mono bg-[#0F1117] border border-white/5 p-4 rounded-xl shadow-inner">
-                                {bet.edgeSource || bet.detailedReason.marketInefficiency?.split('.').slice(0, 2).join('.') + '.' || "Identified systemic discrepancy between fighter win conditions and generic market pricing."}
-                            </p>
-                        </div>
-
                         {/* RISK CALLOUT */}
                         {bet.detailedReason.riskFactors && bet.detailedReason.riskFactors.length > 0 && (
                             <div className="mb-8 p-3 rounded-lg border border-amber-500/10 bg-[linear-gradient(to_right,rgba(245,158,11,0.05),transparent)]">
@@ -401,17 +432,38 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                                 <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-bold">Market Pricing</span>
                                 <div className="flex items-center gap-1.5">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                    <p className="text-[8px] uppercase tracking-widest text-muted-foreground/40 font-bold">Updated {Math.floor(Math.random() * 50) + 10}s ago</p>
+                                    <p className="text-[8px] uppercase tracking-widest text-muted-foreground/40 font-bold">
+                                        Updated {lastCompletedAt ? formatSecondsSince(lastCompletedAt) : "—"}
+                                    </p>
                                 </div>
                             </div>
                             
                             <div className="grid grid-cols-2">
-                                {/* Market Line */}
-                                <div className="p-5 text-center border-b border-r border-white/5">
-                                    <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-bold mb-2 block">Market Line</span>
-                                    <p className="text-2xl font-bold font-mono text-white mb-1">{formatOdds(bet.odds_american, oddsFormat)}</p>
-                                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-bold">Implied: {(marketImpliedProb * 100).toFixed(0)}%</p>
-                                </div>
+                                {/* Market Line — fall back to chart's last point so the
+                                    displayed price always equals the chart endpoint. */}
+                                {(() => {
+                                    const validHistory = (bet.oddsHistory || []).filter(
+                                        (p) => typeof p?.oddsAmerican === "number" && !isNaN(p.oddsAmerican),
+                                    )
+                                    const fallbackOdds = validHistory.length
+                                        ? validHistory[validHistory.length - 1].oddsAmerican
+                                        : null
+                                    const marketLineOdds = hasValidOdds
+                                        ? bet.odds_american
+                                        : (fallbackOdds !== null ? fallbackOdds : bet.odds_american)
+                                    const marketLineImplied = hasValidOdds
+                                        ? marketImpliedProb
+                                        : (fallbackOdds !== null ? oddsToProb(fallbackOdds) : NaN)
+                                    return (
+                                        <div className="p-5 text-center border-b border-r border-white/5">
+                                            <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-bold mb-2 block">Market Line</span>
+                                            <p className="text-2xl font-bold font-mono text-white mb-1">{formatOdds(marketLineOdds, oddsFormat)}</p>
+                                            <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-bold">
+                                                Implied: {isFinite(marketLineImplied) ? `${(marketLineImplied * 100).toFixed(0)}%` : "—"}
+                                            </p>
+                                        </div>
+                                    )
+                                })()}
                                 {/* True Line */}
                                 <div className="p-5 text-center border-b border-white/5 relative bg-emerald-500/[0.02]">
                                     <span className="text-[9px] uppercase tracking-widest text-emerald-400/50 font-bold mb-2 block">MAFS True Line</span>
@@ -421,15 +473,22 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                                 {/* Mispricing */}
                                 <div className="p-5 text-center border-b border-r border-white/5">
                                     <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-bold mb-2 block">Mispricing</span>
-                                    <p className={`text-xl font-bold font-mono ${mispricingProb >= 0.05 ? "text-emerald-400" : mispricingProb >= 0 ? "text-amber-400" : "text-rose-400"}`}>
-                                        {mispricingProb >= 0 ? "+" : ""}{(mispricingProb * 100).toFixed(1)}%
+                                    <p className={`text-xl font-bold font-mono ${
+                                        !isFinite(mispricingPctDisplay) ? "text-muted-foreground" :
+                                        mispricingPctDisplay >= 5 ? "text-emerald-400" :
+                                        mispricingPctDisplay >= 0 ? "text-amber-400" : "text-rose-400"
+                                    }`}>
+                                        {isFinite(mispricingPctDisplay) ? `${mispricingPctDisplay >= 0 ? "+" : ""}${mispricingPctDisplay.toFixed(1)}%` : "—"}
                                     </p>
                                 </div>
                                 {/* Expected Value */}
                                 <div className="p-5 text-center border-b border-white/5">
                                     <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-bold mb-2 block">Expected Value</span>
-                                    <p className={`text-xl font-bold font-mono ${evPerUnit > 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                                        {evPerUnit >= 0 ? "+" : ""}{(evPerUnit * 100).toFixed(1)}%
+                                    <p className={`text-xl font-bold font-mono ${
+                                        !isFinite(evPctDisplay) ? "text-muted-foreground" :
+                                        evPctDisplay > 0 ? "text-emerald-400" : "text-rose-400"
+                                    }`}>
+                                        {isFinite(evPctDisplay) ? `${evPctDisplay >= 0 ? "+" : ""}${evPctDisplay.toFixed(1)}%` : "—"}
                                     </p>
                                 </div>
                             </div>

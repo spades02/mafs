@@ -5,6 +5,26 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 interface TickerEdge {
   fighterName: string
   edgePct: number
+  // Optional fields that flow through when callers pass full LandingEdge / API rows
+  // straight in. Used by the internal sanitizer.
+  pickFighterName?: string | null
+  type?: string
+}
+
+// Drop entries that aren't a real DB-resolved fighter pick (no first+last name)
+// and dedupe so the same fighter can't repeat across the marquee.
+function sanitizeTickerEdges(edges: TickerEdge[] | undefined): TickerEdge[] {
+  if (!edges?.length) return []
+  const seen = new Set<string>()
+  const out: TickerEdge[] = []
+  for (const e of edges) {
+    const name = e.pickFighterName || e.fighterName
+    if (!name || !name.includes(' ') || name.includes(' vs ')) continue
+    if (seen.has(name)) continue
+    seen.add(name)
+    out.push({ fighterName: name, edgePct: e.edgePct })
+  }
+  return out
 }
 
 type TickerItem =
@@ -17,7 +37,8 @@ type TickerItem =
 const POLL_INTERVAL = 5 * 60_000 // 5 minutes
 
 function EdgeTicker({ tickerEdges }: { tickerEdges?: TickerEdge[] }) {
-  const [liveEdges, setLiveEdges] = useState<TickerEdge[]>(tickerEdges || [])
+  const sanitizedInitial = useMemo(() => sanitizeTickerEdges(tickerEdges), [tickerEdges])
+  const [liveEdges, setLiveEdges] = useState<TickerEdge[]>(sanitizedInitial)
   const lastFingerprintRef = useRef<string>("")
 
   // Poll for live edges. Skip the state update when the payload hasn't changed,
@@ -28,10 +49,7 @@ function EdgeTicker({ tickerEdges }: { tickerEdges?: TickerEdge[] }) {
       if (!res.ok) return
       const data = await res.json()
       if (data.edges?.length > 0) {
-        const next: TickerEdge[] = data.edges.map((e: { fighterName: string; edgePct: number }) => ({
-          fighterName: e.fighterName,
-          edgePct: e.edgePct,
-        }))
+        const next = sanitizeTickerEdges(data.edges as TickerEdge[])
         const fp = next.map((e) => `${e.fighterName}:${e.edgePct}`).join("|")
         if (fp !== lastFingerprintRef.current) {
           lastFingerprintRef.current = fp
@@ -44,14 +62,14 @@ function EdgeTicker({ tickerEdges }: { tickerEdges?: TickerEdge[] }) {
   }, [])
 
   useEffect(() => {
-    if (!tickerEdges?.length) {
+    if (!sanitizedInitial.length) {
       fetchLiveEdges()
     }
     const interval = setInterval(fetchLiveEdges, POLL_INTERVAL)
     return () => clearInterval(interval)
-  }, [fetchLiveEdges, tickerEdges?.length])
+  }, [fetchLiveEdges, sanitizedInitial.length])
 
-  const currentEdges = liveEdges.length > 0 ? liveEdges : tickerEdges || []
+  const currentEdges = liveEdges.length > 0 ? liveEdges : sanitizedInitial
 
   // Memoize so a parent re-render doesn't rebuild the array identity and
   // cause React to re-key the marquee children (which would visually reset it).
@@ -62,8 +80,12 @@ function EdgeTicker({ tickerEdges }: { tickerEdges?: TickerEdge[] }) {
       fighter: e.fighterName,
       edge: `+${e.edgePct}%`,
     }))
+    // Pad to a minimum length so the marquee loop is wide enough to scroll
+    // smoothly, but cap repeats so a short list doesn't show the same name 5+
+    // times. The outer wrapper duplicates the row again for seamless looping.
+    const MIN_LEN = 8
     let out = [...items]
-    while (out.length < 20) {
+    while (out.length < MIN_LEN) {
       out = [...out, ...items]
     }
     return out

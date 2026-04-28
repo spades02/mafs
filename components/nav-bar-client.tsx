@@ -20,7 +20,6 @@ import Logo from "./shared/logo"
 // Navigation items for authenticated users
 const authenticatedNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "The Edge", href: "/edge", icon: TrendingUp },
   { name: "Saved", href: "/saved", icon: Bookmark },
   { name: "Billing", href: "/billing", icon: CreditCard },
   { name: "Settings", href: "/settings", icon: Settings },
@@ -36,8 +35,8 @@ const guestNavItems = [
 // Mobile bottom-bar items shown for authenticated users
 const authenticatedMobileItems = [
   { name: "Home", href: "/dashboard", icon: Home, dot: false },
-  { name: "Edge", href: "/edge", icon: TrendingUp, dot: true },
   { name: "Saved", href: "/saved", icon: Bookmark, dot: false },
+  { name: "Billing", href: "/billing", icon: CreditCard, dot: false },
   { name: "Profile", href: "/settings", icon: User, dot: false },
 ]
 
@@ -85,7 +84,10 @@ export function NavBarClient({ isAuthenticated, isPro, children, analysisCount }
   const remainingRuns = Math.max(0, 3 - analysisCount)
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-backdrop-filter-bg-card/80">
+    <>
+    {/* Top sticky nav — desktop only. Hidden on mobile so the bottom bar is
+        the sole nav surface (per finalization spec). */}
+    <nav className="hidden md:block sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-backdrop-filter-bg-card/80">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between align-middle">
           {/* Logo */}
@@ -134,61 +136,77 @@ export function NavBarClient({ isAuthenticated, isPro, children, analysisCount }
             )}
 
             {children} {/* NavAvatar rendered here - shows Login or Avatar */}
-
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(true)}
-              aria-label="Open menu"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
           </div>
         </div>
       </div>
+    </nav>
 
-      {/* Mobile Bottom Sticky Nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/70 bg-card/95 backdrop-blur supports-backdrop-filter-bg-card/80 pb-[env(safe-area-inset-bottom)]">
-        <div className="grid grid-cols-5 h-16">
-          {mobileItems.map((item) => {
-            const Icon = item.icon
-            const active = pathname === item.href
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={(e) => handleLinkClick(e, item.href)}
-                className={cn(
-                  "relative flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors",
-                  active ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {active && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-10 rounded-full bg-primary shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
-                )}
-                <div className="relative">
-                  <Icon className="h-5 w-5" />
-                  {item.dot && (
-                    <span className="absolute -top-0.5 -right-1 h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                  )}
-                </div>
-                <span className="leading-none">{item.name}</span>
-              </Link>
-            )
-          })}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            className="relative flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Open menu"
-          >
-            <Menu className="h-5 w-5" />
-            <span className="leading-none">More</span>
-          </button>
-        </div>
+    {/* Mobile compact top bar — just the avatar/login control so the user is
+        never stranded without an account entry point. The 5 primary tabs live
+        in the bottom bar below. */}
+    <div className="md:hidden sticky top-0 z-40 border-b border-border/60 bg-card/95 backdrop-blur supports-backdrop-filter-bg-card/80 pt-[env(safe-area-inset-top)]">
+      <div className="flex h-12 items-center justify-between px-4">
+        <Link
+          href={logoHref}
+          className="flex items-center gap-2"
+          onClick={(e) => handleLinkClick(e, logoHref)}
+        >
+          <span className="text-lg font-semibold text-primary neon-glow">MAFS</span>
+          {isAuthenticated && !isPro && (
+            <span className="ml-2 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+              {remainingRuns} left
+            </span>
+          )}
+        </Link>
+        <div className="flex items-center">{children}</div>
       </div>
+    </div>
+
+    {/* Mobile Bottom Nav — sibling of <nav> (NOT a child of any sticky/transformed
+        ancestor) so iOS Capacitor's `position: fixed` resolves to the viewport
+        bottom, not to a transformed parent's box. */}
+    <nav
+      aria-label="Primary mobile navigation"
+      className="md:hidden fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-card/95 backdrop-blur supports-backdrop-filter-bg-card/80 pb-[env(safe-area-inset-bottom)]"
+    >
+      <div className="grid grid-cols-5 h-16 pt-1">
+        {mobileItems.map((item) => {
+          const Icon = item.icon
+          const active = pathname === item.href
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={(e) => handleLinkClick(e, item.href)}
+              className={cn(
+                "relative flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors",
+                active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {active && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-10 rounded-full bg-primary shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+              )}
+              <div className="relative">
+                <Icon className="h-5 w-5" />
+                {item.dot && (
+                  <span className="absolute -top-0.5 -right-1 h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                )}
+              </div>
+              <span className="leading-none">{item.name}</span>
+            </Link>
+          )
+        })}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          className="relative flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+          <span className="leading-none">More</span>
+        </button>
+      </div>
+    </nav>
 
       {/* Mobile Menu Dialog */}
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -248,6 +266,6 @@ export function NavBarClient({ isAuthenticated, isPro, children, analysisCount }
           )}
         </DialogContent>
       </Dialog>
-    </nav>
+    </>
   )
 }

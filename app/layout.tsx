@@ -45,7 +45,9 @@ export default async function RootLayout({
         {/* {!session && <GuestNavbar/>}
         {session && <NavBar/>} */}
         <DirtyStateProvider>
-          <main className="pb-14 md:pb-0">
+          {/* Bottom padding clears the mobile bottom-nav (h-16 = 4rem) plus the
+              iOS home-indicator safe-area inset. Desktop has no bottom bar. */}
+          <main className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
             <NavBar />
             <NextTopLoader
               color="#2299DD"

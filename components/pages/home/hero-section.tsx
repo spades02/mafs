@@ -39,8 +39,22 @@ function HeroSection({
 
   const summary = trackRecordSummary ?? { netProfitStr: "+$24.8K", winRatePct: 83, roiPct: 18 }
 
-  // Build ticker edges from topEdges prop
-  const tickerEdges = topEdges?.map(e => ({ fighterName: e.fighterName || e.matchupLabel, edgePct: e.edgePct })) || []
+  // Build ticker edges from topEdges prop. Require a real DB-resolved fighter
+  // pick (pickFighterName) — not a parsed-from-label fallback — so generic
+  // bet labels like "Fight" / "Pass" never leak in. Dedupe by fighter so the
+  // same name doesn't repeat across the marquee.
+  const tickerEdges = (() => {
+    const seen = new Set<string>()
+    const out: { fighterName: string; edgePct: number }[] = []
+    for (const e of topEdges || []) {
+      const name = e.pickFighterName
+      if (!name || !name.includes(' ')) continue
+      if (seen.has(name)) continue
+      seen.add(name)
+      out.push({ fighterName: name, edgePct: e.edgePct })
+    }
+    return out
+  })()
 
   const scrollToRecent = () => {
     if (typeof document !== 'undefined') {
