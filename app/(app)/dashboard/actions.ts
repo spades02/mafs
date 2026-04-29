@@ -83,8 +83,14 @@ export async function getEventFights(eventId: string) {
 
 export async function getFightOddsHistory(fightId: string, fighterId?: string) {
     try {
-        // Try fighter-specific history first
-        let history = fighterId
+        // When a fighterId is provided, ONLY return that fighter's rows. The
+        // previous fallback (fetch all rows when fighter-specific had <2) mixed
+        // both fighters' odds together — and since both sides share a timestamp,
+        // the "last" point would often be the opponent's price, causing
+        // agents.ts to override mma_odds_data with the wrong side's moneyline
+        // (e.g. a -264 favorite getting overwritten with the +217 underdog's
+        // line, producing a wildly inflated false edge).
+        const history = fighterId
             ? await db.select({
                   timestamp: historicalOdds.timestamp,
                   moneyline: historicalOdds.moneyline
@@ -97,18 +103,13 @@ export async function getFightOddsHistory(fightId: string, fighterId?: string) {
                       )
                   )
                   .orderBy(asc(historicalOdds.timestamp))
-            : [];
-
-        // Fallback: if no fighter-specific history, fetch any odds for this fight
-        if (history.length < 2) {
-            history = await db.select({
-                timestamp: historicalOdds.timestamp,
-                moneyline: historicalOdds.moneyline
-            })
-                .from(historicalOdds)
-                .where(eq(historicalOdds.fightId, fightId))
-                .orderBy(asc(historicalOdds.timestamp));
-        }
+            : await db.select({
+                  timestamp: historicalOdds.timestamp,
+                  moneyline: historicalOdds.moneyline
+              })
+                  .from(historicalOdds)
+                  .where(eq(historicalOdds.fightId, fightId))
+                  .orderBy(asc(historicalOdds.timestamp));
 
         // Return a condensed, ordered subset of points to avoid sending thousands of rows
         // For line charts we only need max ~50 points
