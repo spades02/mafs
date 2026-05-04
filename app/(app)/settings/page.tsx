@@ -1,5 +1,6 @@
 import ProfileSettings from "@/components/profile-settings"
 import { SupportModal } from "@/components/support/support-modal";
+import { ReferralCard } from "@/components/referrals/referral-card";
 import { auth } from "@/app/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
@@ -41,6 +42,9 @@ export default async function SettingsPage() {
         <div className="grid gap-8">
           {/* Profile Settings */}
           <ProfileSettings user={user} avatarUrl={avatarUrl} />
+
+          {/* Referrals */}
+          <ReferralCard />
 
           {/* Support & Feedback */}
           <section className="rounded-lg border border-border/50 bg-[#0F1117] p-6">

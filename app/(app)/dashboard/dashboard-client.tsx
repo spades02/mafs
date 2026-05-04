@@ -85,6 +85,13 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
     return () => { cancelled = true }
   }, [])
 
+  // Best-effort referral attribution — only fires when the mafs_ref cookie
+  // is present (server returns ok:false otherwise). Covers OAuth signups
+  // that bypass the email signup form's onSuccess hook.
+  useEffect(() => {
+    fetch("/api/referrals/attach", { method: "POST" }).catch(() => {})
+  }, [])
+
   useEffect(() => {
     if (scanComplete) {
       const timer = setTimeout(() => {

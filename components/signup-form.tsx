@@ -56,9 +56,17 @@ function SignupForm() {
         },
         {
           autoSignIn: true,
-          onSuccess: () => {
+          onSuccess: async () => {
             // Better Auth handles the session creation automatically with autoSignIn
             toast.success("Account created successfully");
+            // Best-effort referral attribution. Idempotent — server returns
+            // ok:false on cookie-less requests, so we don't need to know
+            // whether the user came from a referral link.
+            try {
+              await fetch("/api/referrals/attach", { method: "POST" });
+            } catch {
+              // Non-blocking — referral attribution failure shouldn't gate signup.
+            }
             window.location.href = "/dashboard";
           },
           onError: (ctx) => {

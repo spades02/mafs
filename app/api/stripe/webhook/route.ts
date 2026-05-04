@@ -5,6 +5,7 @@ import { db } from "@/db/db";
 import { user } from "@/db/schema/auth-schema";
 import { eq } from "drizzle-orm";
 import { grantFoundingMemberIfEligible } from "@/lib/billing/founding-member";
+import { markReferralPaid, maybeRewardReferralOnInvoice } from "@/lib/referrals/stripe";
 
 // REQUIRED: Stripe webhooks must run in Node
 export const runtime = "nodejs";
@@ -85,6 +86,10 @@ export async function POST(req: NextRequest) {
           const granted = await grantFoundingMemberIfEligible(userId);
           if (granted) console.log(`🌟 Founding member granted to user ${userId}`);
 
+          await markReferralPaid(userId).catch((err) =>
+            console.error("[stripe-webhook] markReferralPaid failed:", err),
+          );
+
           console.log(`✅ User ${userId} auto-provisioned via checkout session`);
         } else {
           // Fallback just for ID linking if not paid yet or not subscription
@@ -137,6 +142,36 @@ export async function POST(req: NextRequest) {
 
         console.log(
           `✅ Subscription synced for user ${existingUser[0].id} (${subscription.status})`
+        );
+        break;
+      }
+
+      /**
+       * 3a️⃣ Invoice paid — referral reward gate (cycle 2+ only).
+       * Per the referral spec, the referrer is rewarded when the referee
+       * pays their SECOND invoice (billing_reason = subscription_cycle),
+       * not the first (subscription_create). This prevents fraud where
+       * a referee signs up with the discount, then cancels, leaving the
+       * referrer with an unearned free month.
+       */
+      case "invoice.paid":
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = invoice.customer as string;
+        const billingReason = (invoice.billing_reason as string | null) ?? null;
+
+        if (!customerId) break;
+
+        const existingUser = await db
+          .select()
+          .from(user)
+          .where(eq(user.stripeCustomerId, customerId))
+          .limit(1);
+
+        if (!existingUser[0]) break;
+
+        await maybeRewardReferralOnInvoice(existingUser[0].id, billingReason).catch((err) =>
+          console.error("[stripe-webhook] maybeRewardReferralOnInvoice failed:", err),
         );
         break;
       }

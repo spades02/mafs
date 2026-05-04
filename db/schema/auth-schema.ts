@@ -42,6 +42,12 @@ export const user = pgTable("user", {
   // email; reset to null by the weekly retention cron at start of each week.
   weeklyFreePickUsedAt: timestamp("weekly_free_pick_used_at"),
 
+  // Referral system. `referralCode` is this user's *own* shareable code,
+  // generated at signup. `referredByCode` is captured at signup when the
+  // visitor arrived via /api/referrals/[code] (cookie-backed).
+  referralCode: text("referral_code").unique(),
+  referredByCode: text("referred_by_code"),
+
   // ⚙️ Settings
   timeZone: text("time_zone").default("America/New_York (EST)").notNull(),
   oddsFormat: text("odds_format").default("american").notNull(),
