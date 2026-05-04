@@ -33,6 +33,14 @@ export const user = pgTable("user", {
   // 💰 Access control
   isPro: boolean("is_pro").default(false).notNull(),
   analysisCount: integer("analysis_count").default(0).notNull(),
+  // First 100 paid users — locked at $39 founding price indefinitely.
+  // Set true by Stripe / RevenueCat webhook on first paid event when current
+  // count of founding_member=true users is < 100.
+  foundingMember: boolean("founding_member").default(false).notNull(),
+  // Free-tier weekly retention drip — independent of analysisCount (which is
+  // lifetime). Set when user claims the weekly free pick from a retention
+  // email; reset to null by the weekly retention cron at start of each week.
+  weeklyFreePickUsedAt: timestamp("weekly_free_pick_used_at"),
 
   // ⚙️ Settings
   timeZone: text("time_zone").default("America/New_York (EST)").notNull(),

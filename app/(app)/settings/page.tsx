@@ -1,4 +1,5 @@
 import ProfileSettings from "@/components/profile-settings"
+import { SupportModal } from "@/components/support/support-modal";
 import { auth } from "@/app/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
@@ -41,7 +42,19 @@ export default async function SettingsPage() {
           {/* Profile Settings */}
           <ProfileSettings user={user} avatarUrl={avatarUrl} />
 
-
+          {/* Support & Feedback */}
+          <section className="rounded-lg border border-border/50 bg-[#0F1117] p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-1">Support & feedback</h2>
+            <p className="text-sm text-muted-foreground/70 mb-4">
+              Need help, found a bug, or have an idea? Let us know.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <SupportModal defaultType="support" />
+              <SupportModal defaultType="bug" triggerVariant="ghost" />
+              <SupportModal defaultType="feature_request" triggerVariant="ghost" />
+              <SupportModal defaultType="feedback" triggerVariant="ghost" />
+            </div>
+          </section>
         </div>
       </main>
     </div>

@@ -4,6 +4,7 @@ import { stripe } from "@/lib/stripe";
 import { db } from "@/db/db";
 import { user } from "@/db/schema/auth-schema";
 import { eq } from "drizzle-orm";
+import { grantFoundingMemberIfEligible } from "@/lib/billing/founding-member";
 
 // REQUIRED: Stripe webhooks must run in Node
 export const runtime = "nodejs";
@@ -81,6 +82,9 @@ export async function POST(req: NextRequest) {
             })
             .where(eq(user.id, userId));
 
+          const granted = await grantFoundingMemberIfEligible(userId);
+          if (granted) console.log(`🌟 Founding member granted to user ${userId}`);
+
           console.log(`✅ User ${userId} auto-provisioned via checkout session`);
         } else {
           // Fallback just for ID linking if not paid yet or not subscription
@@ -125,6 +129,11 @@ export async function POST(req: NextRequest) {
             isPro: subscription.status === "active",
           })
           .where(eq(user.id, existingUser[0].id));
+
+        if (subscription.status === "active") {
+          const granted = await grantFoundingMemberIfEligible(existingUser[0].id);
+          if (granted) console.log(`🌟 Founding member granted to user ${existingUser[0].id}`);
+        }
 
         console.log(
           `✅ Subscription synced for user ${existingUser[0].id} (${subscription.status})`

@@ -2,19 +2,22 @@ import Link from "next/link"
 import { Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { FoundingMemberCounter } from "@/components/pages/home/founding-member-counter"
 
 const freeFeatures = [
-  { name: "Fight Simulation Engine", available: true, note: null },
-  { name: "Edge Detection System", available: true, note: "(3/day)" },
+  { name: "3 Free Premium Picks", available: true, note: null },
+  { name: "Full MAFS Simulation Engine", available: true, note: null },
+  { name: "Real Edge Detection", available: true, note: null },
+  { name: "Market Line Scanner", available: true, note: "(5 books)" },
   { name: "Sharp Money Tracker", available: false, note: null },
   { name: "CLV Edge Tracking", available: false, note: null },
-  { name: "Market Line Scanner", available: true, note: "(5 books)" },
   { name: "Risk-Adjusted Picks", available: false, note: null },
   { name: "Priority Support", available: false, note: null },
 ]
 
 const proFeatures = [
-  { name: "Fight Simulation Engine", note: null },
+  { name: "Unlimited Premium Picks", note: null },
+  { name: "Full MAFS Simulation Engine", note: null },
   { name: "Edge Detection System", note: "(Unlimited)" },
   { name: "Sharp Money Tracker", note: null },
   { name: "CLV Edge Tracking", note: null },
@@ -87,10 +90,15 @@ function PricingSection({ isAuthenticated = false }: PricingSectionProps) {
                 <h3 className="text-xl font-semibold mb-2">Pro</h3>
                 <p className="text-muted-foreground">For serious bettors</p>
               </div>
-              <div className="mb-2">
+              <div className="mb-2 flex items-baseline gap-2">
+                <span className="text-lg text-muted-foreground line-through decoration-muted-foreground/50">$69</span>
                 <span className="text-4xl font-bold">$39</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-3">
+                <span className="text-xs font-semibold text-primary">Founding Member Pricing — First 100 Users</span>
+              </div>
+              <FoundingMemberCounter className="mb-6" />
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6">
                 <span className="text-xs font-semibold text-primary">Average detected edge: +11%</span>
               </div>

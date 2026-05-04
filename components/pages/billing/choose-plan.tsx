@@ -4,6 +4,7 @@ import { Check, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { FoundingMemberCounter } from '@/components/pages/home/founding-member-counter'
 
 interface ChoosePlanProps {
   isGuest?: boolean
@@ -24,9 +25,9 @@ function ChoosePlan({ isGuest = false }: ChoosePlanProps) {
         </CardHeader>
         <CardContent className="flex-1">
           <ul className="space-y-4 text-sm">
-            <FeatureItem>1 fight analysis per day</FeatureItem>
-            <FeatureItem>Basic EV calculations</FeatureItem>
-            <FeatureItem>Limited market edges</FeatureItem>
+            <FeatureItem>3 Free Premium Picks</FeatureItem>
+            <FeatureItem>Full MAFS Simulation Engine</FeatureItem>
+            <FeatureItem>Real Edge Detection</FeatureItem>
             <FeatureItem disabled>No full card analysis</FeatureItem>
             <FeatureItem disabled>No play tracking</FeatureItem>
           </ul>
@@ -52,10 +53,13 @@ function ChoosePlan({ isGuest = false }: ChoosePlanProps) {
 
         <CardHeader className="pb-8">
           <CardTitle className="text-xl font-medium text-primary">Pro</CardTitle>
-          <div className="mt-4 flex items-baseline">
+          <div className="mt-4 flex items-baseline gap-2">
+            <span className="text-lg text-muted-foreground line-through decoration-muted-foreground/50">$69</span>
             <span className="text-4xl font-bold text-white">$39</span>
             <span className="ml-2 text-muted-foreground">/month</span>
           </div>
+          <p className="text-xs font-semibold text-primary mt-2">Founding Member Pricing — First 100 Users</p>
+          <FoundingMemberCounter className="mt-3" />
           <p className="text-sm text-gray-400 mt-2">For serious bettors who want the edge.</p>
         </CardHeader>
         <CardContent className="flex-1">
