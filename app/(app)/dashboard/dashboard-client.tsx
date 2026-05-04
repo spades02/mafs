@@ -370,6 +370,14 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
         rejectReasons.push("No market odds tracked for this fight")
       }
 
+      // Reject when the displayed odds are a moneyline fallback for a non-ML
+      // recommendation (e.g. ITD/GTD/Round prop with no live line). Edge cannot
+      // be honestly computed against the ML for a different event, and the
+      // server now returns ev=null in that case.
+      if (bet.oddsContext === "moneyline-fallback" && bet.bet_type !== "ML") {
+        rejectReasons.push(`No live ${bet.bet_type} market — edge not computable`)
+      }
+
       return {
         ...bet,
         status: rejectReasons.length === 0 ? "qualified" : "filtered",
@@ -410,7 +418,10 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
         b.label !== "No Bet" &&
         b.label !== "Pass" &&
         b.bet_type !== "No Bet" &&
-        !b.label.toLowerCase().includes("no bet"),
+        !b.label.toLowerCase().includes("no bet") &&
+        // Exclude prop picks that fell back to ML for display — their edge
+        // is computed against a different event and is not real.
+        !(b.oddsContext === "moneyline-fallback" && b.bet_type !== "ML"),
     ),
   ]
 
