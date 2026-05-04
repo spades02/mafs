@@ -14,3 +14,4 @@ export * from "./saved-plays-schema";
 export * from "./weekly-sims-schema";
 export * from "./support-messages-schema";
 export * from "./referrals-schema";
+export * from "./device-tokens-schema";

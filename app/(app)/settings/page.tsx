@@ -1,6 +1,7 @@
 import ProfileSettings from "@/components/profile-settings"
 import { SupportModal } from "@/components/support/support-modal";
 import { ReferralCard } from "@/components/referrals/referral-card";
+import { PushToggle } from "@/components/push/push-toggle";
 import { auth } from "@/app/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
@@ -42,6 +43,9 @@ export default async function SettingsPage() {
         <div className="grid gap-8">
           {/* Profile Settings */}
           <ProfileSettings user={user} avatarUrl={avatarUrl} />
+
+          {/* Push notifications */}
+          <PushToggle initialOptIn={"pushNotificationsOptIn" in user && typeof (user as { pushNotificationsOptIn?: boolean }).pushNotificationsOptIn === "boolean" ? (user as { pushNotificationsOptIn: boolean }).pushNotificationsOptIn : true} />
 
           {/* Referrals */}
           <ReferralCard />

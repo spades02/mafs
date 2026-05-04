@@ -22,10 +22,12 @@ import { Fight, SimulationBet, FightBreakdown as FightBreakdownModel } from "./d
 import { formatOdds } from "@/lib/odds/utils"
 import { BetCardSkeleton } from "@/components/skeletons/bet-card-skeleton"
 import { BetFilters, BetFiltersState, DEFAULT_FILTERS } from "@/components/pages/dashboard/bet-filters"
+import { usePushRegistration } from "@/components/push/use-push-registration"
 
 interface DashboardClientProps {
   initialEvents: Array<{ eventId: string; name: string; dateTime: string | null; venue: string | null; fightCount?: number }>
   userOddsFormat?: string
+  pushOptIn?: boolean
   thresholds?: {
     MIN_MAF_PROB: number
     MIN_EDGE_PCT: number
@@ -44,7 +46,10 @@ function formatRelativeCompletion(date: Date): string {
   return `${hr}h ago`
 }
 
-export default function DashboardClient({ initialEvents, userOddsFormat = "american", thresholds }: DashboardClientProps) {
+export default function DashboardClient({ initialEvents, userOddsFormat = "american", pushOptIn = true, thresholds }: DashboardClientProps) {
+  // Register iOS device for APNs push (no-op on web; opt-in respected).
+  usePushRegistration({ optedIn: pushOptIn })
+
   const MIN_MAF_PROB = thresholds?.MIN_MAF_PROB ?? 0.55
   const MIN_AGENT_CONSENSUS_PASS_RATE = thresholds?.MIN_AGENT_CONSENSUS_PASS_RATE ?? 0.6
   const MIN_EDGE_PCT = thresholds?.MIN_EDGE_PCT ?? 0.5

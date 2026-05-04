@@ -56,6 +56,10 @@ export const user = pgTable("user", {
   lastSimAt: timestamp("last_sim_at"),
   lastRetentionEmailAt: timestamp("last_retention_email_at"),
 
+  // Push notifications opt-in. Default true; toggleable in settings.
+  // The cron only pushes to users with this flag AND a valid device_tokens row.
+  pushNotificationsOptIn: boolean("push_notifications_opt_in").default(true).notNull(),
+
   // ⚙️ Settings
   timeZone: text("time_zone").default("America/New_York (EST)").notNull(),
   oddsFormat: text("odds_format").default("american").notNull(),
