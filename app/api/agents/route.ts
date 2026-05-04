@@ -93,7 +93,10 @@ export async function POST(req: Request) {
 
       await db
         .update(user)
-        .set({ analysisCount: sql`${user.analysisCount} + 1` })
+        .set({
+          analysisCount: sql`${user.analysisCount} + 1`,
+          lastSimAt: new Date(),
+        })
         .where(eq(user.id, resultUser.id));
 
       send({ type: "complete" });

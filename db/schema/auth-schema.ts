@@ -48,6 +48,14 @@ export const user = pgTable("user", {
   referralCode: text("referral_code").unique(),
   referredByCode: text("referred_by_code"),
 
+  // Retention tracking — feeds the weekly free-tier reactivation cron.
+  // last_login_at: bumped on each session creation via better-auth hook.
+  // last_sim_at: bumped when analysisCount increments (POST /api/agents).
+  // last_retention_email_at: enforces the max-1-email-per-week frequency cap.
+  lastLoginAt: timestamp("last_login_at"),
+  lastSimAt: timestamp("last_sim_at"),
+  lastRetentionEmailAt: timestamp("last_retention_email_at"),
+
   // ⚙️ Settings
   timeZone: text("time_zone").default("America/New_York (EST)").notNull(),
   oddsFormat: text("odds_format").default("american").notNull(),

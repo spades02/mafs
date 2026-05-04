@@ -87,10 +87,25 @@ export const auth = betterAuth({
                         const code = await generateUniqueReferralCode();
                         await db
                             .update(userTable)
-                            .set({ referralCode: code })
+                            .set({ referralCode: code, lastLoginAt: new Date() })
                             .where(eq(userTable.id, createdUser.id));
                     } catch (err) {
                         console.error("[auth] failed to generate referralCode for", createdUser.id, err);
+                    }
+                },
+            },
+        },
+        session: {
+            create: {
+                after: async (session) => {
+                    // Bump last_login_at on each new session (login). Best-effort.
+                    try {
+                        await db
+                            .update(userTable)
+                            .set({ lastLoginAt: new Date() })
+                            .where(eq(userTable.id, session.userId));
+                    } catch (err) {
+                        console.error("[auth] failed to bump lastLoginAt for", session.userId, err);
                     }
                 },
             },
