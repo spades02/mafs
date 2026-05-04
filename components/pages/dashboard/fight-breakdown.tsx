@@ -116,56 +116,118 @@ export function FightBreakdown({ breakdown, matchup, onClose }: FightBreakdownPr
                             <Info className="w-3.5 h-3.5" />
                             System Summary
                         </p>
-                        <p className="text-sm text-gray-300 leading-relaxed">
+                        <div className="text-sm text-gray-300 leading-relaxed space-y-2">
                             {(() => {
                                 const f1Name = resolvedF1Name
                                 const f2Name = resolvedF2Name
+                                const cleanSentence = (s?: string) =>
+                                    s ? s.trim().replace(/\.\s*$/, "") + "." : ""
 
-                                // If both names are missing, show a generic summary
-                                if (!f1Name && !f2Name) {
+                                // Anchor the headline on modelLeaningOutcome — same field the
+                                // MAFS AI Picks card uses — so the two views agree on who the
+                                // model is picking. Math-derived bias is a separate concept
+                                // (pricing edge, often the underdog) and was misleading here.
+                                const lean = breakdown.modelLeaningOutcome?.trim() || ""
+                                let leanedName = ""
+                                if (lean) {
+                                    const lower = lean.toLowerCase()
+                                    const f1Last = f1Name.split(" ").pop()?.toLowerCase() || ""
+                                    const f2Last = f2Name.split(" ").pop()?.toLowerCase() || ""
+                                    if (f2Last && lower.includes(f2Last)) leanedName = f2Name
+                                    else if (f1Last && lower.includes(f1Last)) leanedName = f1Name
+                                }
+                                if (!leanedName) {
+                                    if (modelBias === "f2") leanedName = f2Name
+                                    else if (modelBias === "f1") leanedName = f1Name
+                                }
+
+                                const marketAnalysisText = (Array.isArray(breakdown.marketAnalysis)
+                                    ? breakdown.marketAnalysis.join(" ")
+                                    : breakdown.marketAnalysis || "").trim()
+                                const thesis = breakdown.coreThesis?.trim() || ""
+                                const favoredNotes = leanedName === f2Name
+                                    ? breakdown.fighter2Notes
+                                    : breakdown.fighter1Notes
+                                const otherName = leanedName === f2Name ? f1Name : f2Name
+                                const otherNotes = leanedName === f2Name
+                                    ? breakdown.fighter1Notes
+                                    : breakdown.fighter2Notes
+
+                                // Build a multi-sentence summary from every signal we have.
+                                // De-dupe so we don't repeat the same sentence twice when two
+                                // fields happen to overlap (e.g., thesis ≈ marketAnalysis).
+                                const seen = new Set<string>()
+                                const pushUnique = (out: string[], s: string) => {
+                                    const cleaned = cleanSentence(s)
+                                    if (!cleaned) return
+                                    const key = cleaned.toLowerCase().replace(/\s+/g, " ")
+                                    if (seen.has(key)) return
+                                    seen.add(key)
+                                    out.push(cleaned)
+                                }
+
+                                // 1) Lean line — who the model is picking and at what price.
+                                const leanLine = leanedName
+                                    ? (lean && lean.toLowerCase() !== leanedName.toLowerCase()
+                                        ? `Model leans toward ${leanedName} (${lean.replace(new RegExp(leanedName, "i"), "").trim() || lean}).`
+                                        : `Model leans toward ${leanedName}.`)
+                                    : ""
+
+                                // 2) Edge / pricing context — pulled from mispricing + EV when present.
+                                const mispricing = (breakdown.mispricing || "").trim()
+                                const ev = (breakdown.ev || "").trim()
+                                const edgeBits: string[] = []
+                                if (mispricing && mispricing !== "0%") edgeBits.push(`${mispricing} mispricing`)
+                                if (ev && ev !== "0%") edgeBits.push(`${ev} EV`)
+                                const edgeLine = edgeBits.length
+                                    ? `MAFS true line shows ${edgeBits.join(" with ")} versus the market.`
+                                    : ""
+
+                                // 3) Body sentences — every available analysis field, in order.
+                                const bodySentences: string[] = []
+                                if (thesis) pushUnique(bodySentences, thesis)
+                                if (marketAnalysisText) pushUnique(bodySentences, marketAnalysisText)
+                                if (favoredNotes) pushUnique(bodySentences, cleanSentence(favoredNotes))
+                                if (otherName && otherNotes) {
+                                    pushUnique(
+                                        bodySentences,
+                                        `${otherName}'s path requires ${cleanSentence(otherNotes.toLowerCase())}`,
+                                    )
+                                }
+                                if (breakdown.primaryRisk?.trim()) {
+                                    pushUnique(bodySentences, `Primary risk: ${breakdown.primaryRisk.trim()}`)
+                                }
+
+                                if (!leanLine && bodySentences.length === 0 && !edgeLine) {
                                     return (
-                                        <span className="text-emerald-100 font-medium">
-                                            {breakdown.modelLeaningOutcome
-                                                ? `Model leans toward ${breakdown.modelLeaningOutcome}.`
-                                                : "Model analysis complete. See detailed metrics below."}
-                                        </span>
+                                        <p>
+                                            <span className="text-emerald-100 font-medium">
+                                                Model analysis complete. See detailed metrics below.
+                                            </span>
+                                        </p>
                                     )
                                 }
 
-                                // Prefer the math-derived bias (MAFS prob - market prob) over
-                                // string-matching modelLeaningOutcome, so the summary stays aligned
-                                // with the True Line / Market Line shown directly below it.
-                                let favorsF2: boolean
-                                if (modelBias === "f2") favorsF2 = true
-                                else if (modelBias === "f1") favorsF2 = false
-                                else {
-                                  const f2LastName = f2Name.split(" ").pop()?.toLowerCase() || ""
-                                  const outcome = breakdown.modelLeaningOutcome?.toLowerCase() || ""
-                                  favorsF2 = !!(f2LastName && outcome.includes(f2LastName))
-                                }
-
-                                // Render only specific, non-boilerplate text. Drop the
-                                // generic "X's path requires a specific strategy" fallback
-                                // that was repeating identically across fights.
-                                const favoredName = favorsF2 ? f2Name : f1Name
-                                const favoredNotes = favorsF2 ? breakdown.fighter2Notes : breakdown.fighter1Notes
-                                const otherName = favorsF2 ? f1Name : f2Name
-                                const otherNotes = favorsF2 ? breakdown.fighter1Notes : breakdown.fighter2Notes
-                                const cleanNotes = (s?: string) =>
-                                    s ? s.replace(/\.\s*$/, "") + "." : ""
                                 return (
                                     <>
-                                        <span className="text-emerald-100 font-medium">
-                                            Model bias favors <span className="text-emerald-400">{favoredName}</span>.
-                                        </span>
-                                        {favoredNotes ? <> {cleanNotes(favoredNotes)}</> : null}
-                                        {otherName && otherNotes ? (
-                                            <> {otherName}&apos;s path requires {cleanNotes(otherNotes.toLowerCase())}</>
+                                        {(leanLine || edgeLine) ? (
+                                            <p>
+                                                {leanedName ? (
+                                                    <span className="text-emerald-100 font-medium">
+                                                        Model leans toward <span className="text-emerald-400">{leanedName}</span>
+                                                        {leanLine.includes("(") ? leanLine.slice(leanLine.indexOf("(") - 1) : "."}
+                                                    </span>
+                                                ) : null}
+                                                {edgeLine ? <> {edgeLine}</> : null}
+                                            </p>
+                                        ) : null}
+                                        {bodySentences.length > 0 ? (
+                                            <p>{bodySentences.join(" ")}</p>
                                         ) : null}
                                     </>
                                 )
                             })()}
-                        </p>
+                        </div>
                     </div>
 
                     {/* MAIN METRICS GRID */}
