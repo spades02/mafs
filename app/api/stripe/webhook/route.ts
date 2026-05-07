@@ -5,6 +5,7 @@ import { db } from "@/db/db";
 import { user } from "@/db/schema/auth-schema";
 import { eq } from "drizzle-orm";
 import { grantFoundingMemberIfEligible } from "@/lib/billing/founding-member";
+import { tierFromSubscription, tierFromCheckoutSession } from "@/lib/billing/tier";
 import { markReferralPaid, maybeRewardReferralOnInvoice } from "@/lib/referrals/stripe";
 
 // REQUIRED: Stripe webhooks must run in Node
@@ -73,6 +74,13 @@ export async function POST(req: NextRequest) {
         }
 
         if (session.mode === "subscription" && session.payment_status === "paid") {
+          // Re-fetch session with line items expanded so we can resolve which
+          // price (Pro vs Elite) the user purchased.
+          const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+            expand: ["line_items.data.price"],
+          });
+          const tier = tierFromCheckoutSession(fullSession);
+
           await db
             .update(user)
             .set({
@@ -80,6 +88,8 @@ export async function POST(req: NextRequest) {
               stripeSubscriptionId: session.subscription as string,
               subscriptionStatus: "active",
               isPro: true,
+              isElite: tier === "elite",
+              subscriptionTier: tier,
             })
             .where(eq(user.id, userId));
 
@@ -127,11 +137,16 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        const tier = tierFromSubscription(subscription);
+        const active = subscription.status === "active";
+
         await db
           .update(user)
           .set({
             subscriptionStatus: subscription.status,
-            isPro: subscription.status === "active",
+            isPro: active,
+            isElite: active && tier === "elite",
+            subscriptionTier: active ? tier : "free",
           })
           .where(eq(user.id, existingUser[0].id));
 
@@ -198,6 +213,8 @@ export async function POST(req: NextRequest) {
           .update(user)
           .set({
             isPro: false,
+            isElite: false,
+            subscriptionTier: "free",
             subscriptionStatus: "canceled",
           })
           .where(eq(user.id, existingUser[0].id));

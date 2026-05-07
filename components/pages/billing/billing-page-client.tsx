@@ -10,6 +10,8 @@ interface BillingPageClientProps {
         id: string;
         email: string;
         isPro: boolean;
+        isElite?: boolean;
+        subscriptionTier?: string;
         analysisCount: number;
         stripeCustomerId?: string | null;
     } | null | undefined;

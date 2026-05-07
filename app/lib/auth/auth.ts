@@ -47,6 +47,17 @@ export const auth = betterAuth({
                 required: true,
                 defaultValue: false,
             },
+            isElite: {
+                type: "boolean",
+                required: true,
+                defaultValue: false,
+            },
+            subscriptionTier: {
+                type: "string",
+                required: true,
+                defaultValue: "free",
+                input: false,
+            },
             analysisCount: {
                 type: "number",
                 required: true,

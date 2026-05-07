@@ -5,7 +5,7 @@
  * Buckets are ET day-of-week. The cron itself fires every 4h Wed→Sun;
  * each tick decides how many fights to (re)simulate based on bucket.
  *
- * Total target ≈ 500 sims across the week. The actual number simulated
+ * Total target ≈ 1000 sims across the week. The actual number simulated
  * by a tick depends on how many fights had material odds movement
  * (>3% implied prob shift since last result) — picks with stable lines
  * are *counted* without re-running the LLM.
@@ -13,11 +13,11 @@
 export type DayBucket = "wed" | "thu" | "fri" | "sat" | "sun";
 
 export const TICK_TARGETS: Record<DayBucket, number> = {
-  wed: 50,
-  thu: 75,
-  fri: 100,
-  sat: 200,
-  sun: 75,
+  wed: 100,
+  thu: 150,
+  fri: 200,
+  sat: 400,
+  sun: 150,
 };
 
 export function bucketForDate(d: Date): DayBucket | null {

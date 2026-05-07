@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { eq, and, desc, sql, gt } from "drizzle-orm";
+import { eq, and, desc, sql, gt, inArray } from "drizzle-orm";
 import {
   db,
   events,
@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
       id: runId,
       eventId: evt.eventId,
       status: "running",
-      targetSims: 500,
+      targetSims: 1000,
       tickCount: 0,
     });
   }
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
     ),
   );
   const fighterRows = fighterIds.length
-    ? await db.select().from(fighters).where(sql`${fighters.id} = ANY(${fighterIds})`)
+    ? await db.select().from(fighters).where(inArray(fighters.id, fighterIds))
     : [];
   const fighterById = new Map(fighterRows.map((f) => [f.id, f]));
 

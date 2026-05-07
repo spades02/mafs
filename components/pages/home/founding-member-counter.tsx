@@ -39,7 +39,7 @@ export function FoundingMemberCounter({ className }: { className?: string }) {
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground/80">
-        <span>{foundingClosed ? "Founding pricing closed" : "Founding members"}</span>
+        <span>{foundingClosed ? "Founding pricing closed" : "Founding pricing spots"}</span>
         <span className="font-mono text-primary">
           {counts.founding} / {counts.foundingCap}
         </span>
@@ -51,9 +51,9 @@ export function FoundingMemberCounter({ className }: { className?: string }) {
         />
       </div>
       <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground/60 pt-1">
-        <span>MAFS members</span>
+        <span>Members</span>
         <span className="font-mono">
-          {counts.totalPro} / {counts.totalGoal}
+          {counts.totalPro} / {counts.totalGoal.toLocaleString()} founding members
         </span>
       </div>
       <div className="h-1 w-full rounded-full bg-white/5 overflow-hidden">

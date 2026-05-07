@@ -32,6 +32,10 @@ export const user = pgTable("user", {
 
   // 💰 Access control
   isPro: boolean("is_pro").default(false).notNull(),
+  isElite: boolean("is_elite").default(false).notNull(),
+  // 'free' | 'pro' | 'elite'. Elite is a superset of Pro (also flips isPro=true).
+  // Elite unlocks the AI Gameplan auto-builder; Pro is unlimited manual sims.
+  subscriptionTier: text("subscription_tier").default("free").notNull(),
   analysisCount: integer("analysis_count").default(0).notNull(),
   // First 100 paid users — locked at $39 founding price indefinitely.
   // Set true by Stripe / RevenueCat webhook on first paid event when current

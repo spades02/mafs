@@ -1,5 +1,5 @@
 import ProfileSettings from "@/components/profile-settings"
-import { SupportModal } from "@/components/support/support-modal";
+import { HelpFeedbackCard } from "@/components/support/help-feedback-card";
 import { ReferralCard } from "@/components/referrals/referral-card";
 import { PushToggle } from "@/components/push/push-toggle";
 import { auth } from "@/app/lib/auth/auth";
@@ -50,19 +50,8 @@ export default async function SettingsPage() {
           {/* Referrals */}
           <ReferralCard />
 
-          {/* Support & Feedback */}
-          <section className="rounded-lg border border-border/50 bg-[#0F1117] p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-1">Support & feedback</h2>
-            <p className="text-sm text-muted-foreground/70 mb-4">
-              Need help, found a bug, or have an idea? Let us know.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <SupportModal defaultType="support" />
-              <SupportModal defaultType="bug" triggerVariant="ghost" />
-              <SupportModal defaultType="feature_request" triggerVariant="ghost" />
-              <SupportModal defaultType="feedback" triggerVariant="ghost" />
-            </div>
-          </section>
+          {/* Help & Feedback */}
+          <HelpFeedbackCard />
         </div>
       </main>
     </div>

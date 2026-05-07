@@ -5,7 +5,7 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { ReactNode, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Menu, X, Home, LayoutDashboard, CreditCard, Settings, Info, DollarSign, RotateCcw, Bookmark, TrendingUp, User } from "lucide-react"
+import { Menu, X, Home, LayoutDashboard, CreditCard, Settings, Info, DollarSign, RotateCcw, Bookmark, TrendingUp, User, Sparkles } from "lucide-react"
 import { Button } from "./ui/button"
 import {
   Dialog,
@@ -20,6 +20,7 @@ import Logo from "./shared/logo"
 // Navigation items for authenticated users
 const authenticatedNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Gameplan", href: "/gameplan", icon: Sparkles },
   { name: "Saved", href: "/saved", icon: Bookmark },
   { name: "Billing", href: "/billing", icon: CreditCard },
   { name: "Settings", href: "/settings", icon: Settings },

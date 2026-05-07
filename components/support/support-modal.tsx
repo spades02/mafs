@@ -37,14 +37,26 @@ export function SupportModal({
   triggerIcon = true,
   triggerVariant = "outline",
   className,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
 }: {
   defaultType?: SupportType;
   triggerLabel?: string;
   triggerIcon?: boolean;
   triggerVariant?: "default" | "outline" | "ghost";
   className?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (!isControlled) setInternalOpen(v);
+    onOpenChange?.(v);
+  };
   const [type, setType] = useState<SupportType>(defaultType);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -92,12 +104,14 @@ export function SupportModal({
         if (!o) reset();
       }}
     >
-      <DialogTrigger asChild>
-        <Button variant={triggerVariant} className={className}>
-          {triggerIcon ? <MessageSquare className="h-4 w-4 mr-2" /> : null}
-          {triggerLabel ?? TYPE_LABELS[defaultType]}
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant={triggerVariant} className={className}>
+            {triggerIcon ? <MessageSquare className="h-4 w-4 mr-2" /> : null}
+            {triggerLabel ?? TYPE_LABELS[defaultType]}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{success ? "Thanks — we got it." : TYPE_LABELS[type]}</DialogTitle>
