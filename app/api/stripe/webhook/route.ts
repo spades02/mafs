@@ -4,6 +4,9 @@ import { stripe } from "@/lib/stripe";
 import { db } from "@/db/db";
 import { user } from "@/db/schema/auth-schema";
 import { eq } from "drizzle-orm";
+import { grantFoundingMemberIfEligible } from "@/lib/billing/founding-member";
+import { tierFromSubscription, tierFromCheckoutSession } from "@/lib/billing/tier";
+import { markReferralPaid, maybeRewardReferralOnInvoice } from "@/lib/referrals/stripe";
 
 // REQUIRED: Stripe webhooks must run in Node
 export const runtime = "nodejs";
@@ -71,6 +74,13 @@ export async function POST(req: NextRequest) {
         }
 
         if (session.mode === "subscription" && session.payment_status === "paid") {
+          // Re-fetch session with line items expanded so we can resolve which
+          // price (Pro vs Elite) the user purchased.
+          const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+            expand: ["line_items.data.price"],
+          });
+          const tier = tierFromCheckoutSession(fullSession);
+
           await db
             .update(user)
             .set({
@@ -78,8 +88,17 @@ export async function POST(req: NextRequest) {
               stripeSubscriptionId: session.subscription as string,
               subscriptionStatus: "active",
               isPro: true,
+              isElite: tier === "elite",
+              subscriptionTier: tier,
             })
             .where(eq(user.id, userId));
+
+          const granted = await grantFoundingMemberIfEligible(userId);
+          if (granted) console.log(`🌟 Founding member granted to user ${userId}`);
+
+          await markReferralPaid(userId).catch((err) =>
+            console.error("[stripe-webhook] markReferralPaid failed:", err),
+          );
 
           console.log(`✅ User ${userId} auto-provisioned via checkout session`);
         } else {
@@ -118,16 +137,56 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        const tier = tierFromSubscription(subscription);
+        const active = subscription.status === "active";
+
         await db
           .update(user)
           .set({
             subscriptionStatus: subscription.status,
-            isPro: subscription.status === "active",
+            isPro: active,
+            isElite: active && tier === "elite",
+            subscriptionTier: active ? tier : "free",
           })
           .where(eq(user.id, existingUser[0].id));
 
+        if (subscription.status === "active") {
+          const granted = await grantFoundingMemberIfEligible(existingUser[0].id);
+          if (granted) console.log(`🌟 Founding member granted to user ${existingUser[0].id}`);
+        }
+
         console.log(
           `✅ Subscription synced for user ${existingUser[0].id} (${subscription.status})`
+        );
+        break;
+      }
+
+      /**
+       * 3a️⃣ Invoice paid — referral reward gate (cycle 2+ only).
+       * Per the referral spec, the referrer is rewarded when the referee
+       * pays their SECOND invoice (billing_reason = subscription_cycle),
+       * not the first (subscription_create). This prevents fraud where
+       * a referee signs up with the discount, then cancels, leaving the
+       * referrer with an unearned free month.
+       */
+      case "invoice.paid":
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = invoice.customer as string;
+        const billingReason = (invoice.billing_reason as string | null) ?? null;
+
+        if (!customerId) break;
+
+        const existingUser = await db
+          .select()
+          .from(user)
+          .where(eq(user.stripeCustomerId, customerId))
+          .limit(1);
+
+        if (!existingUser[0]) break;
+
+        await maybeRewardReferralOnInvoice(existingUser[0].id, billingReason).catch((err) =>
+          console.error("[stripe-webhook] maybeRewardReferralOnInvoice failed:", err),
         );
         break;
       }
@@ -154,6 +213,8 @@ export async function POST(req: NextRequest) {
           .update(user)
           .set({
             isPro: false,
+            isElite: false,
+            subscriptionTier: "free",
             subscriptionStatus: "canceled",
           })
           .where(eq(user.id, existingUser[0].id));

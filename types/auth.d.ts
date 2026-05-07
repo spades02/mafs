@@ -4,6 +4,8 @@ declare module "better-auth/types" {
       stripeSubscriptionId: string | null;
       subscriptionStatus: string | null;
       isPro: boolean;
+      isElite: boolean;
+      subscriptionTier: "free" | "pro" | "elite";
       analysisCount: number;
     }
   }

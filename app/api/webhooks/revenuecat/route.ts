@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/db";
 import { user } from "@/db/schema/auth-schema";
 import { eq } from "drizzle-orm";
+import { grantFoundingMemberIfEligible } from "@/lib/billing/founding-member";
 
 // REQUIRED: Webhooks must run in Node
 export const runtime = "nodejs";
@@ -100,6 +101,9 @@ export async function POST(req: NextRequest) {
                         ...(expiresAt && { subscriptionExpiresAt: expiresAt }),
                     })
                     .where(eq(user.id, userId));
+
+                const granted = await grantFoundingMemberIfEligible(userId);
+                if (granted) console.log(`🌟 Founding member granted to user ${userId}`);
 
                 console.log(`✅ User ${userId} activated via Apple IAP`);
                 break;

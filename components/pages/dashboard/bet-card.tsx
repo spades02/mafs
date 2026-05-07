@@ -63,16 +63,26 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
     // Prefer server-computed EV / edge to avoid client/server divergence when
     // bet.odds_american is the moneyline-fallback but bet.ev was computed from
     // the prop market odds. Server is the source of truth.
+    // When the server returns ev=null (no live market for the recommended prop),
+    // do NOT compute a local EV from the displayed ML — that compares apples to
+    // oranges (model prob is for the prop event, ML is for a different event).
+    const propMarketMissing = bet.ev === null || (bet.oddsContext === "moneyline-fallback" && bet.bet_type !== "ML")
     const serverEvPct = typeof bet.ev === 'number' && isFinite(bet.ev) ? bet.ev : null
     const serverEdgePct = typeof bet.edge_pct === 'number' && isFinite(bet.edge_pct) ? bet.edge_pct : null
     const localEvPct = hasValidOdds && isFinite(decimalOdds)
         ? ((modelProb * (decimalOdds - 1)) - (1 - modelProb)) * 100
         : NaN
-    const evPctDisplay = serverEvPct !== null ? serverEvPct : (isFinite(localEvPct) ? localEvPct : NaN)
+    const evPctDisplay = propMarketMissing
+        ? NaN
+        : (serverEvPct !== null ? serverEvPct : (isFinite(localEvPct) ? localEvPct : NaN))
     // Mispricing in spec = Model Prob − Market Implied (as %), which is exactly edge_pct.
-    const mispricingPctDisplay = serverEdgePct !== null
-        ? serverEdgePct
-        : (hasValidOdds && isFinite(marketImpliedProb) ? (modelProb - marketImpliedProb) * 100 : NaN)
+    // Suppress when the prop market is missing — comparing model prob (prop event) to
+    // ML implied (different event) is not a real mispricing.
+    const mispricingPctDisplay = propMarketMissing
+        ? NaN
+        : (serverEdgePct !== null
+            ? serverEdgePct
+            : (hasValidOdds && isFinite(marketImpliedProb) ? (modelProb - marketImpliedProb) * 100 : NaN))
     // Legacy decimal version of EV used by Kelly sizing below.
     const evPerUnit = isFinite(evPctDisplay) ? evPctDisplay / 100 : 0
 
@@ -144,15 +154,27 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                         {/* Right: Edge */}
                         <div className="flex-1 max-w-[240px]">
                             <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60 font-medium mb-1 block">Model Edge</span>
-                            <div className="text-3xl font-bold tracking-tight text-emerald-400 mb-2">
-                                {safeEdgePct > 0 ? "+" : ""}{safeEdgePct.toFixed(1)}%
-                            </div>
-                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-2">
-                                <div className="h-full bg-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.5)]" style={{ width: `${Math.min(100, Math.max(0, safeEdgePct * 10))}%` }} />
-                            </div>
-                            <span className={`text-[9px] uppercase tracking-widest font-bold ${safeEdgePct >= 5 ? "text-emerald-400" : safeEdgePct >= 2 ? "text-emerald-400/80" : "text-amber-400"}`}>
-                                {safeEdgePct >= 7 ? "Massive Edge (>7%)" : safeEdgePct >= 5 ? "Large Edge (5-7%)" : safeEdgePct >= 2 ? "Small Edge (2-5%)" : "Marginal Edge (<2%)"}
-                            </span>
+                            {propMarketMissing ? (
+                                <>
+                                    <div className="text-3xl font-bold tracking-tight text-muted-foreground mb-2">—</div>
+                                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-2" />
+                                    <span className="text-[9px] uppercase tracking-widest font-bold text-amber-400/80">
+                                        No live {bet.bet_type} market
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="text-3xl font-bold tracking-tight text-emerald-400 mb-2">
+                                        {safeEdgePct > 0 ? "+" : ""}{safeEdgePct.toFixed(1)}%
+                                    </div>
+                                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-2">
+                                        <div className="h-full bg-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,0.5)]" style={{ width: `${Math.min(100, Math.max(0, safeEdgePct * 10))}%` }} />
+                                    </div>
+                                    <span className={`text-[9px] uppercase tracking-widest font-bold ${safeEdgePct >= 5 ? "text-emerald-400" : safeEdgePct >= 2 ? "text-emerald-400/80" : "text-amber-400"}`}>
+                                        {safeEdgePct >= 7 ? "Massive Edge (>7%)" : safeEdgePct >= 5 ? "Large Edge (5-7%)" : safeEdgePct >= 2 ? "Small Edge (2-5%)" : "Marginal Edge (<2%)"}
+                                    </span>
+                                </>
+                            )}
                         </div>
                     </div>
 

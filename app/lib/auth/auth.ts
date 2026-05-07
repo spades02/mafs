@@ -3,7 +3,10 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db/db"; // your drizzle instance
 import * as schema from "@/db/schema/auth-schema";
+import { user as userTable } from "@/db/schema/auth-schema";
+import { eq } from "drizzle-orm";
 import { sendEmail } from "../email";
+import { generateUniqueReferralCode } from "@/lib/referrals/codes";
 
 export const auth = betterAuth({
     trustedOrigins: [
@@ -44,11 +47,78 @@ export const auth = betterAuth({
                 required: true,
                 defaultValue: false,
             },
+            isElite: {
+                type: "boolean",
+                required: true,
+                defaultValue: false,
+            },
+            subscriptionTier: {
+                type: "string",
+                required: true,
+                defaultValue: "free",
+                input: false,
+            },
             analysisCount: {
                 type: "number",
                 required: true,
                 defaultValue: 0,
                 input: false // Don't allow user to set this
+            },
+            foundingMember: {
+                type: "boolean",
+                required: true,
+                defaultValue: false,
+                input: false,
+            },
+            weeklyFreePickUsedAt: {
+                type: "date",
+                required: false,
+                input: false,
+            },
+            referralCode: {
+                type: "string",
+                required: false,
+                input: false, // server-generated only
+            },
+            referredByCode: {
+                type: "string",
+                required: false,
+                input: false, // captured server-side from cookie via /api/referrals/attach
+            },
+        },
+    },
+    databaseHooks: {
+        user: {
+            create: {
+                after: async (createdUser) => {
+                    // Generate a unique referral code for every new user.
+                    // Idempotent — re-runs are safe (existing code wins via unique
+                    // constraint on subsequent UPDATEs that we never issue).
+                    try {
+                        const code = await generateUniqueReferralCode();
+                        await db
+                            .update(userTable)
+                            .set({ referralCode: code, lastLoginAt: new Date() })
+                            .where(eq(userTable.id, createdUser.id));
+                    } catch (err) {
+                        console.error("[auth] failed to generate referralCode for", createdUser.id, err);
+                    }
+                },
+            },
+        },
+        session: {
+            create: {
+                after: async (session) => {
+                    // Bump last_login_at on each new session (login). Best-effort.
+                    try {
+                        await db
+                            .update(userTable)
+                            .set({ lastLoginAt: new Date() })
+                            .where(eq(userTable.id, session.userId));
+                    } catch (err) {
+                        console.error("[auth] failed to bump lastLoginAt for", session.userId, err);
+                    }
+                },
             },
         },
     },

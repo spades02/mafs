@@ -36,10 +36,12 @@ const CONCURRENT_BATCH_SIZE = 6;
 // Wraps generateObject so a schema-mismatch ("No object generated…") never kills
 // the pipeline. Retries once with a hardened JSON-only instruction; if that
 // still fails and a fallback is provided, returns it instead of throwing.
+type GenUsage = { inputTokens?: number; outputTokens?: number; totalTokens?: number };
+
 async function safeGenerateObject<T>(
   args: Parameters<typeof generateObject>[0],
   opts: { fallback?: T; label?: string } = {}
-): Promise<{ object: T }> {
+): Promise<{ object: T; usage?: GenUsage }> {
   const isSchemaMismatch = (err: unknown) => {
     const e = err as { name?: string; message?: string } | undefined;
     return (
@@ -51,7 +53,7 @@ async function safeGenerateObject<T>(
 
   try {
     const res = await generateObject(args as Parameters<typeof generateObject>[0]);
-    return res as unknown as { object: T };
+    return res as unknown as { object: T; usage?: GenUsage };
   } catch (err) {
     if (!isSchemaMismatch(err)) throw err;
     try {
@@ -60,7 +62,7 @@ async function safeGenerateObject<T>(
         prompt: `${(args as { prompt?: string }).prompt ?? ""}\n\nIMPORTANT: Return ONLY a single JSON object that strictly matches the provided schema. No prose, no markdown fences, no extra fields, no trailing commentary.`,
       };
       const res = await generateObject(hardened as Parameters<typeof generateObject>[0]);
-      return res as unknown as { object: T };
+      return res as unknown as { object: T; usage?: GenUsage };
     } catch (retryErr) {
       const msg = (retryErr as { message?: string })?.message ?? String(retryErr);
       console.warn(`[safeGenerateObject] schema mismatch persisted${opts.label ? ` (${opts.label})` : ""}: ${msg}`);
@@ -121,6 +123,14 @@ type StreamCallback = (
   update: FightResult | StatusUpdate | ErrorUpdate | ScanSummary
 ) => void;
 
+export type AgentUsageReport = {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  label: string;
+};
+export type AgentUsageCallback = (u: AgentUsageReport) => void;
+
 // ---------------- HELPERS ----------------
 
 function getBestOddsIndex(
@@ -168,7 +178,8 @@ export async function analyzeFight(
   fight: SimplifiedFight,
   eventName: string,
   mafsEventInputFighters: any[],
-  calibrationConfig?: CalibrationConfig
+  calibrationConfig?: CalibrationConfig,
+  onUsage?: AgentUsageCallback,
 ): Promise<{ edge: FightEdgeSummary; breakdown: FightBreakdownType }> {
 
   const fighter1 = mafsEventInputFighters.find((f) => f.id === fight.fighterIds[0]);
@@ -284,7 +295,7 @@ Round Finishes - ${f2Name}: R1 ${fmtOdd(oddsB?.round1Finish)} | R2 ${fmtOdd(odds
   const f2StyleHint = deriveStyleHint(fighter2);
 
   // -------- AGENT 1: EDGE CALCULATION --------
-  const { object: edgeObj } = await safeGenerateObject<import("zod").infer<typeof FightEdgeSummaryGenerationSchema>>({
+  const { object: edgeObj, usage: edgeUsage } = await safeGenerateObject<import("zod").infer<typeof FightEdgeSummaryGenerationSchema>>({
     model: MODEL,
     schema: FightEdgeSummaryGenerationSchema,
     system: MAFS_PROMPT,
@@ -378,6 +389,14 @@ At confidencePct ≥60, BANNED words: "could", "might", "possibly", "may",
 "perhaps", "potentially". Use decisive verbs instead.
 `,
   });
+  if (onUsage && edgeUsage) {
+    onUsage({
+      model: "gpt-4o",
+      inputTokens: edgeUsage.inputTokens ?? 0,
+      outputTokens: edgeUsage.outputTokens ?? 0,
+      label: "edge-calculation",
+    });
+  }
 
   // Reconcile Data
   const matchedIndex = getBestOddsIndex(edgeObj.label, f1Name, f2Name);
@@ -494,20 +513,23 @@ At confidencePct ≥60, BANNED words: "could", "might", "possibly", "may",
     }
   }
 
-  // Calculate P_imp — use real marketOdd when available, else neutral 0.5
-  const pImp = marketOdd !== 0 ? oddsToProb(marketOdd) : 0.5;
+  // Calculate P_imp — only when we have the actual recommended-market line.
+  // Falling back to 0.5 produces a phantom edge against an imaginary 50% price
+  // (e.g. ITD prop missing → fake +25% edge while card shows the ML at -480).
+  const hasRealMarket = marketOdd !== 0;
+  const pImp = hasRealMarket ? oddsToProb(marketOdd) : NaN;
   const pSim = edgeObj.truthProbability;
 
-  // Calculate Edge % (Simple difference for now as per dashboard requirements)
-  const edgePct = parseFloat(((pSim - pImp) * 100).toFixed(1));
-
-  // EV Calculation (ROI)
-  let ev = 0;
-  if (marketOdd !== 0) {
+  // Edge / EV are only meaningful when the recommended market has a real line.
+  // When it doesn't, leave both null — qualifyBets filters these out so they
+  // never reach MAFS AI Picks.
+  const edgePct = hasRealMarket ? parseFloat(((pSim - pImp) * 100).toFixed(1)) : 0;
+  let ev: number | null = null;
+  if (hasRealMarket) {
     const decimalOdds = americanToDecimal(marketOdd);
     ev = parseFloat(((pSim * decimalOdds - 1) * 100).toFixed(1));
   }
-  console.log(`[MAFS DEBUG] ${fight.matchup} | EV inputs: pSim=${pSim.toFixed(3)} pImp=${pImp.toFixed(3)} edge=${edgePct}% marketOdd=${marketOdd} displayOdd=${displayOdd} ev=${ev}%`);
+  console.log(`[MAFS DEBUG] ${fight.matchup} | EV inputs: pSim=${pSim.toFixed(3)} pImp=${Number.isFinite(pImp) ? pImp.toFixed(3) : "n/a"} edge=${edgePct}% marketOdd=${marketOdd} displayOdd=${displayOdd} ev=${ev === null ? "n/a" : ev + "%"} hasRealMarket=${hasRealMarket}`);
 
   // Fallback: Generate synthetic sharp movement history for aesthetic UI consistency.
   // Anchor it to displayOdd (what the card shows) so the chart endpoint and the
@@ -544,7 +566,7 @@ At confidencePct ≥60, BANNED words: "could", "might", "possibly", "may",
     fighterId: matchedIndex !== -1 ? fight.fighterIds[matchedIndex] : undefined,
     odds_american: displayOdd > 0 ? `+${displayOdd}` : `${displayOdd}`,
     P_sim: pSim,
-    P_imp: pImp,
+    P_imp: Number.isFinite(pImp) ? pImp : 0,
     edge_pct: edgePct,
     ev: ev,
     status: "qualified", // Default, filtering happens on frontend
@@ -660,7 +682,7 @@ At confidencePct ≥60, BANNED words: "could", "might", "possibly", "may",
 
 
   // -------- AGENT 2: BREAKDOWN WRITER --------
-  const { object: bdObj } = await safeGenerateObject<import("zod").infer<typeof FightBreakdownsSchema>>({
+  const { object: bdObj, usage: bdUsage } = await safeGenerateObject<import("zod").infer<typeof FightBreakdownsSchema>>({
     model: MODEL,
     schema: FightBreakdownsSchema,
     system: MAFS_PROMPT,
@@ -731,6 +753,14 @@ Keep it punchy, professional, and analytical.
     label: `breakdown:${fight.matchup}`,
     fallback: { breakdowns: [{}] },
   });
+  if (onUsage && bdUsage) {
+    onUsage({
+      model: "gpt-4o",
+      inputTokens: bdUsage.inputTokens ?? 0,
+      outputTokens: bdUsage.outputTokens ?? 0,
+      label: "breakdown",
+    });
+  }
 
   const rawBreakdown: any = bdObj.breakdowns[0] ?? {};
 
@@ -749,8 +779,8 @@ Keep it punchy, professional, and analytical.
     fight.moneylines && fight.moneylines.length === 2
       ? `${f1Name}: ${fmt(Number(fight.moneylines[0]))} / ${f2Name}: ${fmt(Number(fight.moneylines[1]))}`
       : (baseBreakdown.marketLine || "No odds available");
-  const serverMispricing = `${edgePct >= 0 ? "+" : ""}${edgePct}%`;
-  const serverEv = marketOdd !== 0 ? `${ev >= 0 ? "+" : ""}${ev}%` : "—";
+  const serverMispricing = hasRealMarket ? `${edgePct >= 0 ? "+" : ""}${edgePct}%` : "—";
+  const serverEv = ev !== null ? `${ev >= 0 ? "+" : ""}${ev}%` : "—";
 
   const processedBreakdown: any = {
     ...baseBreakdown,
@@ -771,7 +801,8 @@ Keep it punchy, professional, and analytical.
 
 export default async function Agents(
   event: SimplifiedEvent,
-  onStreamUpdate?: StreamCallback
+  onStreamUpdate?: StreamCallback,
+  onUsage?: AgentUsageCallback
 ) {
   // Load calibration config (non-blocking — falls back to defaults)
   let calibrationConfig: CalibrationConfig | undefined;
@@ -884,7 +915,8 @@ export default async function Agents(
           fight,
           event.Name,
           mafsEventInput.fighters,
-          calibrationConfig
+          calibrationConfig,
+          onUsage,
         );
 
         // Cross-fight dedup pass: if executiveSummary was emitted by a prior

@@ -32,7 +32,37 @@ export const user = pgTable("user", {
 
   // 💰 Access control
   isPro: boolean("is_pro").default(false).notNull(),
+  isElite: boolean("is_elite").default(false).notNull(),
+  // 'free' | 'pro' | 'elite'. Elite is a superset of Pro (also flips isPro=true).
+  // Elite unlocks the AI Gameplan auto-builder; Pro is unlimited manual sims.
+  subscriptionTier: text("subscription_tier").default("free").notNull(),
   analysisCount: integer("analysis_count").default(0).notNull(),
+  // First 100 paid users — locked at $39 founding price indefinitely.
+  // Set true by Stripe / RevenueCat webhook on first paid event when current
+  // count of founding_member=true users is < 100.
+  foundingMember: boolean("founding_member").default(false).notNull(),
+  // Free-tier weekly retention drip — independent of analysisCount (which is
+  // lifetime). Set when user claims the weekly free pick from a retention
+  // email; reset to null by the weekly retention cron at start of each week.
+  weeklyFreePickUsedAt: timestamp("weekly_free_pick_used_at"),
+
+  // Referral system. `referralCode` is this user's *own* shareable code,
+  // generated at signup. `referredByCode` is captured at signup when the
+  // visitor arrived via /api/referrals/[code] (cookie-backed).
+  referralCode: text("referral_code").unique(),
+  referredByCode: text("referred_by_code"),
+
+  // Retention tracking — feeds the weekly free-tier reactivation cron.
+  // last_login_at: bumped on each session creation via better-auth hook.
+  // last_sim_at: bumped when analysisCount increments (POST /api/agents).
+  // last_retention_email_at: enforces the max-1-email-per-week frequency cap.
+  lastLoginAt: timestamp("last_login_at"),
+  lastSimAt: timestamp("last_sim_at"),
+  lastRetentionEmailAt: timestamp("last_retention_email_at"),
+
+  // Push notifications opt-in. Default true; toggleable in settings.
+  // The cron only pushes to users with this flag AND a valid device_tokens row.
+  pushNotificationsOptIn: boolean("push_notifications_opt_in").default(true).notNull(),
 
   // ⚙️ Settings
   timeZone: text("time_zone").default("America/New_York (EST)").notNull(),

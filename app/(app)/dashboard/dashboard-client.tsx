@@ -22,10 +22,12 @@ import { Fight, SimulationBet, FightBreakdown as FightBreakdownModel } from "./d
 import { formatOdds } from "@/lib/odds/utils"
 import { BetCardSkeleton } from "@/components/skeletons/bet-card-skeleton"
 import { BetFilters, BetFiltersState, DEFAULT_FILTERS } from "@/components/pages/dashboard/bet-filters"
+import { usePushRegistration } from "@/components/push/use-push-registration"
 
 interface DashboardClientProps {
   initialEvents: Array<{ eventId: string; name: string; dateTime: string | null; venue: string | null; fightCount?: number }>
   userOddsFormat?: string
+  pushOptIn?: boolean
   thresholds?: {
     MIN_MAF_PROB: number
     MIN_EDGE_PCT: number
@@ -44,7 +46,10 @@ function formatRelativeCompletion(date: Date): string {
   return `${hr}h ago`
 }
 
-export default function DashboardClient({ initialEvents, userOddsFormat = "american", thresholds }: DashboardClientProps) {
+export default function DashboardClient({ initialEvents, userOddsFormat = "american", pushOptIn = true, thresholds }: DashboardClientProps) {
+  // Register iOS device for APNs push (no-op on web; opt-in respected).
+  usePushRegistration({ optedIn: pushOptIn })
+
   const MIN_MAF_PROB = thresholds?.MIN_MAF_PROB ?? 0.55
   const MIN_AGENT_CONSENSUS_PASS_RATE = thresholds?.MIN_AGENT_CONSENSUS_PASS_RATE ?? 0.6
   const MIN_EDGE_PCT = thresholds?.MIN_EDGE_PCT ?? 0.5
@@ -83,6 +88,13 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
       })
       .catch(() => {})
     return () => { cancelled = true }
+  }, [])
+
+  // Best-effort referral attribution — only fires when the mafs_ref cookie
+  // is present (server returns ok:false otherwise). Covers OAuth signups
+  // that bypass the email signup form's onSuccess hook.
+  useEffect(() => {
+    fetch("/api/referrals/attach", { method: "POST" }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -370,6 +382,14 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
         rejectReasons.push("No market odds tracked for this fight")
       }
 
+      // Reject when the displayed odds are a moneyline fallback for a non-ML
+      // recommendation (e.g. ITD/GTD/Round prop with no live line). Edge cannot
+      // be honestly computed against the ML for a different event, and the
+      // server now returns ev=null in that case.
+      if (bet.oddsContext === "moneyline-fallback" && bet.bet_type !== "ML") {
+        rejectReasons.push(`No live ${bet.bet_type} market — edge not computable`)
+      }
+
       return {
         ...bet,
         status: rejectReasons.length === 0 ? "qualified" : "filtered",
@@ -410,7 +430,10 @@ export default function DashboardClient({ initialEvents, userOddsFormat = "ameri
         b.label !== "No Bet" &&
         b.label !== "Pass" &&
         b.bet_type !== "No Bet" &&
-        !b.label.toLowerCase().includes("no bet"),
+        !b.label.toLowerCase().includes("no bet") &&
+        // Exclude prop picks that fell back to ML for display — their edge
+        // is computed against a different event and is not real.
+        !(b.oddsContext === "moneyline-fallback" && b.bet_type !== "ML"),
     ),
   ]
 
