@@ -5,7 +5,7 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { ReactNode, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Menu, X, Home, LayoutDashboard, CreditCard, Settings, Info, DollarSign, RotateCcw, Bookmark, TrendingUp, User, Sparkles } from "lucide-react"
+import { Menu, X, Home, LayoutDashboard, CreditCard, Settings, Info, DollarSign, RotateCcw, Bookmark, TrendingUp, Sparkles } from "lucide-react"
 import { Button } from "./ui/button"
 import {
   Dialog,
@@ -36,9 +36,9 @@ const guestNavItems = [
 // Mobile bottom-bar items shown for authenticated users
 const authenticatedMobileItems = [
   { name: "Home", href: "/dashboard", icon: Home, dot: false },
+  { name: "Gameplan", href: "/gameplan", icon: Sparkles, dot: false },
   { name: "Saved", href: "/saved", icon: Bookmark, dot: false },
   { name: "Billing", href: "/billing", icon: CreditCard, dot: false },
-  { name: "Profile", href: "/settings", icon: User, dot: false },
 ]
 
 // Mobile bottom-bar items shown for guests
@@ -46,7 +46,6 @@ const guestMobileItems = [
   { name: "Home", href: "/", icon: Home, dot: false },
   { name: "Pricing", href: "/pricing", icon: DollarSign, dot: false },
   { name: "How it works", href: "/how-it-works", icon: Info, dot: false },
-  { name: "Profile", href: "/login", icon: User, dot: false },
 ]
 
 interface NavBarClientProps {
@@ -170,7 +169,7 @@ export function NavBarClient({ isAuthenticated, isPro, children, analysisCount }
       aria-label="Primary mobile navigation"
       className="md:hidden fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-card/95 backdrop-blur supports-backdrop-filter-bg-card/80 pb-[env(safe-area-inset-bottom)]"
     >
-      <div className="grid grid-cols-5 h-16 pt-1">
+      <div className={cn("grid h-16 pt-1", isAuthenticated ? "grid-cols-5" : "grid-cols-4")}>
         {mobileItems.map((item) => {
           const Icon = item.icon
           const active = pathname === item.href
