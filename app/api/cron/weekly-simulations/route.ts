@@ -135,23 +135,35 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ skipped: true, reason: "no fights with both fighters resolved" });
   }
 
-  // 4. Run agents. (TODO Phase 2.x: implement odds-movement gating —
-  // for the skeleton we always run, which is the worst case for cost. The
-  // gating layer will skip fights where implied prob < 3% movement and
-  // count the appearance against the prior result instead.)
+  // 4. Run agents. We aim for ~1,000 sims/week distributed by bucket
+  // (Wed 100 / Thu 150 / Fri 200 / Sat 400 / Sun 150). Each Agents() call
+  // simulates the full event card (~13 fights) once, so per tick we loop
+  // ceil(bucketTarget / TICKS_PER_DAY / fightCount) times — capped at 5 to
+  // stay within the 300s function budget.
+  const TICKS_PER_DAY = 6;
+  const MAX_LOOPS_PER_TICK = 5;
   const targetThisTick = TICK_TARGETS[bucket];
+  const fightCount = Math.max(1, simplifiedEvent.fights.length);
+  const innerLoops = Math.min(
+    MAX_LOOPS_PER_TICK,
+    Math.max(1, Math.ceil(targetThisTick / TICKS_PER_DAY / fightCount)),
+  );
   const model = modelForTick(tickIndex);
-  console.log(`[weekly-sims] tick=${tickIndex} bucket=${bucket} target=${targetThisTick} model=${model} event=${evt.name}`);
+  console.log(
+    `[weekly-sims] tick=${tickIndex} bucket=${bucket} target=${targetThisTick} loops=${innerLoops} model=${model} event=${evt.name}`,
+  );
 
   const collected: FightResult[] = [];
   const usageEntries: AgentUsageReport[] = [];
-  await Agents(
-    simplifiedEvent,
-    (update) => {
-      if (update.type === "fight") collected.push(update);
-    },
-    (u) => usageEntries.push(u),
-  );
+  for (let loop = 0; loop < innerLoops; loop++) {
+    await Agents(
+      simplifiedEvent,
+      (update) => {
+        if (update.type === "fight") collected.push(update);
+      },
+      (u) => usageEntries.push(u),
+    );
+  }
 
   // 5. Persist per-fight result rows.
   const insertRows = collected.map((r) => {
