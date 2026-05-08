@@ -86,8 +86,14 @@ function buildLeg(
 
   const cfg = RISK_MODELS[riskModel];
   if (edge.appearancePct < cfg.minAppearance) return null;
-  if (riskModel === "professional" && tier !== "elite") return null;
   if (!cfg.allowProps && isPropBet(edge.betType) && edge.betType !== "Over" && edge.betType !== "Under") {
+    return null;
+  }
+  // Long Shot: only plus-money dogs / asymmetric payoffs.
+  if (
+    cfg.minLegAmericanOdds != null &&
+    (edge.latestMarketOdd == null || edge.latestMarketOdd < cfg.minLegAmericanOdds)
+  ) {
     return null;
   }
 
@@ -99,7 +105,7 @@ function buildLeg(
     americanOdds: edge.latestMarketOdd,
     fraction,
   });
-  const stakeFraction = stakeFractionRaw * wcMult;
+  const stakeFraction = stakeFractionRaw * wcMult * cfg.stakeMultiplier;
   if (stakeFraction <= 0) return null;
 
   const units = stakeFraction / cfg.unitPctOfBankroll;
@@ -146,10 +152,12 @@ export function buildCard(
   const cfg = RISK_MODELS[riskModel];
   const sorted = [...edges].sort((a, b) => b.appearancePct - a.appearancePct);
 
-  // 1) straights
+  // 1) straights — capped at cfg.maxStraights so each tier produces a card
+  // of meaningfully different size, not just different stake amounts.
   const seenFightStraight = new Set<string>();
   const straights: CardLeg[] = [];
   for (const e of sorted) {
+    if (straights.length >= cfg.maxStraights) break;
     if (seenFightStraight.has(e.fightId)) continue; // one straight per fight
     const leg = buildLeg(e, riskModel, bankrollUsd);
     if (!leg) continue;
@@ -191,18 +199,21 @@ export function buildCard(
     if (parlayPool.length >= 2) {
       parlays.push(buildTicket(parlayPool.slice(0, 2)));
     }
-    // 3-leg ticket: only when allowed and all three are elite (or aggressive)
+    // 3-leg ticket: only when allowed and all three are elite (or aggressive+)
     if (cfg.maxParlayLegs >= 3 && parlayPool.length >= 3) {
       const eliteOnly = parlayPool.filter((l) => l.tier === "elite");
-      if (riskModel === "aggressive" && parlayPool.length >= 3) {
+      const skipsEliteOnly =
+        riskModel === "aggressive" || riskModel === "turbo" || riskModel === "longShot";
+      if (skipsEliteOnly && parlayPool.length >= 3) {
         parlays.push(buildTicket(parlayPool.slice(0, 3)));
       } else if (eliteOnly.length >= 3) {
         parlays.push(buildTicket(eliteOnly.slice(0, 3)));
       }
     }
-    // Lottery (4+) — aggressive only, sparingly
+    // Lottery (4+) — aggressive/turbo/longShot only, sparingly
     if (cfg.allowLottery && parlayPool.length >= 4) {
-      parlays.push(buildTicket(parlayPool.slice(0, 4)));
+      const lotteryLegs = Math.min(cfg.maxParlayLegs, parlayPool.length);
+      parlays.push(buildTicket(parlayPool.slice(0, lotteryLegs)));
     }
   }
 

@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Loader2, Lock, Sparkles, TrendingUp, Wallet } from "lucide-react";
+import { AlertTriangle, Check, Loader2, Lock, Sparkle, Sparkles, TrendingUp, Wallet } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BuiltCard, CardLeg, ParlayTicket } from "@/lib/weekly-sims/build-card";
-import type { RiskModel, RiskModelConfig } from "@/lib/weekly-sims/strategy";
+import type { ModelTone, RiskModel, RiskModelConfig } from "@/lib/weekly-sims/strategy";
 import { isReleaseLive } from "@/lib/weekly-sims/release-window";
 import { GameplanWaitingScreen } from "@/components/gameplan/waiting-screen";
 
@@ -46,6 +46,49 @@ const TIER_BADGE: Record<string, { label: string; className: string }> = {
   strong: { label: "STRONG", className: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
   medium: { label: "MODERATE", className: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
   below: { label: "BELOW", className: "bg-muted text-muted-foreground border-border/40" },
+};
+
+const TONE_STYLES: Record<
+  ModelTone,
+  {
+    profit: string;
+    badge: string;
+    activeBorder: string;
+    activeLabel: string;
+    activeBg: string;
+    glow: string;
+    icon?: typeof AlertTriangle;
+    iconClass?: string;
+  }
+> = {
+  emerald: {
+    profit: "text-emerald-400",
+    badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40",
+    activeBorder: "border-emerald-500/60",
+    activeLabel: "text-white",
+    activeBg: "bg-emerald-500/[0.04]",
+    glow: "shadow-[0_0_0_1px_rgba(16,185,129,0.18),0_0_24px_-8px_rgba(16,185,129,0.45)]",
+  },
+  rose: {
+    profit: "text-rose-400",
+    badge: "bg-rose-500/15 text-rose-300 border-rose-500/40",
+    activeBorder: "border-rose-500/60",
+    activeLabel: "text-white",
+    activeBg: "bg-rose-500/[0.04]",
+    glow: "shadow-[0_0_0_1px_rgba(244,63,94,0.18),0_0_24px_-8px_rgba(244,63,94,0.45)]",
+    icon: AlertTriangle,
+    iconClass: "text-rose-400/70",
+  },
+  amber: {
+    profit: "text-amber-400",
+    badge: "bg-amber-500/15 text-amber-300 border-amber-500/40",
+    activeBorder: "border-amber-500/60",
+    activeLabel: "text-amber-300",
+    activeBg: "bg-amber-500/[0.04]",
+    glow: "shadow-[0_0_0_1px_rgba(245,158,11,0.22),0_0_28px_-6px_rgba(245,158,11,0.5)]",
+    icon: Sparkle,
+    iconClass: "text-amber-300",
+  },
 };
 
 function fmtAmericanOdds(n: number | null | undefined): string {
@@ -147,12 +190,16 @@ export default function GameplanClient({
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   // Release-window gating. Pre-Friday-6pm-ET: show waiting screen with intel
-  // feed + countdown. User can hit "Preview Ready State" to bypass.
-  const [previewMode, setPreviewMode] = useState(false);
+  // feed + countdown. Dev-only escape hatch via ?preview=1 so designers can
+  // view the in-progress tabs without waiting for Friday — never honored in prod.
   const [showWaiting, setShowWaiting] = useState(true);
 
   useEffect(() => {
-    setShowWaiting(!isReleaseLive());
+    const devPreview =
+      process.env.NODE_ENV !== "production" &&
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("preview") === "1";
+    setShowWaiting(!isReleaseLive() && !devPreview);
   }, []);
 
   useEffect(() => {
@@ -192,10 +239,10 @@ export default function GameplanClient({
     );
   }
 
-  // Show the waiting screen until Friday release. The user can hit
-  // "Preview Ready State" to bypass and see the in-progress card anyway.
-  if (showWaiting && !previewMode) {
-    return <GameplanWaitingScreen onPreview={() => setPreviewMode(true)} />;
+  // Show the waiting screen until Friday release. No bypass — final portfolio
+  // only appears after the 1k-sim window completes.
+  if (showWaiting) {
+    return <GameplanWaitingScreen />;
   }
 
   if (loading) {
@@ -250,20 +297,6 @@ export default function GameplanClient({
 
   return (
     <div className="min-h-screen px-4 py-8 max-w-6xl mx-auto">
-      {/* Preview banner — shown when user bypassed the waiting screen */}
-      {previewMode && showWaiting && (
-        <div className="mb-6 flex items-center justify-between rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
-          <p className="text-xs text-emerald-300/90">
-            Preview mode — final portfolio releases Friday after 1,000 sims complete.
-          </p>
-          <button
-            onClick={() => setPreviewMode(false)}
-            className="text-[11px] uppercase tracking-widest text-emerald-300 hover:text-emerald-200"
-          >
-            Back to live build
-          </button>
-        </div>
-      )}
       {/* Header — "Your Gameplan Is Ready" */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -291,31 +324,71 @@ export default function GameplanClient({
         </div>
       </div>
 
-      {/* Strategy tabs (Safe / Balanced / High Upside / Pro) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        {data.cards.map((c) => (
-          <button
-            key={c.model}
-            onClick={() => setActiveModel(c.model)}
-            className={cn(
-              "text-left rounded-xl border p-4 transition-colors",
-              c.model === activeModel
-                ? "border-primary/60 bg-primary/10"
-                : "border-border/40 bg-[#0f1419]/40 hover:border-border/70",
-            )}
-          >
-            <p className="text-sm font-semibold text-white">{c.config.label}</p>
-            <p className={cn(
-              "text-xs mt-1",
-              c.model === activeModel ? "text-primary" : "text-muted-foreground",
-            )}>
-              +{Math.round(c.config.targetMonthlyRoi[0] * 100)}–{Math.round(c.config.targetMonthlyRoi[1] * 100)}% monthly
-            </p>
-            {c.model === activeModel && (
-              <span className="inline-block w-2 h-2 rounded-full bg-primary mt-2" />
-            )}
-          </button>
-        ))}
+      {/* Gameplan style — 5 tabs, v0 design */}
+      <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/70 mb-3">
+        Gameplan Style
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
+        {data.cards.map((c) => {
+          const isActive = c.model === activeModel;
+          const tone = TONE_STYLES[c.config.tone];
+          const ToneIcon = tone.icon;
+          const roiMidPct =
+            ((c.config.targetMonthlyRoi[0] + c.config.targetMonthlyRoi[1]) / 2) * 100;
+          const winMidPct =
+            ((c.config.targetWinRate[0] + c.config.targetWinRate[1]) / 2) * 100;
+          return (
+            <button
+              key={c.model}
+              onClick={() => setActiveModel(c.model)}
+              className={cn(
+                "relative text-left rounded-xl border p-4 transition-colors",
+                isActive
+                  ? cn(tone.activeBorder, tone.activeBg, tone.glow)
+                  : "border-border/40 bg-[#0f1419]/40 hover:border-border/70",
+              )}
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <p
+                    className={cn(
+                      "text-sm font-semibold truncate",
+                      isActive ? tone.activeLabel : "text-white",
+                    )}
+                  >
+                    {c.config.label}
+                  </p>
+                  {c.config.badge && (
+                    <span
+                      className={cn(
+                        "text-[9px] font-bold uppercase tracking-widest border rounded px-1.5 py-0.5 shrink-0",
+                        TONE_STYLES[c.config.badge.tone].badge,
+                      )}
+                    >
+                      {c.config.badge.label}
+                    </span>
+                  )}
+                </div>
+                {isActive && c.config.tone === "amber" && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 shrink-0">
+                    <Check className="h-3 w-3 text-black" strokeWidth={3} />
+                  </span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className={cn("text-base font-semibold", tone.profit)}>
+                  +{roiMidPct.toFixed(1)}%
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {Math.round(winMidPct)}% win
+                </span>
+                {ToneIcon && (
+                  <ToneIcon className={cn("h-3.5 w-3.5 ml-auto", tone.iconClass)} />
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Bankroll chips */}

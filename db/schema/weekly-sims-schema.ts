@@ -120,7 +120,7 @@ export const weeklyCards = pgTable(
     eventId: text("event_id")
       .notNull()
       .references(() => events.eventId, { onDelete: "cascade" }),
-    riskModel: text("risk_model").notNull(), // "conservative" | "balanced" | "aggressive" | "professional"
+    riskModel: text("risk_model").notNull(), // "conservative" | "balanced" | "aggressive" | "turbo" | "longShot"
     generatedAt: timestamp("generated_at").defaultNow().notNull(),
     cardJson: jsonb("card_json").notNull(),
   },

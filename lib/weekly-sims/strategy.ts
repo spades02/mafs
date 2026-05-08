@@ -13,7 +13,14 @@ export function classifyTier(appearancePct: number): Tier {
   return "below";
 }
 
-export type RiskModel = "conservative" | "balanced" | "aggressive" | "professional";
+export type RiskModel = "conservative" | "balanced" | "aggressive" | "turbo" | "longShot";
+
+export type ModelTone = "emerald" | "rose" | "amber";
+
+export interface ModelBadge {
+  label: string;
+  tone: ModelTone;
+}
 
 /** Fractional Kelly per tier (strategy doc Section 4). */
 export const KELLY_FRACTION: Record<Tier, number> = {
@@ -106,12 +113,22 @@ export interface RiskModelConfig {
   /** Win-rate range, monthly ROI range — for the UI strategy header. */
   targetWinRate: [number, number];
   targetMonthlyRoi: [number, number];
+  /** UI accent color for the strategy tab. */
+  tone: ModelTone;
+  /** Optional pill ("BEST", "EXTREME", "RARE") shown next to the label. */
+  badge?: ModelBadge;
+  /** Per-model multiplier on each leg's Kelly stake fraction. */
+  stakeMultiplier: number;
+  /** Max number of straights to include in this card. */
+  maxStraights: number;
+  /** Min American odds floor for individual legs (e.g. +200 → only plus-money dogs). */
+  minLegAmericanOdds?: number;
 }
 
 export const RISK_MODELS: Record<RiskModel, RiskModelConfig> = {
   conservative: {
     id: "conservative",
-    label: "Safe Gameplan",
+    label: "Safe",
     description: "Tier 1 only. Straights and 2-leg all-elite parlays.",
     minAppearance: 0.8,
     maxCardExposure: 0.15,
@@ -120,12 +137,15 @@ export const RISK_MODELS: Record<RiskModel, RiskModelConfig> = {
     maxParlayLegs: 2,
     allowLottery: false,
     allowProps: false,
-    targetWinRate: [0.68, 0.74],
-    targetMonthlyRoi: [0.06, 0.12],
+    targetWinRate: [0.74, 0.82],
+    targetMonthlyRoi: [0.1, 0.15],
+    tone: "emerald",
+    stakeMultiplier: 0.6,
+    maxStraights: 3,
   },
   balanced: {
     id: "balanced",
-    label: "Balanced Gameplan",
+    label: "Balanced",
     description: "Tier 1+2 straights, mixed 2-leg parlays, light props.",
     minAppearance: 0.7,
     maxCardExposure: 0.22,
@@ -134,8 +154,12 @@ export const RISK_MODELS: Record<RiskModel, RiskModelConfig> = {
     maxParlayLegs: 3,
     allowLottery: false,
     allowProps: true,
-    targetWinRate: [0.62, 0.68],
-    targetMonthlyRoi: [0.14, 0.2],
+    targetWinRate: [0.68, 0.76],
+    targetMonthlyRoi: [0.2, 0.3],
+    tone: "emerald",
+    badge: { label: "BEST", tone: "emerald" },
+    stakeMultiplier: 1.0,
+    maxStraights: 5,
   },
   aggressive: {
     id: "aggressive",
@@ -148,21 +172,48 @@ export const RISK_MODELS: Record<RiskModel, RiskModelConfig> = {
     maxParlayLegs: 4,
     allowLottery: true,
     allowProps: true,
-    targetWinRate: [0.54, 0.62],
-    targetMonthlyRoi: [0.22, 0.38],
+    targetWinRate: [0.6, 0.68],
+    targetMonthlyRoi: [0.38, 0.5],
+    tone: "emerald",
+    stakeMultiplier: 1.3,
+    maxStraights: 7,
   },
-  professional: {
-    id: "professional",
-    label: "Pro Strategy",
-    description: "Tier 1 only, strict Kelly, correlated parlays only.",
-    minAppearance: 0.8,
-    maxCardExposure: 0.25,
+  turbo: {
+    id: "turbo",
+    label: "Turbo Max EV",
+    description:
+      "Maximum EV chase — accepts variance for outsized upside. Lottery parlays and props on every fight.",
+    minAppearance: 0.55,
+    maxCardExposure: 0.4,
+    unitPctOfBankroll: 0.02,
+    allowParlays: true,
+    maxParlayLegs: 5,
+    allowLottery: true,
+    allowProps: true,
+    targetWinRate: [0.48, 0.56],
+    targetMonthlyRoi: [0.7, 0.9],
+    tone: "rose",
+    badge: { label: "EXTREME", tone: "rose" },
+    stakeMultiplier: 1.8,
+    maxStraights: 9,
+  },
+  longShot: {
+    id: "longShot",
+    label: "Long Shot",
+    description: "Lottery-tier moonshots. Long parlays, plus-money dogs, asymmetric payoffs.",
+    minAppearance: 0.5,
+    maxCardExposure: 0.12,
     unitPctOfBankroll: 0.01,
     allowParlays: true,
-    maxParlayLegs: 2,
-    allowLottery: false,
-    allowProps: false,
-    targetWinRate: [0.64, 0.7],
-    targetMonthlyRoi: [0.16, 0.24],
+    maxParlayLegs: 6,
+    allowLottery: true,
+    allowProps: true,
+    targetWinRate: [0.34, 0.42],
+    targetMonthlyRoi: [1.5, 2.5],
+    tone: "amber",
+    badge: { label: "RARE", tone: "amber" },
+    stakeMultiplier: 0.4,
+    maxStraights: 2,
+    minLegAmericanOdds: 150,
   },
 };

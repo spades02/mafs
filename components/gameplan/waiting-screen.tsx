@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Activity, Cpu, GitBranch, Radar, ShieldCheck, TrendingUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { msUntilNextRelease } from "@/lib/weekly-sims/release-window";
 
@@ -71,11 +70,7 @@ function formatStatus(s: EvaluatingItem["status"]): string {
   return s;
 }
 
-export function GameplanWaitingScreen({
-  onPreview,
-}: {
-  onPreview?: () => void;
-}) {
+export function GameplanWaitingScreen() {
   const [remaining, setRemaining] = useState(() => msUntilNextRelease());
   const [feedIdx, setFeedIdx] = useState(0);
 
@@ -121,7 +116,7 @@ export function GameplanWaitingScreen({
       <h1 className="text-5xl md:text-6xl font-light tracking-tight text-white mb-2">
         Friday Gameplan
       </h1>
-      <h2 className="text-5xl md:text-6xl font-light tracking-tight bg-gradient-to-b from-emerald-300 to-emerald-500/70 bg-clip-text text-transparent mb-8">
+      <h2 className="text-5xl md:text-6xl font-light tracking-tight leading-[1.15] pb-2 bg-gradient-to-b from-emerald-300 to-emerald-500/70 bg-clip-text text-transparent mb-8">
         In Progress
       </h2>
 
@@ -214,16 +209,6 @@ export function GameplanWaitingScreen({
       <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/60 mb-4">
         Optimizing retained EV structure
       </p>
-
-      {onPreview && (
-        <Button
-          variant="outline"
-          onClick={onPreview}
-          className="border-emerald-500/30 bg-emerald-500/5 text-emerald-300 hover:bg-emerald-500/10 hover:text-emerald-200"
-        >
-          Preview Ready State
-        </Button>
-      )}
     </div>
   );
 }
