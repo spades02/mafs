@@ -23,7 +23,7 @@ $ErrorActionPreference = "Stop"
 
 # Load CRON_SECRET from .env.local if not already in env
 if (-not $env:CRON_SECRET) {
-  $envFile = Join-Path $PSScriptRoot ".." ".env.local"
+  $envFile = Join-Path (Join-Path $PSScriptRoot "..") ".env.local"
   if (Test-Path $envFile) {
     Get-Content $envFile | ForEach-Object {
       if ($_ -match "^\s*CRON_SECRET\s*=\s*(.+?)\s*$") {
@@ -50,17 +50,22 @@ for ($i = 1; $i -le $Count; $i++) {
   $tickStart = Get-Date
   Write-Host "[$i/$Count] " -NoNewline -ForegroundColor Yellow
   try {
-    $response = curl.exe -s -H "Authorization: Bearer $env:CRON_SECRET" "$endpoint"
-    $parsed = $response | ConvertFrom-Json
+    $response = curl.exe -s -w "`nHTTP_STATUS:%{http_code}" -H "Authorization: Bearer $env:CRON_SECRET" "$endpoint"
+    $parts = $response -split "`nHTTP_STATUS:"
+    $body = $parts[0]
+    $status = if ($parts.Count -gt 1) { $parts[1].Trim() } else { "?" }
     $tickElapsed = [int](((Get-Date) - $tickStart).TotalSeconds)
 
-    if ($parsed.ok) {
+    $parsed = $null
+    try { $parsed = $body | ConvertFrom-Json } catch {}
+
+    if ($parsed -and $parsed.ok) {
       $totalSims += [int]$parsed.fightsSimulated
       $ticks++
       Write-Host ("tick={0} bucket={1} model={2} sims={3} ({4}s)" -f `
         $parsed.tickIndex, $parsed.bucket, $parsed.model, $parsed.fightsSimulated, $tickElapsed) -ForegroundColor Green
     } else {
-      Write-Host "skipped: $($parsed.reason)" -ForegroundColor DarkYellow
+      Write-Host ("HTTP {0}: {1}" -f $status, $body) -ForegroundColor DarkYellow
     }
   } catch {
     Write-Host "FAILED: $_" -ForegroundColor Red
@@ -71,4 +76,4 @@ for ($i = 1; $i -le $Count; $i++) {
 
 $totalElapsed = [int](((Get-Date) - $start).TotalSeconds)
 Write-Host ""
-Write-Host ("Done — {0} successful ticks, {1} sims, {2}s total" -f $ticks, $totalSims, $totalElapsed) -ForegroundColor Cyan
+Write-Host ("Done - {0} successful ticks, {1} sims, {2}s total" -f $ticks, $totalSims, $totalElapsed) -ForegroundColor Cyan
