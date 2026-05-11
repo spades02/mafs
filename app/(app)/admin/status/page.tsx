@@ -100,11 +100,20 @@ export default async function AdminStatusPage() {
   }> = [];
 
   if (currentRun) {
+    // Canonicalize GTD / DGTD labels at query time so historical rows that
+    // pre-date the cron-side normalizer still collapse. Keep these branches
+    // in sync with lib/weekly-sims/normalize-label.ts.
+    const canonicalLabel = sql<string>`CASE
+      WHEN ${weeklySimulationResults.betType} = 'GTD' THEN 'Fight Goes The Distance'
+      WHEN ${weeklySimulationResults.betType} = 'DGTD' THEN 'Fight Doesn''t Go The Distance'
+      ELSE trim(${weeklySimulationResults.label})
+    END`;
+
     const aggregates = await db
       .select({
         fightId: weeklySimulationResults.fightId,
         betType: weeklySimulationResults.betType,
-        label: weeklySimulationResults.label,
+        label: canonicalLabel,
         weightClass: weeklySimulationResults.weightClass,
         ticks: sql<number>`count(*)::int`,
         minProb: sql<number>`min(${weeklySimulationResults.modelProb})`,
@@ -132,7 +141,7 @@ export default async function AdminStatusPage() {
       .groupBy(
         weeklySimulationResults.fightId,
         weeklySimulationResults.betType,
-        weeklySimulationResults.label,
+        canonicalLabel,
         weeklySimulationResults.weightClass,
       );
 

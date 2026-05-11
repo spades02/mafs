@@ -88,13 +88,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: `Run ${runId} not found` }, { status: 404 });
   }
 
-  // Aggregate per (fightId, betType, label). Median + latest-by-tick use
-  // Postgres-native percentile_cont and array_agg(... order by ...).
+  // Canonicalize GTD / DGTD labels at query time. Mirrors the JS function
+  // in lib/weekly-sims/normalize-label.ts — keep them in sync.
+  const canonicalLabel = sql<string>`CASE
+    WHEN ${weeklySimulationResults.betType} = 'GTD' THEN 'Fight Goes The Distance'
+    WHEN ${weeklySimulationResults.betType} = 'DGTD' THEN 'Fight Doesn''t Go The Distance'
+    ELSE trim(${weeklySimulationResults.label})
+  END`;
+
+  // Aggregate per (fightId, betType, canonical label). Median + latest-by-tick
+  // use Postgres-native percentile_cont and array_agg(... order by ...).
   const aggregates = await db
     .select({
       fightId: weeklySimulationResults.fightId,
       betType: weeklySimulationResults.betType,
-      label: weeklySimulationResults.label,
+      label: canonicalLabel,
       weightClass: weeklySimulationResults.weightClass,
       ticks: sql<number>`count(*)::int`,
       minProb: sql<number>`min(${weeklySimulationResults.modelProb})`,
@@ -120,7 +128,7 @@ export async function GET(req: NextRequest) {
     .groupBy(
       weeklySimulationResults.fightId,
       weeklySimulationResults.betType,
-      weeklySimulationResults.label,
+      canonicalLabel,
       weeklySimulationResults.weightClass,
     );
 

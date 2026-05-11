@@ -14,6 +14,7 @@ import Agents, { FightResult, SimplifiedEvent, AgentUsageReport } from "@/app/ai
 import { bucketForDate, TICK_TARGETS, modelForTick } from "@/lib/weekly-sims/schedule";
 import { estimateCostUsd, logLlmSpend } from "@/lib/weekly-sims/cost-monitor";
 import { aggregateRecurringEdges } from "@/lib/weekly-sims/aggregate";
+import { normalizeLabel } from "@/lib/weekly-sims/normalize-label";
 
 // Vercel cron jobs run as serverless functions. This is a long-running task —
 // keep within Fluid Compute's 300s default. If a single tick exceeds that we
@@ -175,7 +176,7 @@ export async function GET(req: NextRequest) {
       weeklyRunId: runId,
       fightId: r.fightId,
       betType: e.bet_type,
-      label: e.label,
+      label: normalizeLabel(e.bet_type, e.label),
       modelProb: e.P_sim,
       marketImplied: typeof e.P_imp === "number" ? e.P_imp : null,
       edgePct: typeof e.edge_pct === "number" ? e.edge_pct : null,

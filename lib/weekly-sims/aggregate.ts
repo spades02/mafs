@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import { eq, and, sql } from "drizzle-orm";
 import { db, weeklySimulationResults, recurringEdges, weeklyRuns } from "@/db";
+import { normalizeLabel } from "./normalize-label";
 
 /**
  * Recompute the recurring_edges aggregation for an event from scratch.
@@ -53,13 +54,17 @@ export async function aggregateRecurringEdges(eventId: string): Promise<void> {
 
   const buckets = new Map<Key, Bucket>();
   for (const r of rows) {
-    const key = `${r.fightId}::${r.betType}::${r.label}`;
+    // Collapse historical label variants (e.g. "Fight Goes the Distance" vs
+    // "Fight Goes The Distance") so appearance counts aren't split across
+    // variants of the same conceptual bet.
+    const canonical = normalizeLabel(r.betType, r.label);
+    const key = `${r.fightId}::${r.betType}::${canonical}`;
     let b = buckets.get(key);
     if (!b) {
       b = {
         fightId: r.fightId,
         betType: r.betType,
-        label: r.label,
+        label: canonical,
         weightClass: r.weightClass,
         edges: [],
         modelProbs: [],
