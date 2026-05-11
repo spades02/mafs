@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Activity,
@@ -9,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  ExternalLink,
   RefreshCw,
   TrendingDown,
   TrendingUp,
@@ -196,18 +198,27 @@ export function AdminStatusClient(props: Props) {
             {nextEvent ? ` · Building portfolio for ${nextEvent.name}` : ""}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => startTransition(() => router.refresh())}
-          disabled={isPending}
-          className={cn(
-            "inline-flex items-center gap-2 rounded-lg border border-border/40 bg-[#0F1420]/80 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-white hover:border-border transition",
-            isPending && "opacity-60",
-          )}
-        >
-          <RefreshCw className={cn("h-3.5 w-3.5", isPending && "animate-spin")} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/gameplan?preview=1"
+            className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/[0.04] px-3 py-2 text-xs font-medium text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-500/50 transition"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Preview Gameplan
+          </Link>
+          <button
+            type="button"
+            onClick={() => startTransition(() => router.refresh())}
+            disabled={isPending}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-lg border border-border/40 bg-[#0F1420]/80 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-white hover:border-border transition",
+              isPending && "opacity-60",
+            )}
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", isPending && "animate-spin")} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Pipeline status card */}

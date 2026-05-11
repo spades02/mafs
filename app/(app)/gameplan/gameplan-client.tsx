@@ -177,11 +177,13 @@ export default function GameplanClient({
   isPro,
   isElite,
   tier,
+  isAdmin = false,
 }: {
   isAuthenticated: boolean;
   isPro: boolean;
   isElite: boolean;
   tier: string;
+  isAdmin?: boolean;
 }) {
   void isElite;
   void tier;
@@ -190,17 +192,18 @@ export default function GameplanClient({
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   // Release-window gating. Pre-Friday-6pm-ET: show waiting screen with intel
-  // feed + countdown. Dev-only escape hatch via ?preview=1 so designers can
-  // view the in-progress tabs without waiting for Friday — never honored in prod.
+  // feed + countdown. Bypass via ?preview=1 in dev (for any user) or in prod
+  // (admins only — gated server-side via MAFS_ADMIN_USER_IDS).
   const [showWaiting, setShowWaiting] = useState(true);
 
   useEffect(() => {
-    const devPreview =
-      process.env.NODE_ENV !== "production" &&
-      typeof window !== "undefined" &&
+    if (typeof window === "undefined") return;
+    const wantsPreview =
       new URLSearchParams(window.location.search).get("preview") === "1";
-    setShowWaiting(!isReleaseLive() && !devPreview);
-  }, []);
+    const previewAllowed =
+      wantsPreview && (process.env.NODE_ENV !== "production" || isAdmin);
+    setShowWaiting(!isReleaseLive() && !previewAllowed);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!isAuthenticated) {
