@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Cpu,
   ExternalLink,
   RefreshCw,
   TrendingDown,
@@ -67,6 +68,19 @@ type Props = {
       edge: { avg: number | null; median: number | null; latest: number | null };
       latestMarketOdd: number | null;
     }>;
+  }>;
+  topOutcomes: Array<{
+    fightId: string;
+    matchup: string | null;
+    betType: string;
+    label: string;
+    appearances: number;
+    totalRuns: number;
+    appearancePct: number;
+    avgEdge: number;
+    avgModelProb: number;
+    latestMarketOdd: number | null;
+    weightClass: string | null;
   }>;
 };
 
@@ -160,7 +174,7 @@ function edgeTone(v: number | null | undefined): string {
 }
 
 export function AdminStatusClient(props: Props) {
-  const { generatedAt, nextEvent, currentRun, recalibration, perFight } = props;
+  const { generatedAt, nextEvent, currentRun, recalibration, perFight, topOutcomes } = props;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showRecent, setShowRecent] = useState(false);
@@ -430,6 +444,87 @@ export function AdminStatusClient(props: Props) {
               </div>
             )}
           </>
+        )}
+      </section>
+
+      {/* Top simulated outcomes */}
+      <section className="mb-8 rounded-2xl border border-border/40 bg-[#0F1420]/70 p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <Cpu className="h-4 w-4 text-emerald-400" />
+            <h2 className="text-sm uppercase tracking-[0.25em] text-muted-foreground font-semibold">
+              Top Simulated Outcomes
+            </h2>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            Top {topOutcomes.length} · ranked by simulation count
+          </span>
+        </div>
+
+        {topOutcomes.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            No aggregated outcomes yet. Wait for the next cron tick to materialize.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
+                  <th className="text-left py-2.5 px-3 font-normal">Pick</th>
+                  <th className="text-left py-2.5 px-3 font-normal">Simulations</th>
+                  <th className="text-right py-2.5 px-3 font-normal">Model</th>
+                  <th className="text-right py-2.5 px-3 font-normal">Avg Edge</th>
+                  <th className="text-right py-2.5 px-3 font-normal">Odds</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topOutcomes.map((o, i) => {
+                  const pct = Math.round(o.appearancePct * 100);
+                  return (
+                    <tr
+                      key={`${o.fightId}-${o.betType}-${o.label}-${i}`}
+                      className="border-t border-border/20 hover:bg-muted/5 transition"
+                    >
+                      <td className="py-3 px-3">
+                        <div className="text-white truncate max-w-[280px]">{o.label}</div>
+                        <div className="text-[10px] text-muted-foreground/60 truncate max-w-[280px]">
+                          {o.matchup ?? "—"}
+                          <span className="uppercase tracking-widest text-muted-foreground/50 ml-2">
+                            {o.betType}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-foreground tabular-nums whitespace-nowrap">
+                            {o.appearances.toLocaleString()} / {o.totalRuns.toLocaleString()}
+                          </span>
+                          <div className="hidden sm:block flex-1 h-1.5 rounded-full bg-muted/20 overflow-hidden min-w-[60px] max-w-[120px]">
+                            <div
+                              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-300"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-[11px] text-muted-foreground/70 tabular-nums w-10 text-right">
+                            {pct}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-right tabular-nums text-foreground">
+                        {fmtPct(o.avgModelProb)}
+                      </td>
+                      <td className={cn("py-3 px-3 text-right tabular-nums", edgeTone(o.avgEdge))}>
+                        {fmtEdge(o.avgEdge)}
+                      </td>
+                      <td className="py-3 px-3 text-right tabular-nums text-muted-foreground">
+                        {fmtOdds(o.latestMarketOdd)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 

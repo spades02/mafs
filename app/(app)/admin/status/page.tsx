@@ -9,6 +9,7 @@ import {
   calibrationConfigs,
   predictionOutcomes,
   weeklySimulationResults,
+  recurringEdges,
   fights,
   fighters,
 } from "@/db";
@@ -222,6 +223,91 @@ export default async function AdminStatusPage() {
     });
   }
 
+  // ── Top simulated outcomes across the event ─────────────────
+  // Mirrors the data the gameplan UI surfaces but ranked by raw appearance
+  // count so admins can see which bets the system kept selecting across
+  // ticks. Uses the same fightMap/fighterMap collected above.
+  let topOutcomes: Array<{
+    fightId: string;
+    matchup: string | null;
+    betType: string;
+    label: string;
+    appearances: number;
+    totalRuns: number;
+    appearancePct: number;
+    avgEdge: number;
+    avgModelProb: number;
+    latestMarketOdd: number | null;
+    weightClass: string | null;
+  }> = [];
+
+  if (nextEvent) {
+    const edgeRows = await db
+      .select({
+        fightId: recurringEdges.fightId,
+        betType: recurringEdges.betType,
+        label: recurringEdges.label,
+        appearances: recurringEdges.appearances,
+        totalRuns: recurringEdges.totalRuns,
+        appearancePct: recurringEdges.appearancePct,
+        avgEdge: recurringEdges.avgEdge,
+        avgModelProb: recurringEdges.avgModelProb,
+        latestMarketOdd: recurringEdges.latestMarketOdd,
+        weightClass: recurringEdges.weightClass,
+      })
+      .from(recurringEdges)
+      .where(eq(recurringEdges.eventId, nextEvent.eventId))
+      .orderBy(desc(recurringEdges.appearances))
+      .limit(25);
+
+    // Reuse the maps the perFight block built (if any). Otherwise fetch.
+    let fightLookup = new Map<string, typeof fights.$inferSelect>();
+    let fighterLookup = new Map<string, typeof fighters.$inferSelect>();
+    if (currentRun && edgeRows.length) {
+      // The perFight block above already loaded fights/fighters into
+      // fightMap/fighterMap, but they're scoped inside `if (currentRun)`.
+      // Easier path: refetch (cheap — same event id, ≤13 fights).
+      const ids = Array.from(new Set(edgeRows.map((e) => e.fightId)));
+      const fightRows = await db.select().from(fights).where(inArray(fights.id, ids));
+      fightLookup = new Map(fightRows.map((f) => [f.id, f]));
+      const fIds = new Set<string>();
+      for (const f of fightRows) {
+        if (f.fighterAId) fIds.add(f.fighterAId);
+        if (f.fighterBId) fIds.add(f.fighterBId);
+      }
+      const frows = fIds.size
+        ? await db.select().from(fighters).where(inArray(fighters.id, Array.from(fIds)))
+        : [];
+      fighterLookup = new Map(frows.map((f) => [f.id, f]));
+    }
+
+    const nameOf = (id: string | null): string | null => {
+      if (!id) return null;
+      const f = fighterLookup.get(id);
+      if (!f) return null;
+      return [f.firstName, f.lastName].filter(Boolean).join(" ") || null;
+    };
+
+    topOutcomes = edgeRows.map((e) => {
+      const fightMeta = fightLookup.get(e.fightId);
+      const a = nameOf(fightMeta?.fighterAId ?? null);
+      const b = nameOf(fightMeta?.fighterBId ?? null);
+      return {
+        fightId: e.fightId,
+        matchup: a && b ? `${a} vs ${b}` : null,
+        betType: e.betType,
+        label: e.label,
+        appearances: e.appearances,
+        totalRuns: e.totalRuns,
+        appearancePct: e.appearancePct,
+        avgEdge: e.avgEdge,
+        avgModelProb: e.avgModelProb,
+        latestMarketOdd: e.latestMarketOdd,
+        weightClass: e.weightClass,
+      };
+    });
+  }
+
   return (
     <AdminStatusClient
       generatedAt={now.toISOString()}
@@ -288,6 +374,7 @@ export default async function AdminStatusPage() {
         },
       }}
       perFight={perFight}
+      topOutcomes={topOutcomes}
     />
   );
 }

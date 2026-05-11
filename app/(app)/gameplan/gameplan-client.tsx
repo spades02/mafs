@@ -1,13 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Check, Loader2, Lock, Sparkle, Sparkles, TrendingUp, Wallet } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Cpu,
+  Loader2,
+  Lock,
+  SlidersHorizontal,
+  Sparkle,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BuiltCard, CardLeg, ParlayTicket } from "@/lib/weekly-sims/build-card";
 import type { ModelTone, RiskModel, RiskModelConfig } from "@/lib/weekly-sims/strategy";
+import { americanToDecimal } from "@/lib/weekly-sims/strategy";
 import { isReleaseLive } from "@/lib/weekly-sims/release-window";
 import { GameplanWaitingScreen } from "@/components/gameplan/waiting-screen";
 
@@ -57,6 +68,8 @@ const TONE_STYLES: Record<
     activeLabel: string;
     activeBg: string;
     glow: string;
+    /** Large radial page-background tint matched to the active tone. */
+    bgGlow: string;
     icon?: typeof AlertTriangle;
     iconClass?: string;
   }
@@ -68,6 +81,8 @@ const TONE_STYLES: Record<
     activeLabel: "text-white",
     activeBg: "bg-emerald-500/[0.04]",
     glow: "shadow-[0_0_0_1px_rgba(16,185,129,0.18),0_0_24px_-8px_rgba(16,185,129,0.45)]",
+    bgGlow:
+      "radial-gradient(70% 55% at 50% 0%, rgba(16,185,129,0.18) 0%, rgba(16,185,129,0.04) 45%, transparent 75%)",
   },
   rose: {
     profit: "text-rose-400",
@@ -76,6 +91,8 @@ const TONE_STYLES: Record<
     activeLabel: "text-white",
     activeBg: "bg-rose-500/[0.04]",
     glow: "shadow-[0_0_0_1px_rgba(244,63,94,0.18),0_0_24px_-8px_rgba(244,63,94,0.45)]",
+    bgGlow:
+      "radial-gradient(70% 55% at 50% 0%, rgba(244,63,94,0.22) 0%, rgba(244,63,94,0.05) 45%, transparent 75%)",
     icon: AlertTriangle,
     iconClass: "text-rose-400/70",
   },
@@ -86,6 +103,8 @@ const TONE_STYLES: Record<
     activeLabel: "text-amber-300",
     activeBg: "bg-amber-500/[0.04]",
     glow: "shadow-[0_0_0_1px_rgba(245,158,11,0.22),0_0_28px_-6px_rgba(245,158,11,0.5)]",
+    bgGlow:
+      "radial-gradient(70% 55% at 50% 0%, rgba(245,158,11,0.20) 0%, rgba(245,158,11,0.04) 45%, transparent 75%)",
     icon: Sparkle,
     iconClass: "text-amber-300",
   },
@@ -96,8 +115,133 @@ function fmtAmericanOdds(n: number | null | undefined): string {
   return n > 0 ? `+${n}` : `${n}`;
 }
 
+function fmtEventDate(iso: string): { date: string; relative: string } | null {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const date = d.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const diffDays = Math.round((d.getTime() - Date.now()) / 86_400_000);
+  let relative: string;
+  if (diffDays > 1) relative = `${diffDays} days`;
+  else if (diffDays === 1) relative = "tomorrow";
+  else if (diffDays === 0) relative = "today";
+  else relative = `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? "" : "s"} ago`;
+  return { date, relative };
+}
+
+function BankrollInput({
+  bankroll,
+  setBankroll,
+}: {
+  bankroll: number | null;
+  setBankroll: (n: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const commit = () => {
+    const v = parseInt(draft.replace(/[^0-9]/g, ""), 10);
+    if (Number.isFinite(v) && v > 0) setBankroll(v);
+    setEditing(false);
+  };
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  return (
+    <div className="flex items-center gap-4 mb-8 px-4 py-3.5 rounded-xl border border-border/40 bg-[#0f1419]/60">
+      <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/70 shrink-0">
+        Starting Capital
+      </span>
+
+      <div className="flex-1 flex items-center gap-3 min-w-0">
+        {editing ? (
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-2xl font-light text-muted-foreground">$</span>
+            <input
+              ref={inputRef}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, ""))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commit();
+                if (e.key === "Escape") setEditing(false);
+              }}
+              placeholder="Amount"
+              className="bg-transparent flex-1 min-w-0 text-2xl font-light text-white placeholder:text-muted-foreground/50 outline-none border-b border-emerald-500/60 focus:border-emerald-400 transition-colors py-0.5"
+            />
+            <button
+              type="button"
+              onClick={commit}
+              className="px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-colors"
+            >
+              Set
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="px-2 py-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(bankroll != null ? String(bankroll) : "");
+              setEditing(true);
+            }}
+            className="flex items-center gap-2 text-2xl font-light text-white hover:text-emerald-300 transition-colors group"
+          >
+            ${bankroll?.toLocaleString() ?? "—"}
+            <SlidersHorizontal className="h-4 w-4 text-muted-foreground/60 group-hover:text-emerald-400/80 transition-colors" />
+          </button>
+        )}
+
+        <span className="h-6 w-px bg-border/40 shrink-0" />
+
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {BANKROLL_CHIPS.map((amt) => {
+            const isActive = !editing && bankroll === amt;
+            return (
+              <button
+                key={amt}
+                type="button"
+                onClick={() => {
+                  setEditing(false);
+                  setBankroll(amt);
+                }}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors",
+                  isActive
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                    : "text-muted-foreground hover:text-white",
+                )}
+              >
+                ${amt >= 1000 ? `${amt / 1000}k` : amt}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StraightLeg({ leg, showDollar }: { leg: LegWithMatchup; showDollar: boolean }) {
   const tier = TIER_BADGE[leg.tier];
+  const profitIfWins =
+    showDollar && leg.stakeUsd != null && leg.americanOdds != null
+      ? Math.round(leg.stakeUsd * (americanToDecimal(leg.americanOdds) - 1) * 100) / 100
+      : null;
   return (
     <div className="rounded-xl border border-border/40 bg-[#0F1420]/70 p-4 hover:border-primary/30 transition-colors">
       <div className="flex items-start justify-between gap-4">
@@ -112,15 +256,20 @@ function StraightLeg({ leg, showDollar }: { leg: LegWithMatchup; showDollar: boo
           {leg.matchup && (
             <p className="text-xs text-muted-foreground/70 mt-0.5 truncate">{leg.matchup}</p>
           )}
-          <p className="text-xs text-muted-foreground/60 mt-2">{leg.rationale}</p>
+          <p className="text-xs text-muted-foreground mt-2">{leg.rationale}</p>
         </div>
         <div className="text-right shrink-0">
           <p className="text-2xl font-bold text-emerald-400">{Math.round(leg.modelProb * 100)}%</p>
           <p className="text-xs text-muted-foreground">model prob</p>
           {showDollar && leg.stakeUsd != null ? (
-            <p className="text-sm font-semibold text-white mt-1">${leg.stakeUsd}</p>
+            <p className="text-sm font-semibold text-white mt-1">${leg.stakeUsd.toLocaleString()}</p>
           ) : (
             <p className="text-sm font-semibold text-white mt-1">{leg.units}u</p>
+          )}
+          {profitIfWins != null && (
+            <p className="text-xs font-semibold text-emerald-400 mt-0.5">
+              wins +${profitIfWins.toLocaleString()}
+            </p>
           )}
           <p className={cn("text-xs mt-0.5", leg.evPct >= 0 ? "text-emerald-400" : "text-rose-400")}>
             {leg.evPct >= 0 ? "+" : ""}
@@ -129,7 +278,10 @@ function StraightLeg({ leg, showDollar }: { leg: LegWithMatchup; showDollar: boo
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground/60">
-        <span>{Math.round(leg.appearancePct * 100)}% appearance</span>
+        <span className="inline-flex items-center gap-1.5">
+          <Cpu className="h-3 w-3 text-emerald-400/70" />
+          {leg.appearances.toLocaleString()} of {leg.totalRuns.toLocaleString()} simulations
+        </span>
         <span>{fmtAmericanOdds(leg.americanOdds)}</span>
       </div>
     </div>
@@ -138,6 +290,14 @@ function StraightLeg({ leg, showDollar }: { leg: LegWithMatchup; showDollar: boo
 
 function ParlayCard({ parlay, showDollar }: { parlay: ParlayWithMatchup; showDollar: boolean }) {
   const legCount = parlay.legs.length;
+  const profitIfWins =
+    showDollar && parlay.stakeUsd != null && parlay.payoutUsd != null
+      ? Math.round((parlay.payoutUsd - parlay.stakeUsd) * 100) / 100
+      : null;
+  const minAppearances = parlay.legs.length
+    ? Math.min(...parlay.legs.map((l) => l.appearances))
+    : 0;
+  const totalRuns = parlay.legs[0]?.totalRuns ?? 0;
   return (
     <div className="rounded-xl border border-border/40 bg-[#0F1420]/70 p-4 hover:border-primary/30 transition-colors">
       <div className="flex items-start justify-between gap-4 mb-3">
@@ -150,9 +310,16 @@ function ParlayCard({ parlay, showDollar }: { parlay: ParlayWithMatchup; showDol
         <div className="text-right">
           <p className="text-2xl font-bold text-emerald-400">{Math.round(parlay.combinedProb * 100)}%</p>
           {showDollar && parlay.stakeUsd != null ? (
-            <p className="text-sm font-semibold text-white">${parlay.stakeUsd} → ${parlay.payoutUsd}</p>
+            <p className="text-sm font-semibold text-white">
+              ${parlay.stakeUsd.toLocaleString()} → ${parlay.payoutUsd?.toLocaleString() ?? "—"}
+            </p>
           ) : (
             <p className="text-sm font-semibold text-white">@ {parlay.combinedDecimalOdds.toFixed(2)}</p>
+          )}
+          {profitIfWins != null && (
+            <p className="text-xs font-semibold text-emerald-400 mt-0.5">
+              wins +${profitIfWins.toLocaleString()}
+            </p>
           )}
           <p className={cn("text-xs", parlay.evPct >= 0 ? "text-emerald-400" : "text-rose-400")}>
             {parlay.evPct >= 0 ? "+" : ""}
@@ -168,6 +335,12 @@ function ParlayCard({ parlay, showDollar }: { parlay: ParlayWithMatchup; showDol
           </div>
         ))}
       </div>
+      {totalRuns > 0 && (
+        <div className="mt-3 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground/60">
+          <Cpu className="h-3 w-3 text-emerald-400/70" />
+          {minAppearances.toLocaleString()}+ of {totalRuns.toLocaleString()} sims per leg
+        </div>
+      )}
     </div>
   );
 }
@@ -298,17 +471,36 @@ export default function GameplanClient({
       ? (expectedReturn / totalStake) * 100
       : null;
 
+  const activeTone: ModelTone = activeCard?.config.tone ?? "emerald";
+  const eventInfo = fmtEventDate(data.event.dateTime);
+
   return (
-    <div className="min-h-screen px-4 py-8 max-w-6xl mx-auto">
+    <div className="relative isolate min-h-screen">
+      {/* Tone-matched ambient background glow — cross-fades on style switch. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10 transition-[background] duration-700 ease-out"
+        style={{ background: TONE_STYLES[activeTone].bgGlow }}
+      />
+
+      <div className="px-4 py-8 max-w-6xl mx-auto">
       {/* Header — "Your Gameplan Is Ready" */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground mb-2">
             <span className="inline-flex items-center gap-1 text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
             </span>
             <span>·</span>
             <span>{data.event.name}</span>
+            {eventInfo && (
+              <>
+                <span>·</span>
+                <span className="text-muted-foreground/70">
+                  {eventInfo.date} ({eventInfo.relative})
+                </span>
+              </>
+            )}
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Your Gameplan Is Ready</h1>
           <div className="flex items-center gap-3 mt-3 text-sm">
@@ -394,30 +586,8 @@ export default function GameplanClient({
         })}
       </div>
 
-      {/* Bankroll chips */}
-      <div className="flex items-center gap-3 mb-8 p-4 rounded-xl border border-border/40 bg-[#0f1419]/40">
-        <Wallet className="h-5 w-5 text-primary shrink-0" />
-        <div className="flex-1">
-          <p className="text-xs text-muted-foreground mb-2">Total bankroll</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-2xl font-bold text-white mr-2">${bankroll?.toLocaleString() ?? "—"}</span>
-            {BANKROLL_CHIPS.map((amt) => (
-              <button
-                key={amt}
-                onClick={() => setBankroll(amt)}
-                className={cn(
-                  "px-3 py-1 rounded-full text-xs font-semibold border transition-colors",
-                  bankroll === amt
-                    ? "border-primary bg-primary text-black"
-                    : "border-border/50 text-muted-foreground hover:border-primary/40",
-                )}
-              >
-                ${amt >= 1000 ? `${amt / 1000}k` : amt}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Starting capital — clickable display toggles to inline editable input. */}
+      <BankrollInput bankroll={bankroll} setBankroll={setBankroll} />
 
       {/* AI Gameplan card list */}
       <div className="rounded-xl border border-border/40 bg-[#0f1419]/40 p-5">
@@ -456,6 +626,7 @@ export default function GameplanClient({
             <Button asChild className="px-6"><Link href="/billing?plan=elite">Upgrade to Elite — $99/mo</Link></Button>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

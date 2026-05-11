@@ -30,6 +30,10 @@ export interface CardLeg {
   label: string;
   tier: Tier;
   appearancePct: number;
+  /** Raw count of ticks this label appeared in — surfaces the AI work behind the pick. */
+  appearances: number;
+  /** Total ticks the run has executed for this event (the denominator of appearancePct). */
+  totalRuns: number;
   modelProb: number;
   americanOdds: number | null;
   edgePct: number;
@@ -114,6 +118,8 @@ function buildLeg(
   const decimal = americanToDecimal(edge.latestMarketOdd);
   const evPct = (edge.avgModelProb * (decimal - 1) - (1 - edge.avgModelProb)) * 100;
 
+  const edgeAvgPct = Math.round(edge.avgEdge);
+  const consistencyPct = Math.round(edge.appearancePct * 100);
   return {
     edgeId: edge.id,
     fightId: edge.fightId,
@@ -121,6 +127,8 @@ function buildLeg(
     label: edge.label,
     tier,
     appearancePct: edge.appearancePct,
+    appearances: edge.appearances,
+    totalRuns: edge.totalRuns,
     modelProb: edge.avgModelProb,
     americanOdds: edge.latestMarketOdd,
     edgePct: edge.avgEdge,
@@ -129,7 +137,7 @@ function buildLeg(
     stakeUsd,
     units: Math.round(units * 10) / 10,
     evPct: Math.round(evPct * 10) / 10,
-    rationale: `Tier ${tier === "elite" ? "1" : tier === "strong" ? "2" : "3"} (${Math.round(edge.appearancePct * 100)}% appearance) — ${cfg.label}`,
+    rationale: `${edgeAvgPct >= 0 ? "+" : ""}${edgeAvgPct}% avg edge across ${edge.totalRuns} sims · ${consistencyPct}% consistency · ${cfg.label} pick`,
   };
 }
 
