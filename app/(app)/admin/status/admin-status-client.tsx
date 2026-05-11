@@ -73,11 +73,11 @@ function fmtPct(v: number | null | undefined, digits = 1): string {
   return `${(v * 100).toFixed(digits)}%`;
 }
 
-function fmtSignedPct(v: number | null | undefined, digits = 1): string {
+// edge_pct is stored already as a percentage (31.5 = 31.5%), not a fraction.
+function fmtEdge(v: number | null | undefined, digits = 1): string {
   if (v === null || v === undefined || Number.isNaN(v)) return "—";
-  const pct = v * 100;
-  const sign = pct >= 0 ? "+" : "";
-  return `${sign}${pct.toFixed(digits)}%`;
+  const sign = v >= 0 ? "+" : "";
+  return `${sign}${v.toFixed(digits)}%`;
 }
 
 function fmtOdds(v: number | null | undefined): string {
@@ -148,11 +148,12 @@ function statusTone(s: string): { dot: string; chip: string; label: string } {
   }
 }
 
+// edge values are percentages (5 = 5%, 12 = 12%), not fractions.
 function edgeTone(v: number | null | undefined): string {
   if (v === null || v === undefined || Number.isNaN(v)) return "text-muted-foreground";
-  if (v >= 0.1) return "text-emerald-300 font-semibold";
-  if (v >= 0.03) return "text-emerald-400";
-  if (v <= -0.05) return "text-rose-400";
+  if (v >= 10) return "text-emerald-300 font-semibold";
+  if (v >= 3) return "text-emerald-400";
+  if (v <= -5) return "text-rose-400";
   return "text-muted-foreground";
 }
 
@@ -504,7 +505,7 @@ function FightCard({
                 Top Edge
               </div>
               <div className={cn("text-lg font-semibold tabular-nums", edgeTone(bestEdge))}>
-                {fmtSignedPct(bestEdge)}
+                {fmtEdge(bestEdge)}
               </div>
             </div>
           )}
@@ -570,7 +571,7 @@ function FightCard({
                           {trendIcon === "down" && (
                             <TrendingDown className="h-3 w-3 opacity-70" />
                           )}
-                          {fmtSignedPct(l.edge.latest)}
+                          {fmtEdge(l.edge.latest)}
                         </span>
                       </td>
                       <td className="py-3 px-2 text-right tabular-nums text-muted-foreground">
