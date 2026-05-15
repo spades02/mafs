@@ -157,7 +157,7 @@ export default function AnalysisResultClient({ eventName, eventDate, fights, bet
                         <div className="mb-8">
                             <div className="flex items-center gap-3 mb-2">
                                 <h2 className="text-3xl font-bold text-white tracking-tight">MAFS AI Picks</h2>
-                                <div className="px-3 py-1 bg-emerald-500/[0.05] border border-emerald-500/20 rounded-full flex items-center">
+                                <div className="px-3 py-1 bg-emerald-500/5 border border-emerald-500/20 rounded-full flex items-center">
                                     <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">{topBets.length} HIGH-EDGE OPPORTUNIT{topBets.length === 1 ? 'Y' : 'IES'} DETECTED</span>
                                 </div>
                             </div>

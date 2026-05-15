@@ -282,7 +282,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                 {/* MAFS INTELLIGENCE BREAKDOWN TOGGLE */}
                 <div 
                     onClick={onToggle}
-                    className="flex items-center justify-between px-5 py-4 border-y border-white/5 bg-[#0A0C10] cursor-pointer hover:bg-white/[0.02] transition-colors"
+                    className="flex items-center justify-between px-5 py-4 border-y border-white/5 bg-[#0A0C10] cursor-pointer hover:bg-white/2 transition-colors"
                 >
                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground/80 font-bold">MAFS Intelligence Breakdown</span>
                     {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground/50" /> : <ChevronDown className="w-4 h-4 text-muted-foreground/50" />}
@@ -318,7 +318,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                                         type="button"
                                         onClick={() => setEdgeBreakdownOpen((v) => !v)}
                                         aria-expanded={edgeBreakdownOpen}
-                                        className="w-full flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors text-left"
+                                        className="w-full flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/2 transition-colors text-left"
                                     >
                                         <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60 font-bold">Full Edge Breakdown</span>
                                         {edgeBreakdownOpen
@@ -328,7 +328,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                                     {edgeBreakdownOpen && (
                                         <div className="p-4 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
                                             {coreThesis && (
-                                                <div className="p-4 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/15">
+                                                <div className="p-4 rounded-lg bg-emerald-500/4 border border-emerald-500/15">
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                                         <span className="text-[9px] uppercase tracking-widest text-emerald-400/90 font-bold">Core Thesis</span>
@@ -365,7 +365,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                         </p>
 
                         {/* MAFS VERDICT */}
-                        <div className="p-5 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.02] mb-6">
+                        <div className="p-5 rounded-xl border border-emerald-500/20 bg-emerald-500/2 mb-6">
                             <div className="flex items-center gap-2 mb-3">
                                 <div className="w-1.5 h-1.5 bg-emerald-400 rounded-sm" />
                                 <span className="text-[9px] uppercase tracking-widest text-emerald-400/90 font-bold">MAFS Verdict</span>
@@ -487,7 +487,7 @@ export function BetCard({ bet, index, isExpanded, onToggle, betSeed, oddsFormat 
                                     )
                                 })()}
                                 {/* True Line */}
-                                <div className="p-5 text-center border-b border-white/5 relative bg-emerald-500/[0.02]">
+                                <div className="p-5 text-center border-b border-white/5 relative bg-emerald-500/2">
                                     <span className="text-[9px] uppercase tracking-widest text-emerald-400/50 font-bold mb-2 block">MAFS True Line</span>
                                     <p className="text-2xl font-bold font-mono text-emerald-400 mb-1">{trueLineAmerican > 0 ? `+${trueLineAmerican}` : trueLineAmerican}</p>
                                     <p className="text-[9px] uppercase tracking-widest text-emerald-400/50 font-bold">Model: {(modelProb * 100).toFixed(0)}%</p>
