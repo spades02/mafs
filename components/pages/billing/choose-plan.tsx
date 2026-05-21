@@ -12,6 +12,7 @@ interface ChoosePlanProps {
 
 function ChoosePlan({ isGuest = false }: ChoosePlanProps) {
   return (
+    <>
     <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto items-stretch">
       {/* Free Plan */}
       <Card className="bg-[#0f1419]/40 border-primary/10 backdrop-blur-sm relative flex flex-col hover:border-primary/20 transition-all duration-300 h-full">
@@ -132,6 +133,13 @@ function ChoosePlan({ isGuest = false }: ChoosePlanProps) {
         </CardFooter>
       </Card>
     </div>
+    <p className="mt-8 text-center text-xs text-muted-foreground">
+      Pro and Elite are auto-renewing monthly subscriptions. By subscribing you agree to our{" "}
+      <Link href="/terms" className="underline hover:text-foreground">Terms of Use</Link>
+      {" • "}
+      <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>
+    </p>
+    </>
   )
 }
 

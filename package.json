@@ -13,6 +13,7 @@
     "@ai-sdk/anthropic": "^2.0.56",
     "@ai-sdk/openai": "^2.0.88",
     "@ai-sdk/react": "^2.0.106",
+    "@capacitor-community/apple-sign-in": "^7.1.0",
     "@capacitor/cli": "^7.4.5",
     "@capacitor/core": "^8.0.1",
     "@capacitor/haptics": "^8.0.0",

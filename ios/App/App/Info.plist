@@ -4,6 +4,12 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>NSCameraUsageDescription</key>
+	<string>MAFS uses the camera so you can take a photo for your profile picture.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>MAFS accesses your photo library so you can choose a profile picture.</string>
+	<key>NSPhotoLibraryAddOnlyUsageDescription</key>
+	<string>MAFS saves images to your photo library when you choose to.</string>
 	<key>CFBundleDisplayName</key>
         <string>MAFS</string>
 	<key>CFBundleExecutable</key>

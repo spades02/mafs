@@ -8,6 +8,7 @@ import { authClient } from '@/lib/auth/auth-client'
 import { toast } from 'sonner'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import GoogleLoginButton from './google-login-button'
+import AppleLoginButton from './apple-login-button'
 
 
 type FormValues = {
@@ -170,6 +171,7 @@ function SignupForm() {
 
       <div className="mt-4">
         <GoogleLoginButton disabled={isLoading} onClick={handleGoogleClick} />
+        <AppleLoginButton disabled={isLoading} onClick={handleGoogleClick} />
       </div>
 
       <p className="mt-6 text-center text-sm text-gray-400">
