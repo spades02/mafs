@@ -7,6 +7,7 @@ import { user as userTable } from "@/db/schema/auth-schema";
 import { eq } from "drizzle-orm";
 import { sendEmail } from "../email";
 import { generateUniqueReferralCode } from "@/lib/referrals/codes";
+import { supabaseServer } from "@/lib/supabase/server";
 
 export const auth = betterAuth({
     trustedOrigins: [
@@ -84,6 +85,22 @@ export const auth = betterAuth({
                 type: "string",
                 required: false,
                 input: false, // captured server-side from cookie via /api/referrals/attach
+            },
+        },
+        // In-app account deletion — required by App Store Guideline 5.1.1(v).
+        // Immediate, permanent delete (not deactivation). The user row cascade-deletes
+        // all linked rows (sessions, accounts, saved plays, device tokens, referrals,
+        // analysis runs). beforeDelete also clears the avatar from Supabase storage.
+        deleteUser: {
+            enabled: true,
+            beforeDelete: async (userToDelete) => {
+                try {
+                    await supabaseServer.storage
+                        .from("avatars")
+                        .remove([`user_${userToDelete.id}/avatar.webp`]);
+                } catch (err) {
+                    console.error("[auth] failed to remove avatar on account deletion for", userToDelete.id, err);
+                }
             },
         },
     },
@@ -166,6 +183,22 @@ export const auth = betterAuth({
             clientId: process.env.GOOGLE_CLIENT_ID as string,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string
         },
+        // Sign in with Apple — required by App Store Guideline 4.8.
+        // Ready-to-activate: registers automatically once the Apple credentials
+        // are present in env (see CLIENT_APP_STORE_GUIDE.md → step C4).
+        // - iOS uses the NATIVE flow (idToken), whose audience is the app bundle id.
+        // - Web uses the Services ID (clientId) + a generated clientSecret JWT.
+        // We accept both audiences so either path verifies.
+        ...((process.env.APPLE_CLIENT_ID || process.env.APPLE_APP_BUNDLE_IDENTIFIER)
+            ? {
+                apple: {
+                    clientId: (process.env.APPLE_CLIENT_ID ?? process.env.APPLE_APP_BUNDLE_IDENTIFIER) as string,
+                    clientSecret: process.env.APPLE_CLIENT_SECRET ?? "",
+                    appBundleIdentifier: process.env.APPLE_APP_BUNDLE_IDENTIFIER,
+                    audience: [process.env.APPLE_CLIENT_ID, process.env.APPLE_APP_BUNDLE_IDENTIFIER].filter(Boolean) as string[],
+                },
+            }
+            : {}),
     },
 });
 

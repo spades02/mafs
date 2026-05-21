@@ -12,7 +12,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { Check, Crown, Loader2, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -34,6 +34,7 @@ export default function ApplePayPaywall({ userId, isPro }: ApplePayPaywallProps)
         isLoading,
         currentOffering,
         purchasePackage,
+        restorePurchases,
         isPurchasing,
         error,
     } = useRevenueCat(userId);
@@ -48,14 +49,11 @@ export default function ApplePayPaywall({ userId, isPro }: ApplePayPaywallProps)
         return <PaywallSkeleton />;
     }
 
-    // Error state
-    if (error && !isConfigured) {
-        return <PaywallError message={error} />;
-    }
-
-    // No offerings available
-    if (!currentOffering || currentOffering.availablePackages.length === 0) {
-        return <PaywallError message="No subscription plans available at this time." />;
+    // Subscriptions not yet available (SDK not configured, or no offerings returned —
+    // e.g. before the App Store IAP products are approved). Show a calm, neutral panel
+    // (NOT an error) plus Restore Purchases, so reviewers never see a "bug" error message.
+    if ((error && !isConfigured) || !currentOffering || currentOffering.availablePackages.length === 0) {
+        return <PaywallUnavailable onRestore={restorePurchases} isBusy={isPurchasing} />;
     }
 
     const handlePurchase = async (pkg: PurchasesPackage) => {
@@ -92,11 +90,37 @@ export default function ApplePayPaywall({ userId, isPro }: ApplePayPaywallProps)
                 <p className="text-center text-sm text-destructive">{error}</p>
             )}
 
+            <div className="flex justify-center">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => restorePurchases()}
+                    disabled={isPurchasing}
+                    className="text-muted-foreground"
+                >
+                    Restore Purchases
+                </Button>
+            </div>
+
             <p className="text-center text-xs text-muted-foreground">
-                Subscriptions are managed through your Apple ID. You can cancel anytime
-                in Settings → Apple ID → Subscriptions.
+                MAFS Pro and Elite are auto-renewing monthly subscriptions billed to your Apple ID.
+                Subscriptions renew automatically unless cancelled at least 24 hours before the end of
+                the current period. Manage or cancel anytime in Settings → Apple ID → Subscriptions.
             </p>
+
+            <PaywallLegalLinks />
         </div>
+    );
+}
+
+/** Terms of Use + Privacy Policy links — required on subscription screens (Guideline 3.1.2(c)). */
+function PaywallLegalLinks() {
+    return (
+        <p className="text-center text-xs text-muted-foreground">
+            <a href="/terms" className="underline hover:text-foreground">Terms of Use</a>
+            {"  •  "}
+            <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>
+        </p>
     );
 }
 
@@ -246,19 +270,32 @@ function PaywallSkeleton() {
     );
 }
 
-/** Error state */
-function PaywallError({ message }: { message: string }) {
+/**
+ * Neutral "subscriptions not available yet" state.
+ * Deliberately NOT styled as an error — Apple treats a visible error message as a bug.
+ * Shown when offerings haven't loaded (e.g. IAP products not yet approved) and offers
+ * Restore Purchases so existing subscribers can still recover access.
+ */
+function PaywallUnavailable({ onRestore, isBusy }: { onRestore: () => void; isBusy: boolean }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-                <AlertCircle className="h-6 w-6 text-destructive" />
+        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-border/50 bg-muted/30 p-8 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <ShieldCheck className="h-6 w-6 text-primary" />
             </div>
             <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-foreground">
-                    Unable to Load Subscriptions
+                    Subscriptions Coming Soon
                 </h3>
-                <p className="max-w-sm text-sm text-muted-foreground">{message}</p>
+                <p className="max-w-sm text-sm text-muted-foreground">
+                    Pro and Elite plans are being set up for your region. Please check back shortly.
+                    If you&apos;ve already subscribed, restore your purchase below.
+                </p>
             </div>
+            <Button variant="outline" size="sm" onClick={onRestore} disabled={isBusy}>
+                {isBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Restore Purchases
+            </Button>
+            <PaywallLegalLinks />
         </div>
     );
 }

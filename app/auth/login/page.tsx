@@ -1,6 +1,7 @@
 "use client"
 
 import GoogleLoginButton from "@/components/google-login-button"
+import AppleLoginButton from "@/components/apple-login-button"
 import Logo from "@/components/shared/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -141,6 +142,7 @@ export default function LoginPage() {
 
           <div className="mt-4">
             <GoogleLoginButton disabled={isLoading} onClick={handleGoogleClick} />
+            <AppleLoginButton disabled={isLoading} onClick={handleGoogleClick} />
           </div>
 
           <div className="mt-6 text-center space-y-2">

@@ -1,5 +1,6 @@
 import { Button } from './ui/button'
 import { authClient } from '@/lib/auth/auth-client'
+import { useNativePlatform } from '@/lib/hooks/useNativePlatform'
 
 type GoogleLoginButtonProps = {
     disabled: boolean;
@@ -7,6 +8,15 @@ type GoogleLoginButtonProps = {
 };
 
 function GoogleLoginButton({disabled = false, onClick}: GoogleLoginButtonProps) {
+    const { isNativeiOS } = useNativePlatform();
+
+    // Google OAuth opens an external browser inside the iOS WebView, which Apple
+    // rejects (Guideline 4). On native iOS we hide Google entirely — users sign in
+    // with Email/Password or Sign in with Apple, both fully in-app.
+    if (isNativeiOS) {
+        return null;
+    }
+
     const handleGoogleAuth = async() => {
         onClick();
         await authClient.signIn.social({

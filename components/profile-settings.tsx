@@ -15,7 +15,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "./ui/switch"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { changePassword } from "@/lib/auth/auth-client"
-import { Loader2 } from "lucide-react"
+import { authClient } from "@/lib/auth/auth-client"
+import { Loader2, AlertTriangle } from "lucide-react"
+import Link from "next/link"
 
 interface ProfileSettingsProps {
   user: {
@@ -65,6 +67,47 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [passwordLoading, setPasswordLoading] = useState(false)
+
+  // Delete Account State (App Store Guideline 5.1.1(v))
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deletePassword, setDeletePassword] = useState("")
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText.trim().toUpperCase() !== "DELETE") {
+      toast.error('Please type DELETE to confirm')
+      return
+    }
+    if (user?.passwordHash && !deletePassword) {
+      toast.error("Please enter your password to confirm")
+      return
+    }
+
+    setDeleteLoading(true)
+    try {
+      await authClient.deleteUser(
+        user?.passwordHash ? { password: deletePassword } : {},
+        {
+          onSuccess: () => {
+            toast.success("Your account has been permanently deleted")
+            setDeleteOpen(false)
+            // Clear any local session and leave the authenticated area.
+            authClient.signOut().finally(() => {
+              window.location.href = "/auth/login"
+            })
+          },
+          onError: (ctx) => {
+            toast.error(ctx.error.message || "Failed to delete account")
+            setDeleteLoading(false)
+          },
+        },
+      )
+    } catch {
+      toast.error("An unexpected error occurred")
+      setDeleteLoading(false)
+    }
+  }
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -423,12 +466,12 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
-            <button onClick={() => toast.info("Terms of Use coming soon")} className="w-full text-left px-4 py-3 rounded-lg border border-input bg-background hover:bg-muted/50 transition-colors">
+            <Link href="/terms" className="w-full text-left px-4 py-3 rounded-lg border border-input bg-background hover:bg-muted/50 transition-colors block">
               <span className="text-sm font-medium">Terms of Use</span>
-            </button>
-            <a href="/privacy" className="w-full text-left px-4 py-3 rounded-lg border border-input bg-background hover:bg-muted/50 transition-colors block">
+            </Link>
+            <Link href="/privacy" className="w-full text-left px-4 py-3 rounded-lg border border-input bg-background hover:bg-muted/50 transition-colors block">
               <span className="text-sm font-medium">Privacy Policy</span>
-            </a>
+            </Link>
           </div>
 
           <div className="pt-4 border-t border-input">
@@ -447,6 +490,72 @@ const ProfileSettings = ({ user, avatarUrl }: ProfileSettingsProps) => {
               All simulations are hypothetical and based on historical data. Past performance does not guarantee future results.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone — Account Deletion (App Store Guideline 5.1.1(v)) */}
+      <Card className="border-destructive/30">
+        <CardHeader>
+          <CardTitle className="text-destructive flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Delete Account
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Permanently delete your MAFS account and all associated data — your profile,
+            saved plays, history and preferences. This action is immediate and cannot be undone.
+            Any active subscription is managed through your Apple ID; cancel it in
+            Settings → Apple ID → Subscriptions.
+          </p>
+          <Dialog open={deleteOpen} onOpenChange={(open) => {
+            setDeleteOpen(open)
+            if (!open) {
+              setDeletePassword("")
+              setDeleteConfirmText("")
+            }
+          }}>
+            <DialogTrigger asChild>
+              <Button variant="destructive">Delete My Account</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete your account?</DialogTitle>
+                <DialogDescription>
+                  This permanently deletes your account and all your data. This cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                {user?.passwordHash && (
+                  <div className="space-y-2">
+                    <Label htmlFor="delete-password">Confirm your password</Label>
+                    <Input
+                      id="delete-password"
+                      type="password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      placeholder="Your current password"
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="delete-confirm">Type <span className="font-semibold">DELETE</span> to confirm</Label>
+                  <Input
+                    id="delete-confirm"
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="DELETE"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleteLoading}>Cancel</Button>
+                <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleteLoading}>
+                  {deleteLoading ? "Deleting..." : "Permanently Delete"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
 

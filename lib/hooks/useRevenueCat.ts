@@ -18,6 +18,8 @@ interface UseRevenueCatReturn {
     currentOffering: PurchasesOffering | null;
     /** Purchase a specific package — triggers Apple's native IAP flow */
     purchasePackage: (pkg: PurchasesPackage) => Promise<boolean>;
+    /** Restore previously purchased subscriptions for this Apple ID */
+    restorePurchases: () => Promise<boolean>;
     /** Whether a purchase is currently in progress */
     isPurchasing: boolean;
     /** Last error message (null if no error) */
@@ -119,11 +121,28 @@ export function useRevenueCat(userId: string | undefined): UseRevenueCatReturn {
         [],
     );
 
+    // Restore purchases — required affordance on subscription screens.
+    const restorePurchases = useCallback(async (): Promise<boolean> => {
+        setIsPurchasing(true);
+        setError(null);
+        try {
+            await Purchases.restorePurchases();
+            return true;
+        } catch (err: any) {
+            console.error("[RevenueCat] Restore error:", err);
+            setError(err?.message || "Could not restore purchases.");
+            return false;
+        } finally {
+            setIsPurchasing(false);
+        }
+    }, []);
+
     return {
         isConfigured,
         isLoading,
         currentOffering,
         purchasePackage,
+        restorePurchases,
         isPurchasing,
         error,
     };

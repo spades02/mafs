@@ -43,3 +43,9 @@ next-env.d.ts
 
 # claude code local settings (may contain secrets)
 .claude/
+
+# local working docs (Apple review files — keep out of the repo)
+Apple.pdf
+Apple.docx
+*.docx
+~$*
