@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -47,5 +48,12 @@ next-env.d.ts
 # local working docs (Apple review files — keep out of the repo)
 Apple.pdf
 Apple.docx
+MAFS_Apple_Setup_For_Client.pdf
 *.docx
 ~$*
+
+# Apple signing secrets — NEVER commit (private keys, provisioning profile, passwords)
+apple/
+*.p8
+*.p12
+*.mobileprovision
