@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { eq, and, desc, sql, gt, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, gt, lt, inArray } from "drizzle-orm";
 import {
   db,
   events,
@@ -55,6 +55,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ skipped: true, reason: "outside Wed-Sun window" });
   }
 
+  // 0. Close out any "running" rows whose event has already passed. Without
+  // this they accumulate forever and confuse the admin dashboard.
+  const closedOut = await db
+    .update(weeklyRuns)
+    .set({ status: "completed", completedAt: now })
+    .where(
+      and(
+        eq(weeklyRuns.status, "running"),
+        inArray(
+          weeklyRuns.eventId,
+          db.select({ eventId: events.eventId }).from(events).where(lt(events.dateTime, now)),
+        ),
+      ),
+    )
+    .returning({ id: weeklyRuns.id });
+  if (closedOut.length) {
+    console.log(`[weekly-sims] closed ${closedOut.length} stale running rows`);
+  }
+
   // 1. Find the next upcoming event, or honor explicit ?eventId override (smoke).
   let evt;
   if (forceEventId) {
@@ -95,7 +114,7 @@ export async function GET(req: NextRequest) {
       id: runId,
       eventId: evt.eventId,
       status: "running",
-      targetSims: 1000,
+      targetSims: 100,
       tickCount: 0,
     });
   }
@@ -136,22 +155,29 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ skipped: true, reason: "no fights with both fighters resolved" });
   }
 
-  // 4. Run agents. We aim for ~1,000 sims/week distributed by bucket
-  // (Wed 100 / Thu 150 / Fri 200 / Sat 400 / Sun 150). Each Agents() call
+  // 4. Run agents. We aim for ~100 sims/week distributed by bucket
+  // (Wed 10 / Thu 15 / Fri 20 / Sat 40 / Sun 15). Each Agents() call
   // simulates the full event card (~13 fights) once, so per tick we loop
   // ceil(bucketTarget / TICKS_PER_DAY / fightCount) times — capped at 5 to
-  // stay within the 300s function budget.
+  // stay within the 300s function budget. A run-level budget cap also
+  // skips the LLM once we've reached targetSims for the week.
   const TICKS_PER_DAY = 6;
   const MAX_LOOPS_PER_TICK = 5;
   const targetThisTick = TICK_TARGETS[bucket];
   const fightCount = Math.max(1, simplifiedEvent.fights.length);
-  const innerLoops = Math.min(
-    MAX_LOOPS_PER_TICK,
-    Math.max(1, Math.ceil(targetThisTick / TICKS_PER_DAY / fightCount)),
-  );
+  const runTarget = existingRun?.targetSims ?? 100;
+  const simsSoFar = existingRun?.totalFightsSimulated ?? 0;
+  const remainingBudget = Math.max(0, runTarget - simsSoFar);
+  const innerLoops = remainingBudget === 0
+    ? 0
+    : Math.min(
+        MAX_LOOPS_PER_TICK,
+        Math.max(1, Math.ceil(targetThisTick / TICKS_PER_DAY / fightCount)),
+        Math.ceil(remainingBudget / fightCount),
+      );
   const model = modelForTick(tickIndex);
   console.log(
-    `[weekly-sims] tick=${tickIndex} bucket=${bucket} target=${targetThisTick} loops=${innerLoops} model=${model} event=${evt.name}`,
+    `[weekly-sims] tick=${tickIndex} bucket=${bucket} target=${targetThisTick} runTarget=${runTarget} simsSoFar=${simsSoFar} loops=${innerLoops} model=${model} event=${evt.name}`,
   );
 
   const collected: FightResult[] = [];
