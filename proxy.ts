@@ -1,8 +1,31 @@
 import { NextResponse, NextRequest } from "next/server"
 import { auth } from "@/app/lib/auth/auth"
+import { OFFLINE, OFFLINE_HTML } from "@/lib/shutdown"
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Shutdown switch. This MUST stay the first thing in the handler: everything
+  // below it calls getSession(), which hits Postgres. While the Supabase
+  // project is paused those calls would hang until the function times out, so
+  // we answer from memory instead and never touch a backing service.
+  //
+  // 503 + Retry-After is the honest status here — it tells Stripe/RevenueCat
+  // to retry their webhooks rather than treating the event as delivered, and
+  // keeps search engines from de-indexing the site permanently.
+  if (OFFLINE) {
+    return new NextResponse(OFFLINE_HTML, {
+      status: 503,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "retry-after": "86400",
+        // Short TTL so bringing the site back doesn't leave this cached at the
+        // edge, but long enough that a traffic spike doesn't bill us for a
+        // function invocation per request.
+        "cache-control": "public, max-age=60, s-maxage=60",
+      },
+    })
+  }
 
   // Ignore API, static files, etc. managed by matcher mostly, but good to be safe
   if (pathname.startsWith('/api/auth') || pathname.startsWith('/_next')) {

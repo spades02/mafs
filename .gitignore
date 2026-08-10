@@ -57,3 +57,10 @@ apple/
 *.p8
 *.p12
 *.mobileprovision
+
+# Database dumps from scripts/backup-db.mjs. These contain user emails, session
+# tokens and OAuth account rows. The script writes outside the repo by default;
+# this is the safety net for when an output dir is passed explicitly.
+/backups/
+/mafs-backup-*/
+*.jsonl

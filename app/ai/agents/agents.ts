@@ -7,6 +7,7 @@ const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+import { OFFLINE } from "@/lib/shutdown";
 import { MAFS_PROMPT } from "@/lib/agents/prompts";
 import {
   FightEdgeSummaryGenerationSchema,
@@ -42,6 +43,16 @@ async function safeGenerateObject<T>(
   args: Parameters<typeof generateObject>[0],
   opts: { fallback?: T; label?: string } = {}
 ): Promise<{ object: T; usage?: GenUsage }> {
+  // Hard spend guard. Every LLM call in the codebase funnels through this
+  // wrapper, so refusing here guarantees no OpenAI billing while MAFS is shut
+  // down — even if a route, cron, or script is invoked directly and bypasses
+  // the proxy-level offline switch. See lib/shutdown.ts.
+  if (OFFLINE) {
+    throw new Error(
+      `[shutdown] MAFS is offline (MAFS_OFFLINE=1) — refusing LLM call${opts.label ? ` for "${opts.label}"` : ""}.`
+    );
+  }
+
   const isSchemaMismatch = (err: unknown) => {
     const e = err as { name?: string; message?: string } | undefined;
     return (
